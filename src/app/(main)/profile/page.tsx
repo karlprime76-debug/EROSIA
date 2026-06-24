@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, type Profile } from '@/lib/api'
@@ -84,7 +85,7 @@ export default function ProfilePage() {
           <div className="relative inline-block">
             <div className="w-24 h-24 rounded-full bg-zinc-200 overflow-hidden mx-auto">
               {profile?.photos?.[0] ? (
-                <img src={profile.photos[0]} className="w-full h-full object-cover" />
+                <Image src={profile.photos[0]} alt={profile.name} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-zinc-400 text-3xl">?</div>
               )}
@@ -107,7 +108,7 @@ export default function ProfilePage() {
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm outline-none focus:border-rose-400 resize-none" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Centres d'intérêt (séparés par des virgules)</label>
+              <label className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
               <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm outline-none focus:border-rose-400" />
             </div>
@@ -120,7 +121,7 @@ export default function ProfilePage() {
             {profile?.bio && <div className="mb-4"><h3 className="font-semibold text-sm mb-1">Bio</h3><p className="text-zinc-500 text-sm">{profile.bio}</p></div>}
             {profile?.interests && profile.interests.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-semibold text-sm mb-2">Centres d'intérêt</h3>
+                <h3 className="font-semibold text-sm mb-2">Centres d&rsquo;intérêt</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.interests.map(i => (
                     <span key={i} className="text-xs bg-zinc-100 px-3 py-1 rounded-full">{i}</span>

@@ -23,7 +23,7 @@ export default function LoginPage() {
   return (
     <div className="flex-1 flex flex-col bg-white px-8 justify-center max-w-sm mx-auto w-full">
       <h2 className="text-2xl font-bold mb-1">Content de te revoir</h2>
-      <p className="text-zinc-500 mb-8">Connecte-toi pour continuer l'aventure</p>
+      <p className="text-zinc-500 mb-8">Connecte-toi pour continuer l&rsquo;aventure</p>
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <div>
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       <p className="text-center text-zinc-500 mt-8 text-sm">
         Pas encore de compte ?{' '}
-        <a href="/register" className="font-semibold" style={{ color: '#FF3B5C' }}>S'inscrire</a>
+        <a href="/register" className="font-semibold" style={{ color: '#FF3B5C' }}>S&rsquo;inscrire</a>
       </p>
     </div>
   )

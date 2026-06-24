@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Heart, MessageCircle, ChevronRight } from 'lucide-react'
+import Image from 'next/image'
+import { Heart, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { type Match, type Profile } from '@/lib/api'
+import { type Profile } from '@/lib/api'
 
 interface Conversation {
   matchId: string
@@ -57,8 +58,8 @@ export default function MatchesPage() {
         ) : convs.map((c) => (
           <Link key={c.matchId} href={`/chat/${c.matchId}`}
             className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-100 hover:shadow-sm transition">
-            <img src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'}
-              className="w-14 h-14 rounded-full object-cover bg-zinc-200" />
+            <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
+              className="rounded-full object-cover bg-zinc-200" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold">{c.profile.name}</p>
               <p className="text-sm text-zinc-400 truncate">Dites bonjour ! 👋</p>

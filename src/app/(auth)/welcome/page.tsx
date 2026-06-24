@@ -35,7 +35,7 @@ export default function WelcomePage() {
             href="/login"
             className="w-full py-3.5 rounded-full border border-white text-center font-semibold text-base text-white"
           >
-            J'ai déjà un compte
+            J&rsquo;ai déjà un compte
           </Link>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { getMessages, sendMessage, type Message } from '@/lib/api'
+import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { Send } from 'lucide-react'
 
 export default function ChatPage() {
@@ -22,10 +23,11 @@ export default function ChatPage() {
 
     const channel = supabase
       .channel(`messages:${id}`)
-      .on('postgres_changes' as any, {
+      .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `match_id=eq.${id}`,
-      }, (payload: any) => setMessages((prev) => [...prev, payload.new as Message]))
+      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) =>
+        setMessages((prev) => [...prev, payload.new as Message]))
       .subscribe()
 
     return () => { channel.unsubscribe() }

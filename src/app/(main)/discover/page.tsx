@@ -1,41 +1,38 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flame, MessageCircle, X, Heart, Star, Globe, SlidersHorizontal } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, getProfile, type Profile } from '@/lib/api'
+import Image from 'next/image'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal } from 'lucide-react'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, type Profile } from '@/lib/api'
 
 const SUPER_LIKE_DAILY = 3
+
+function getInitialSuperLikes(): number {
+  if (typeof window === 'undefined') return SUPER_LIKE_DAILY
+  const stored = localStorage.getItem('erosia_superlikes_date')
+  const today = new Date().toDateString()
+  if (stored !== today) return SUPER_LIKE_DAILY
+  const count = parseInt(localStorage.getItem('erosia_superlikes_count') ?? '0', 10)
+  return SUPER_LIKE_DAILY - count
+}
 
 export default function DiscoverPage() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [idx, setIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [matchModal, setMatchModal] = useState<{ profile: Profile; matchId: string } | null>(null)
-  const [superLikesLeft, setSuperLikesLeft] = useState(SUPER_LIKE_DAILY)
+  const [superLikesLeft, setSuperLikesLeft] = useState(getInitialSuperLikes)
   const [showFilters, setShowFilters] = useState(false)
   const router = useRouter()
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    const swiped = await getSwipedIds()
-    const { data } = await getProfiles(swiped)
-    if (data) setProfiles(data)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { load() }, [load])
   useEffect(() => {
-    const stored = localStorage.getItem('erosia_superlikes_date')
-    const today = new Date().toDateString()
-    if (stored !== today) {
-      localStorage.setItem('erosia_superlikes_date', today)
-      localStorage.setItem('erosia_superlikes_count', '0')
-      setSuperLikesLeft(SUPER_LIKE_DAILY)
-    } else {
-      const count = parseInt(localStorage.getItem('erosia_superlikes_count') ?? '0', 10)
-      setSuperLikesLeft(SUPER_LIKE_DAILY - count)
-    }
+    ;(async () => {
+      const swiped = await getSwipedIds()
+      const { data } = await getProfiles(swiped)
+      if (data) setProfiles(data)
+      setLoading(false)
+    })()
   }, [])
 
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
@@ -44,6 +41,11 @@ export default function DiscoverPage() {
     if (dir === 'super_like') {
       if (superLikesLeft <= 0) return
       setSuperLikesLeft((s) => s - 1)
+      const today = new Date().toDateString()
+      if (localStorage.getItem('erosia_superlikes_date') !== today) {
+        localStorage.setItem('erosia_superlikes_date', today)
+        localStorage.setItem('erosia_superlikes_count', '0')
+      }
       const c = parseInt(localStorage.getItem('erosia_superlikes_count') ?? '0', 10)
       localStorage.setItem('erosia_superlikes_count', String(c + 1))
     }
@@ -53,8 +55,15 @@ export default function DiscoverPage() {
       if (isMatch && match) setMatchModal({ profile: p, matchId: match.id })
     }
     const next = idx + 1
-    if (next >= profiles.length) { await load(); setIdx(0) }
-    else setIdx(next)
+    if (next >= profiles.length) {
+      setProfiles([])
+      setIdx(0)
+      const swiped = await getSwipedIds()
+      const { data } = await getProfiles(swiped)
+      if (data) setProfiles(data)
+    } else {
+      setIdx(next)
+    }
   }
 
   const current = profiles[idx]
@@ -92,7 +101,7 @@ export default function DiscoverPage() {
           </div>
         ) : (
           <div className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden relative shadow-lg bg-zinc-100">
-            <img src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} className="w-full h-full object-cover" />
+            <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
             <div className="absolute bottom-20 left-4 right-4">
@@ -130,12 +139,12 @@ export default function DiscoverPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in">
             <Heart size={72} className="mx-auto mb-4" style={{ color: '#FF3B5C' }} fill="#FF3B5C" />
-            <h2 className="text-3xl font-bold" style={{ color: '#FF3B5C' }}>C'est un match !</h2>
+            <h2 className="text-3xl font-bold" style={{ color: '#FF3B5C' }}>C&rsquo;est un match !</h2>
             <p className="text-zinc-500 mt-1">Vous vous êtes mutuellement likés</p>
             <div className="flex items-center justify-center gap-4 my-6">
-              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" className="w-20 h-20 rounded-full border-2 border-rose-500 object-cover" />
+              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-rose-500 object-cover" />
               <Heart size={24} className="text-rose-500" fill="#FF3B5C" />
-              <img src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} className="w-20 h-20 rounded-full border-2 border-rose-500 object-cover" />
+              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-rose-500 object-cover" />
             </div>
             <p className="font-semibold mb-6">{matchModal.profile.name}</p>
             <button onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
