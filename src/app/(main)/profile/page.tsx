@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, type Profile } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, type Profile } from '@/lib/api'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -81,23 +81,50 @@ export default function ProfilePage() {
       </header>
 
       <div className="px-4">
-        <div className="bg-white rounded-2xl p-6 mb-4 text-center border border-zinc-100">
-          <div className="relative inline-block">
-            <div className="w-24 h-24 rounded-full bg-zinc-200 overflow-hidden mx-auto">
-              {profile?.photos?.[0] ? (
-                <Image src={profile.photos[0]} alt={profile.name} fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-zinc-400 text-3xl">?</div>
-              )}
+        <div className="bg-white rounded-2xl p-6 mb-4 border border-zinc-100">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-full bg-zinc-200 overflow-hidden">
+                {profile?.photos?.[0] ? (
+                  <Image src={profile.photos[0]} alt={profile.name} width={80} height={80} className="object-cover w-full h-full" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-400 text-3xl">?</div>
+                )}
+              </div>
+              <button onClick={handlePhoto} disabled={uploading}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow"
+                style={{ background: '#FF3B5C' }}>
+                {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
+              </button>
             </div>
-            <button onClick={handlePhoto} disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow"
-              style={{ background: '#FF3B5C' }}>
-              {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
-            </button>
+            <div>
+              <p className="text-lg font-bold">{profile?.name ?? 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
+              {profile?.location && <p className="text-sm text-zinc-400">📍 {profile.location}</p>}
+            </div>
           </div>
-          <p className="text-lg font-bold mt-3">{profile?.name ?? 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
-          {profile?.location && <p className="text-sm text-zinc-400">📍 {profile.location}</p>}
+
+          {profile && profile.photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {profile.photos.map((photo, idx) => (
+                <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-zinc-100">
+                  <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    {idx > 0 && (
+                      <button onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                        className="p-2 bg-white/90 rounded-full hover:bg-white" title="Photo principale">
+                        <Star size={14} className="text-amber-500" />
+                      </button>
+                    )}
+                    <button onClick={async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white" title="Supprimer">
+                      <Trash2 size={14} className="text-red-500" />
+                    </button>
+                  </div>
+                  {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {editing ? (

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal } from 'lucide-react'
 import { getProfiles, getSwipedIds, createSwipe, checkForMatch, type Profile } from '@/lib/api'
+import { TiltCard } from '@/components/3d/TiltCard'
+import { MatchBurst } from '@/components/3d/MatchBurst'
 
 const SUPER_LIKE_DAILY = 3
 
@@ -24,15 +26,18 @@ export default function DiscoverPage() {
   const [matchModal, setMatchModal] = useState<{ profile: Profile; matchId: string } | null>(null)
   const [superLikesLeft, setSuperLikesLeft] = useState(getInitialSuperLikes)
   const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({ minAge: 18, maxAge: 99 })
   const router = useRouter()
 
   useEffect(() => {
-    ;(async () => {
-      const swiped = await getSwipedIds()
-      const { data } = await getProfiles(swiped)
-      if (data) setProfiles(data)
-      setLoading(false)
-    })()
+    getSwipedIds()
+      .then(swiped => getProfiles(swiped, { minAge: 18, maxAge: 99 }))
+      .then(({ data }) => {
+        setTimeout(() => {
+          if (data) setProfiles(data)
+          setLoading(false)
+        })
+      })
   }, [])
 
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
@@ -59,7 +64,7 @@ export default function DiscoverPage() {
       setProfiles([])
       setIdx(0)
       const swiped = await getSwipedIds()
-      const { data } = await getProfiles(swiped)
+      const { data } = await getProfiles(swiped, filters)
       if (data) setProfiles(data)
     } else {
       setIdx(next)
@@ -77,7 +82,7 @@ export default function DiscoverPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
-        <h1 className="text-2xl font-extrabold tracking-wide" style={{ color: '#FF3B5C' }}>Erosia</h1>
+        <Image src="/logo.png" alt="Erosia" width={100} height={33} />
         <div className="flex items-center gap-3">
           <button onClick={() => setShowFilters(!showFilters)} className="p-2"><SlidersHorizontal size={20} /></button>
           <button onClick={() => router.push('/matches')} className="p-2"><MessageCircle size={20} /></button>
@@ -85,10 +90,31 @@ export default function DiscoverPage() {
       </header>
 
       {showFilters && (
-        <div className="mx-4 mb-3 p-4 bg-zinc-50 rounded-2xl flex gap-4 items-center text-sm">
-          <select className="bg-white border rounded-lg px-3 py-2"><option>18-25</option><option>25-35</option><option>35-50</option></select>
-          <select className="bg-white border rounded-lg px-3 py-2"><option>5 km</option><option selected>15 km</option><option>50 km</option></select>
-          <button onClick={() => setShowFilters(false)} className="text-rose-500 font-medium ml-auto">OK</button>
+        <div className="mx-4 mb-3 p-4 bg-zinc-50 rounded-2xl space-y-3 text-sm">
+          <div>
+            <label className="text-xs font-medium text-zinc-500 mb-1 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
+            <div className="flex gap-3 items-center">
+              <input type="range" min={18} max={70} value={filters.minAge}
+                onChange={e => setFilters(f => ({ ...f, minAge: Number(e.target.value) }))}
+                className="flex-1 accent-rose-500" />
+              <span className="text-zinc-300">–</span>
+              <input type="range" min={18} max={70} value={filters.maxAge}
+                onChange={e => setFilters(f => ({ ...f, maxAge: Number(e.target.value) }))}
+                className="flex-1 accent-rose-500" />
+            </div>
+          </div>
+          <button onClick={() => {
+            setShowFilters(false); setLoading(true)
+            getSwipedIds().then(swiped => getProfiles(swiped, filters)).then(({ data }) => {
+              setTimeout(() => {
+                if (data) setProfiles(data)
+                setLoading(false)
+              })
+            })
+          }}
+            className="w-full py-2.5 rounded-full text-white font-semibold text-sm" style={{ background: '#FF3B5C' }}>
+            Appliquer les filtres
+          </button>
         </div>
       )}
 
@@ -100,25 +126,27 @@ export default function DiscoverPage() {
             <p className="text-zinc-400 text-sm mt-1">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
-          <div className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden relative shadow-lg bg-zinc-100">
-            <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg bg-zinc-100">
+            <div className="relative w-full h-full">
+              <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-            <div className="absolute bottom-20 left-4 right-4">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-2xl font-bold text-white">{current.name}</h2>
-                {current.age && <span className="text-xl text-white/90">{current.age}</span>}
+              <div className="absolute bottom-20 left-4 right-4 pointer-events-none">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-2xl font-bold text-white">{current.name}</h2>
+                  {current.age && <span className="text-xl text-white/90">{current.age}</span>}
+                </div>
+                {current.location && <p className="text-white/80 text-sm">{current.location}</p>}
               </div>
-              {current.location && <p className="text-white/80 text-sm">{current.location}</p>}
+
+              {current.interests && current.interests.length > 0 && (
+                <div className="absolute bottom-32 left-4 flex gap-1.5 pointer-events-none">
+                  {current.interests.slice(0, 3).map((i) => (
+                    <span key={i} className="text-xs text-white bg-white/20 px-2.5 py-0.5 rounded-full">{i}</span>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {current.interests && current.interests.length > 0 && (
-              <div className="absolute bottom-32 left-4 flex gap-1.5">
-                {current.interests.slice(0, 3).map((i) => (
-                  <span key={i} className="text-xs text-white bg-white/20 px-2.5 py-0.5 rounded-full">{i}</span>
-                ))}
-              </div>
-            )}
 
             <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-5">
               <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center">
@@ -131,13 +159,14 @@ export default function DiscoverPage() {
                 <Heart size={28} className="text-green-500" />
               </button>
             </div>
-          </div>
+          </TiltCard>
         )}
       </div>
 
       {matchModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in">
+          <MatchBurst />
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in relative z-10">
             <Heart size={72} className="mx-auto mb-4" style={{ color: '#FF3B5C' }} fill="#FF3B5C" />
             <h2 className="text-3xl font-bold" style={{ color: '#FF3B5C' }}>C&rsquo;est un match !</h2>
             <p className="text-zinc-500 mt-1">Vous vous êtes mutuellement likés</p>

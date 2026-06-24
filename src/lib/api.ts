@@ -61,9 +61,23 @@ export async function signOut() {
   return supabase.auth.signOut()
 }
 
-export async function getProfiles(excludeIds: string[]) {
-  const q = supabase.from('profiles').select('*')
-  if (excludeIds.length > 0) q.not('id', 'in', `(${excludeIds.join(',')})`)
+export async function resetPassword(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  })
+  return { error: error?.message }
+}
+
+export async function updatePassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password })
+  return { error: error?.message }
+}
+
+export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number }) {
+  let q = supabase.from('profiles').select('*')
+  if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
+  if (filters?.minAge) q = q.gte('age', filters.minAge)
+  if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   const { data, error } = await q
   return { data: data as Profile[] | null, error: error?.message }
 }
@@ -135,4 +149,18 @@ export async function uploadPhoto(uri: File, userId: string, index: number) {
   if (error) return { error: error.message }
   const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName)
   return { url: urlData.publicUrl }
+}
+
+export async function deletePhoto(userId: string, photoUrl: string, currentPhotos: string[]) {
+  const fileName = photoUrl.split('/photos/').pop()
+  if (fileName) await supabase.storage.from('photos').remove([fileName])
+  const photos = currentPhotos.filter(p => p !== photoUrl)
+  const { error } = await supabase.from('profiles').update({ photos }).eq('id', userId)
+  return { photos, error: error?.message }
+}
+
+export async function setPrimaryPhoto(userId: string, photoUrl: string, currentPhotos: string[]) {
+  const photos = [photoUrl, ...currentPhotos.filter(p => p !== photoUrl)]
+  const { error } = await supabase.from('profiles').update({ photos }).eq('id', userId)
+  return { photos, error: error?.message }
 }

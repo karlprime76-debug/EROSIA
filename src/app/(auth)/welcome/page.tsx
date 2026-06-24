@@ -1,13 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
+import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
 export default function WelcomePage() {
   return (
-    <div className="flex-1 flex flex-col" style={{ background: 'linear-gradient(135deg, #FF3B5C, #6C63FF)' }}>
+    <div className="flex-1 flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #FF3B5C, #6C63FF)' }}>
+      <FloatingHearts />
       <div className="flex-1 flex flex-col items-center justify-center px-8 pb-16">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-extrabold text-white tracking-wider mb-3">Erosia</h1>
+        <div className="text-center mb-16 flex flex-col items-center">
+          <Image src="/logo.png" alt="Erosia" width={180} height={60} className="mb-3" priority />
           <p className="text-lg text-white/90">Là où les cœurs se rencontrent</p>
         </div>
 

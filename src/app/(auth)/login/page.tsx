@@ -37,6 +37,7 @@ export default function LoginPage() {
           <input type="password" placeholder="••••••••" value={password}
             onChange={(e) => setPassword(e.target.value)} required
             className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-base outline-none focus:border-rose-400" />
+          <a href="/forgot-password" className="text-xs text-zinc-400 mt-1.5 block text-right hover:underline">Mot de passe oublié ?</a>
         </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button type="submit" disabled={loading}
