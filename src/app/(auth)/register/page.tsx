@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { signUp } from '@/lib/api'
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', age: '' })
@@ -13,8 +12,13 @@ export default function RegisterPage() {
     const ageNum = parseInt(form.age, 10)
     if (isNaN(ageNum) || ageNum < 18) { setError('Tu dois avoir au moins 18 ans'); return }
     setLoading(true); setError('')
-    const result = await signUp(form.email, form.password, form.name, ageNum)
-    if (result.error) { setError(result.error); setLoading(false); return }
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.email, password: form.password, name: form.name, age: ageNum }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error); setLoading(false); return }
     setSuccess(true)
   }
 
