@@ -43,25 +43,25 @@ export default function ChatPage() {
   }
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-white">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#FF3B5C', borderTopColor: 'transparent' }} />
+    <div className="flex-1 flex items-center justify-center bg-[#1C1C1E]">
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
-    <div className="flex-1 flex flex-col bg-white max-w-lg mx-auto w-full">
+    <div className="flex-1 flex flex-col bg-[#1C1C1E] max-w-lg mx-auto w-full">
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.map((m) => (
-          <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-zinc-100 self-start">
+          <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#262628] self-start">
             <p className="text-sm">{m.text}</p>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-zinc-100">
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-[#2A2826]">
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-zinc-50 text-sm outline-none" />
-        <button onClick={handleSend} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: '#FF3B5C' }}>
+          placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C] text-sm outline-none" />
+        <button onClick={handleSend} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: '#D92D4A' }}>
           <Send size={16} className="text-white" />
         </button>
       </div>

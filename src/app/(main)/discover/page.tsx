@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, type Profile } from '@/lib/api'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye } from 'lucide-react'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 
@@ -27,6 +27,7 @@ export default function DiscoverPage() {
   const [superLikesLeft, setSuperLikesLeft] = useState(getInitialSuperLikes)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({ minAge: 18, maxAge: 99 })
+  const [flirtedIds, setFlirtedIds] = useState<string[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function DiscoverPage() {
           setLoading(false)
         })
       })
+    getSentFlirtIds().then(ids => setFlirtedIds(ids))
   }, [])
 
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
@@ -75,7 +77,7 @@ export default function DiscoverPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#FF3B5C', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
@@ -90,17 +92,17 @@ export default function DiscoverPage() {
       </header>
 
       {showFilters && (
-        <div className="mx-4 mb-3 p-4 bg-zinc-50 rounded-2xl space-y-3 text-sm">
+        <div className="mx-4 mb-3 p-4 bg-[#1A1A1C] rounded-2xl space-y-3 text-sm">
           <div>
-            <label className="text-xs font-medium text-zinc-500 mb-1 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
+            <label className="text-xs font-medium text-[#9E9488] mb-1 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
             <div className="flex gap-3 items-center">
               <input type="range" min={18} max={70} value={filters.minAge}
                 onChange={e => setFilters(f => ({ ...f, minAge: Number(e.target.value) }))}
-                className="flex-1 accent-rose-500" />
-              <span className="text-zinc-300">–</span>
+                className="flex-1 accent-[#D92D4A]" />
+              <span className="text-[#5A5248]">–</span>
               <input type="range" min={18} max={70} value={filters.maxAge}
                 onChange={e => setFilters(f => ({ ...f, maxAge: Number(e.target.value) }))}
-                className="flex-1 accent-rose-500" />
+                className="flex-1 accent-[#D92D4A]" />
             </div>
           </div>
           <button onClick={() => {
@@ -112,7 +114,7 @@ export default function DiscoverPage() {
               })
             })
           }}
-            className="w-full py-2.5 rounded-full text-white font-semibold text-sm" style={{ background: '#FF3B5C' }}>
+            className="w-full py-2.5 rounded-full text-white font-semibold text-sm" style={{ background: '#D92D4A' }}>
             Appliquer les filtres
           </button>
         </div>
@@ -121,12 +123,12 @@ export default function DiscoverPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 pb-2">
         {!current ? (
           <div className="text-center">
-            <Globe size={64} className="text-zinc-300 mx-auto mb-4" />
+            <Globe size={64} className="text-[#5A5248] mx-auto mb-4" />
             <p className="text-lg font-semibold">Plus de profils</p>
-            <p className="text-zinc-400 text-sm mt-1">Reviens plus tard ou modifie tes filtres</p>
+            <p className="text-[#6B6258] text-sm mt-1">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
-          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg bg-zinc-100">
+          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-black/40 bg-[#1C1C1E]">
             <div className="relative w-full h-full">
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
@@ -149,13 +151,21 @@ export default function DiscoverPage() {
             </div>
 
             <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-5">
-              <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center">
+              <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
                 <X size={28} className="text-red-500" />
               </button>
-              <button onClick={() => swipe('super_like')} className="w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center">
+              <button onClick={() => swipe('super_like')} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
                 <Star size={22} className="text-indigo-500" />
               </button>
-              <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center">
+              <button onClick={async () => {
+                if (!current || flirtedIds.includes(current.id)) return
+                await sendFlirt(current.id)
+                setFlirtedIds(ids => [...ids, current.id])
+              }}
+                className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
+                <Eye size={22} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
+              </button>
+              <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
                 <Heart size={28} className="text-green-500" />
               </button>
             </div>
@@ -164,23 +174,23 @@ export default function DiscoverPage() {
       </div>
 
       {matchModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
           <MatchBurst />
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in relative z-10">
-            <Heart size={72} className="mx-auto mb-4" style={{ color: '#FF3B5C' }} fill="#FF3B5C" />
-            <h2 className="text-3xl font-bold" style={{ color: '#FF3B5C' }}>C&rsquo;est un match !</h2>
-            <p className="text-zinc-500 mt-1">Vous vous êtes mutuellement likés</p>
+          <div className="bg-[#1C1C1E] rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in relative z-10">
+            <Heart size={72} className="mx-auto mb-4" style={{ color: '#D92D4A' }} fill="#D92D4A" />
+            <h2 className="text-3xl font-bold" style={{ color: '#D92D4A' }}>C&rsquo;est un match !</h2>
+            <p className="text-[#9E9488] mt-1">Vous vous êtes mutuellement likés</p>
             <div className="flex items-center justify-center gap-4 my-6">
-              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-rose-500 object-cover" />
-              <Heart size={24} className="text-rose-500" fill="#FF3B5C" />
-              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-rose-500 object-cover" />
+              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover" />
+              <Heart size={24} className="text-[#D92D4A]" fill="#D92D4A" />
+              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover" />
             </div>
             <p className="font-semibold mb-6">{matchModal.profile.name}</p>
             <button onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
-              className="w-full py-3.5 rounded-full text-white font-semibold" style={{ background: '#FF3B5C' }}>
+              className="w-full py-3.5 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
               Envoyer un message
             </button>
-            <button onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-zinc-500 text-sm">Continuer à swiper</button>
+            <button onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-[#9E9488] text-sm">Continuer à swiper</button>
           </div>
         </div>
       )}

@@ -164,3 +164,33 @@ export async function setPrimaryPhoto(userId: string, photoUrl: string, currentP
   const { error } = await supabase.from('profiles').update({ photos }).eq('id', userId)
   return { photos, error: error?.message }
 }
+
+export async function sendFlirt(receiverId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('flirts').insert({
+    sender_id: user.id, receiver_id: receiverId,
+  })
+  return { error: error?.message }
+}
+
+export async function getReceivedFlirts() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [], count: 0 }
+  const { data, error } = await supabase
+    .from('flirts').select(`
+      sender_id,
+      created_at,
+      sender:profiles!flirts_sender_id_fkey(name, photos)
+    `)
+    .eq('receiver_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], count: data?.length ?? 0, error: error?.message }
+}
+
+export async function getSentFlirtIds() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await supabase.from('flirts').select('receiver_id').eq('sender_id', user.id)
+  return (data ?? []).map(f => f.receiver_id)
+}

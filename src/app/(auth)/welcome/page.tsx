@@ -6,7 +6,7 @@ import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
 export default function WelcomePage() {
   return (
-    <div className="flex-1 flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #FF3B5C, #6C63FF)' }}>
+    <div className="flex-1 flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #D92D4A, #8B0000)' }}>
       <FloatingHearts />
       <div className="flex-1 flex flex-col items-center justify-center px-8 pb-16">
         <div className="text-center mb-16 flex flex-col items-center">
@@ -30,7 +30,7 @@ export default function WelcomePage() {
           <Link
             href="/onboarding"
             className="w-full py-3.5 rounded-full bg-white text-center font-semibold text-base"
-            style={{ color: '#FF3B5C' }}
+            style={{ color: '#D92D4A' }}
           >
             Commencer
           </Link>

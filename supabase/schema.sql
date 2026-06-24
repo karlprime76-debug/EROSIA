@@ -119,3 +119,26 @@ CREATE TRIGGER on_mutual_like
   FOR EACH ROW
   WHEN (NEW.direction IN ('like', 'super_like'))
   EXECUTE FUNCTION handle_mutual_like();
+
+-- Flirts (winks / œillades)
+CREATE TABLE flirts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID REFERENCES profiles(id) NOT NULL,
+  receiver_id UUID REFERENCES profiles(id) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(sender_id, receiver_id)
+);
+
+ALTER TABLE flirts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can send flirts"
+  ON flirts FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can view flirts they sent or received"
+  ON flirts FOR SELECT
+  USING (auth.uid() IN (sender_id, receiver_id));
+
+CREATE POLICY "Users can delete own flirts"
+  ON flirts FOR DELETE
+  USING (auth.uid() = sender_id);

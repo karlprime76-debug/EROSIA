@@ -1,21 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #FF3B5C;
-  --primary-light: #FF6B84;
-  --primary-dark: #D92D4A;
-  --secondary: #6C63FF;
-  --background: #FAF9F6;
-  --surface: #FFFFFF;
-  --text: #1A1A2E;
-  --text-secondary: #6B7280;
-  --text-light: #9CA3AF;
-  --border: #E5E7EB;
+  --bg: #0A0A0A;
+  --bg-elevated: #141414;
+  --bg-card: #1C1C1E;
+  --bg-hover: #262628;
+  --primary: #D92D4A;
+  --primary-light: #FF2D55;
+  --primary-dark: #A8102A;
+  --accent: #C85A17;
+  --accent-light: #D4782B;
+  --text: #F5F0EB;
+  --text-secondary: #9E9488;
+  --text-light: #6B6258;
+  --border: #2A2826;
   --success: #10B981;
   --error: #EF4444;
+  --surface: #1C1C1E;
+  --overlay: rgba(0, 0, 0, 0.7);
 }
 
 body {
-  background: var(--background);
+  background: var(--bg);
   color: var(--text);
+}
+
+input, textarea, select {
+  background: var(--bg-card);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-light);
+}
+
+* {
+  border-color: var(--border);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(217, 45, 74, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(217, 45, 74, 0.6); }
+}
+
+.animate-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
