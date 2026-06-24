@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, MessageCircle, Eye } from 'lucide-react'
+import { Heart, MessageCircle, Eye, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getReceivedFlirts, type Profile } from '@/lib/api'
+import { getReceivedFlirts, unmatchUser, type Profile } from '@/lib/api'
 
 interface Conversation {
   matchId: string
@@ -46,6 +46,15 @@ export default function MatchesPage() {
       setLoading(false)
     })()
   }, [])
+
+  const handleUnmatch = async (matchId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (confirm('Supprimer ce match ?')) {
+      await unmatchUser(matchId)
+      setConvs(prev => prev.filter(c => c.matchId !== matchId))
+    }
+  }
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -99,6 +108,9 @@ export default function MatchesPage() {
               <p className="text-sm text-[#6B6258] truncate">Dites bonjour ! 👋</p>
             </div>
             <MessageCircle size={20} className="text-[#5A5248]" />
+            <button onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1">
+              <X size={16} className="text-[#5A5248] hover:text-red-500 transition-colors" />
+            </button>
           </Link>
         ))}
       </div>

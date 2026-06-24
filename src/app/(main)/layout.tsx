@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Flame, Heart, User } from 'lucide-react'
+import { Flame, Heart, User, Settings } from 'lucide-react'
 
 const tabs = [
   { href: '/discover', icon: Flame, label: 'Découvrir' },
   { href: '/matches', icon: Heart, label: 'Matchs' },
   { href: '/profile', icon: User, label: 'Profil' },
+  { href: '/settings', icon: Settings, label: 'Réglages' },
 ]
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {

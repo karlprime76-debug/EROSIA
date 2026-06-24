@@ -11,6 +11,7 @@ CREATE TABLE profiles (
   photos TEXT[] DEFAULT '{}',
   interests TEXT[] DEFAULT '{}',
   is_verified BOOLEAN DEFAULT false,
+  looking_for TEXT DEFAULT 'friendship' CHECK (looking_for IN ('friendship', 'casual', 'fwb', 'serious', 'open')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -142,3 +143,57 @@ CREATE POLICY "Users can view flirts they sent or received"
 CREATE POLICY "Users can delete own flirts"
   ON flirts FOR DELETE
   USING (auth.uid() = sender_id);
+
+-- Blocks
+CREATE TABLE blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  blocker_id UUID REFERENCES profiles(id) NOT NULL,
+  blocked_id UUID REFERENCES profiles(id) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(blocker_id, blocked_id)
+);
+
+ALTER TABLE blocks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can block others"
+  ON blocks FOR INSERT
+  WITH CHECK (auth.uid() = blocker_id);
+
+CREATE POLICY "Users can view own blocks"
+  ON blocks FOR SELECT
+  USING (auth.uid() = blocker_id);
+
+CREATE POLICY "Users can unblock"
+  ON blocks FOR DELETE
+  USING (auth.uid() = blocker_id);
+
+-- Reports
+CREATE TABLE reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID REFERENCES profiles(id) NOT NULL,
+  reported_id UUID REFERENCES profiles(id) NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can report"
+  ON reports FOR INSERT
+  WITH CHECK (auth.uid() = reporter_id);
+
+CREATE POLICY "Users can view own reports"
+  ON reports FOR SELECT
+  USING (auth.uid() = reporter_id);
+
+-- Add last_seen to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ DEFAULT now();
+
+-- Add a function to update last_seen on auth activity
+CREATE OR REPLACE FUNCTION update_last_seen()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE profiles SET last_seen = now() WHERE id = NEW.id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -1,5 +1,7 @@
 import { createClient } from './supabase/client'
 
+export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
+
 export interface Profile {
   id: string
   name: string
@@ -10,7 +12,9 @@ export interface Profile {
   photos: string[]
   interests: string[]
   is_verified: boolean
+  looking_for: LookingFor
   created_at: string
+  last_seen?: string
 }
 
 export interface Swipe {
@@ -73,11 +77,12 @@ export async function updatePassword(password: string) {
   return { error: error?.message }
 }
 
-export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number }) {
+export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
   let q = supabase.from('profiles').select('*')
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
+  if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
   const { data, error } = await q
   return { data: data as Profile[] | null, error: error?.message }
 }
@@ -193,4 +198,78 @@ export async function getSentFlirtIds() {
   if (!user) return []
   const { data } = await supabase.from('flirts').select('receiver_id').eq('sender_id', user.id)
   return (data ?? []).map(f => f.receiver_id)
+}
+
+export async function blockProfile(blockedId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('blocks').insert({ blocker_id: user.id, blocked_id: blockedId })
+  return { error: error?.message }
+}
+
+export async function unblockProfile(blockedId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('blocks').delete().eq('blocker_id', user.id).eq('blocked_id', blockedId)
+  return { error: error?.message }
+}
+
+export async function getBlockedIds() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', user.id)
+  return (data ?? []).map(b => b.blocked_id)
+}
+
+export async function reportProfile(reportedId: string, reason: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('reports').insert({ reporter_id: user.id, reported_id: reportedId, reason })
+  return { error: error?.message }
+}
+
+export async function sendPhotoMessage(matchId: string, file: File) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const fileName = `chat/${matchId}/${Date.now()}_${user.id}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('chat_photos').upload(fileName, file)
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: urlData } = supabase.storage.from('chat_photos').getPublicUrl(fileName)
+
+  const { error } = await supabase.from('messages').insert({
+    match_id: matchId, sender_id: user.id, image_url: urlData.publicUrl,
+  })
+  return { error: error?.message }
+}
+
+export async function unmatchUser(matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  await supabase.from('messages').delete().eq('match_id', matchId)
+  const { error } = await supabase.from('matches').delete().eq('id', matchId)
+  return { error: error?.message }
+}
+
+export async function getLastSwipe() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('swipes').select('*, swiped:profiles!swipes_swiped_id_fkey(*)')
+    .eq('swiper_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data
+}
+
+export async function deleteLastSwipe() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const last = await getLastSwipe()
+  if (!last) return { error: 'No swipe to undo' }
+  const { error } = await supabase.from('swipes').delete().eq('id', last.id)
+  return { error: error?.message }
 }

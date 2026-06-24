@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, type Profile } from '@/lib/api'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw } from 'lucide-react'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 
@@ -19,6 +19,8 @@ function getInitialSuperLikes(): number {
   return SUPER_LIKE_DAILY - count
 }
 
+const lookingForLabel = (v: string) => ({ friendship: 'Amitié', casual: 'Plan cul', fwb: 'FWB', serious: 'Sérieux', open: 'Libre' }[v] ?? v)
+
 export default function DiscoverPage() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [idx, setIdx] = useState(0)
@@ -26,13 +28,19 @@ export default function DiscoverPage() {
   const [matchModal, setMatchModal] = useState<{ profile: Profile; matchId: string } | null>(null)
   const [superLikesLeft, setSuperLikesLeft] = useState(getInitialSuperLikes)
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState({ minAge: 18, maxAge: 99 })
+  const [filters, setFilters] = useState({ minAge: 18, maxAge: 99, lookingFor: '' })
   const [flirtedIds, setFlirtedIds] = useState<string[]>([])
+  const [blockedIds, setBlockedIds] = useState<string[]>([])
+  const [hasSwiped, setHasSwiped] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    getSwipedIds()
-      .then(swiped => getProfiles(swiped, { minAge: 18, maxAge: 99 }))
+    Promise.all([getSwipedIds(), getBlockedIds(), getLastSwipe()])
+      .then(([swiped, blocked, last]) => {
+        setBlockedIds(blocked)
+        setHasSwiped(!!last)
+        return getProfiles([...swiped, ...blocked], { minAge: 18, maxAge: 99 })
+      })
       .then(({ data }) => {
         setTimeout(() => {
           if (data) setProfiles(data)
@@ -57,6 +65,7 @@ export default function DiscoverPage() {
       localStorage.setItem('erosia_superlikes_count', String(c + 1))
     }
     await createSwipe(p.id, dir)
+    setHasSwiped(true)
     if (dir === 'like' || dir === 'super_like') {
       const { isMatch, match } = await checkForMatch(p.id)
       if (isMatch && match) setMatchModal({ profile: p, matchId: match.id })
@@ -66,11 +75,22 @@ export default function DiscoverPage() {
       setProfiles([])
       setIdx(0)
       const swiped = await getSwipedIds()
-      const { data } = await getProfiles(swiped, filters)
+      const { data } = await getProfiles([...swiped, ...blockedIds], { ...filters, lookingFor: filters.lookingFor || undefined })
       if (data) setProfiles(data)
     } else {
       setIdx(next)
     }
+  }
+
+  const handleRewind = async () => {
+    const last = await getLastSwipe()
+    if (!last) { setHasSwiped(false); return }
+    await deleteLastSwipe()
+    const swiped = await getSwipedIds()
+    const { data } = await getProfiles([...swiped, ...blockedIds], { ...filters, lookingFor: filters.lookingFor || undefined })
+    if (data) setProfiles(data)
+    setIdx(0)
+    setHasSwiped(swiped.length > 0)
   }
 
   const current = profiles[idx]
@@ -86,6 +106,7 @@ export default function DiscoverPage() {
       <header className="flex items-center justify-between px-5 pt-4 pb-2">
         <Image src="/logo.png" alt="Erosia" width={100} height={33} />
         <div className="flex items-center gap-3">
+          {hasSwiped && <button onClick={handleRewind} className="p-2"><RotateCcw size={20} /></button>}
           <button onClick={() => setShowFilters(!showFilters)} className="p-2"><SlidersHorizontal size={20} /></button>
           <button onClick={() => router.push('/matches')} className="p-2"><MessageCircle size={20} /></button>
         </div>
@@ -105,9 +126,24 @@ export default function DiscoverPage() {
                 className="flex-1 accent-[#D92D4A]" />
             </div>
           </div>
+          <div>
+            <label className="text-xs font-medium text-[#9E9488] mb-1 block">Type de relation</label>
+            <select value={filters.lookingFor} onChange={e => setFilters(f => ({ ...f, lookingFor: e.target.value }))}
+              className="w-full bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] rounded-lg px-3 py-2 text-sm">
+              <option value="">Tout</option>
+              <option value="friendship">Amitié</option>
+              <option value="casual">Plan cul</option>
+              <option value="fwb">Friends with benefits</option>
+              <option value="serious">Relation sérieuse</option>
+              <option value="open">Relation libre</option>
+            </select>
+          </div>
           <button onClick={() => {
             setShowFilters(false); setLoading(true)
-            getSwipedIds().then(swiped => getProfiles(swiped, filters)).then(({ data }) => {
+            Promise.all([getSwipedIds(), getBlockedIds()]).then(([swiped, blocked]) => {
+              setBlockedIds(blocked)
+              return getProfiles([...swiped, ...blocked], { ...filters, lookingFor: filters.lookingFor || undefined })
+            }).then(({ data }) => {
               setTimeout(() => {
                 if (data) setProfiles(data)
                 setLoading(false)
@@ -128,14 +164,14 @@ export default function DiscoverPage() {
             <p className="text-[#6B6258] text-sm mt-1">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
-          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-black/40 bg-[#1C1C1E]">
+          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-black/40 bg-[#1C1C1E] sensual-border">
             <div className="relative w-full h-full">
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
               <div className="absolute bottom-20 left-4 right-4 pointer-events-none">
                 <div className="flex items-center gap-1.5">
-                  <h2 className="text-2xl font-bold text-white">{current.name}</h2>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-1">{current.name}{current.is_verified && <BadgeCheck size={20} className="text-blue-500" />}</h2>
                   {current.age && <span className="text-xl text-white/90">{current.age}</span>}
                 </div>
                 {current.location && <p className="text-white/80 text-sm">{current.location}</p>}
@@ -148,6 +184,24 @@ export default function DiscoverPage() {
                   ))}
                 </div>
               )}
+              {current.looking_for && (
+                <div className="absolute bottom-24 left-4 pointer-events-none">
+                  <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-2 py-0.5 rounded-full">{lookingForLabel(current.looking_for)}</span>
+                </div>
+              )}
+              <button onClick={async () => {
+                if (!current) return
+                if (confirm('Bloquer ce profil ?')) {
+                  await blockProfile(current.id)
+                  const swiped = await getSwipedIds()
+                  const { data } = await getProfiles([...swiped, ...blockedIds, current.id], { minAge: 18, maxAge: 99, lookingFor: filters.lookingFor || undefined })
+                  if (data) setProfiles(data)
+                  setIdx(0)
+                }
+              }}
+                className="absolute top-2 right-2 p-2 bg-black/40 rounded-full z-10">
+                <Shield size={16} className="text-[#6B6258]" />
+              </button>
             </div>
 
             <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-5">

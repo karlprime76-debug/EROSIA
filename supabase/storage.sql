@@ -31,3 +31,15 @@ CREATE POLICY "Users can delete own photos"
     bucket_id = 'photos'
     AND auth.uid() = owner
   );
+
+-- Chat photos bucket
+INSERT INTO storage.buckets (id, name, public) VALUES ('chat_photos', 'chat_photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Chat photos are public"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'chat_photos');
+
+CREATE POLICY "Users can upload chat photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'chat_photos' AND auth.role() = 'authenticated');

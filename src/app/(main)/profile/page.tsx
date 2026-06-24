@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, type Profile } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, type Profile, type LookingFor } from '@/lib/api'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState('')
+  const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
+  const [now, setNow] = useState(() => Date.now())
   const router = useRouter()
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? '') }
+      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
       setLoading(false)
     })()
   }, [])
@@ -48,9 +50,20 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!profile) return
     const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-    await updateProfile(profile.id, { bio, interests: interestsArr })
-    setProfile({ ...profile, bio, interests: interestsArr })
+    await updateProfile(profile.id, { bio, interests: interestsArr, looking_for: lookingFor })
+    setProfile({ ...profile, bio, interests: interestsArr, looking_for: lookingFor })
     setEditing(false)
+  }
+
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+
+  const formatLastSeen = (date: string) => {
+    const diff = now - new Date(date).getTime()
+    if (diff < 60000) return 'En ligne'
+    const m = Math.floor(diff / 60000)
+    if (m < 60) return `Vu il y a ${m} min`
+    const h = Math.floor(m / 60)
+    return `Vu il y a ${h} h`
   }
 
   const handleLogout = async () => {
@@ -100,6 +113,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-lg font-bold">{profile?.name ?? 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
               {profile?.location && <p className="text-sm text-[#6B6258]">📍 {profile.location}</p>}
+              {profile?.last_seen && <p className="text-xs text-[#9E9488] mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
             </div>
           </div>
 
@@ -139,6 +153,17 @@ export default function ProfilePage() {
               <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
             </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Ce que je cherche</label>
+              <select value={lookingFor} onChange={e => setLookingFor(e.target.value as LookingFor)}
+                className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] bg-[#141414]">
+                <option value="friendship">Amitié</option>
+                <option value="casual">Plan cul</option>
+                <option value="fwb">Friends with benefits</option>
+                <option value="serious">Relation sérieuse</option>
+                <option value="open">Relation libre</option>
+              </select>
+            </div>
             <button onClick={saveProfile} className="w-full py-3.5 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
               Enregistrer
             </button>
@@ -154,6 +179,14 @@ export default function ProfilePage() {
                     <span key={i} className="text-xs bg-[#262628] px-3 py-1 rounded-full">{i}</span>
                   ))}
                 </div>
+              </div>
+            )}
+            {profile?.looking_for && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-sm mb-1">Ce que je cherche</h3>
+                <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-3 py-1 rounded-full">
+                  {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
+                </span>
               </div>
             )}
           </>
