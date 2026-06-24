@@ -78,9 +78,13 @@ export default function ProfilePage() {
   )
 
   const menu = [
-    { icon: Shield, label: 'Confidentialité' },
-    { icon: Palette, label: 'Apparence' },
-    { icon: HelpCircle, label: 'Aide' },
+    { icon: Shield, label: 'Confidentialité', action: () => router.push('/settings') },
+    { icon: Palette, label: 'Apparence', action: () => {
+      const html = document.documentElement
+      const isDark = html.classList.toggle('dark')
+      localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
+    }},
+    { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
   ]
 
