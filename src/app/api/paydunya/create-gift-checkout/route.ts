@@ -20,12 +20,14 @@ export async function POST(request: Request) {
   const amountFCFA = Math.round(totalCents * 0.655957)
 
   const origin = request.headers.get('origin') ?? 'http://localhost:3000'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
   const result = await createInvoice(
     amountFCFA.toString(),
     `Cadeau Erosia : ${gift.name}`,
     { user_id: user.id, gift_id: giftId, receiver_id: receiverId, match_id: matchId, message: message ?? '' },
     `${origin}/gifts`,
     `${origin}/gifts?success=1`,
+    `${siteUrl}/api/paydunya/webhook`,
   )
 
   if (result.status !== 'success' || !result.token) {

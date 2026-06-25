@@ -13,14 +13,18 @@ export function getPayDunyaHeaders() {
   return headers()
 }
 
-export async function createInvoice(amount: string, description: string, customData: Record<string, string>, cancelUrl: string, returnUrl: string) {
+export async function createInvoice(amount: string, description: string, customData: Record<string, string>, cancelUrl: string, returnUrl: string, callbackUrl?: string) {
   const res = await fetch(`${BASE}/checkout-invoice/create`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
       invoice: { total_amount: amount, description, custom_data: customData },
       store: { name: 'Erosia' },
-      actions: { cancel_url: cancelUrl, return_url: returnUrl },
+      actions: {
+        cancel_url: cancelUrl,
+        return_url: returnUrl,
+        ...(callbackUrl && { callback_url: callbackUrl }),
+      },
     }),
   })
   return res.json() as Promise<{ status: string; response_text?: string; token?: string }>

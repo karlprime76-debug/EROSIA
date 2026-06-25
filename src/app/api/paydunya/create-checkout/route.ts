@@ -8,12 +8,14 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const origin = request.headers.get('origin') ?? 'http://localhost:3000'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
   const result = await createInvoice(
     '5000',
     'Abonnement Premium Erosia - 1 mois',
     { user_id: user.id },
     `${origin}/settings`,
     `${origin}/settings?premium=success`,
+    `${siteUrl}/api/paydunya/webhook`,
   )
 
   if (result.status !== 'success' || !result.token) {
