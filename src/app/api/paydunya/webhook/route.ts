@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const dataRaw = formData.get('data') as string | null
   if (!dataRaw) return NextResponse.json({ error: 'Missing data' }, { status: 400 })
 
-  let data: { invoice?: { invoice_token?: string; custom_data?: Record<string, string> }; hash?: string }
+  let data: { invoice?: { invoice_token?: string }; hash?: string }
   try { data = JSON.parse(dataRaw) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
 
   const invoiceToken = data.invoice?.invoice_token
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const customData = data.invoice?.custom_data ?? {}
+  const customData = confirmed.invoice?.custom_data as Record<string, string> | undefined ?? {}
   const userId = customData.user_id
   const giftId = customData.gift_id
   const receiverId = customData.receiver_id
@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
   const message = customData.message ?? null
 
   if (userId && !giftId) {
-    // Premium subscription
     await admin.from('profiles').update({
       subscription_tier: 'premium',
       paydunya_invoice_token: invoiceToken,
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
   }
 
   if (userId && giftId && receiverId && matchId) {
-    // Gift purchase
     const { data: gift } = await admin.from('gifts').select('*').eq('id', giftId).single()
     if (gift) {
       await admin.from('sent_gifts').insert({

@@ -3,3 +3,40 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+<!-- BEGIN:erosia-summary -->
+# Erosia — dating app (Next.js 15 + Supabase)
+
+## Session 1 (7 améliorations)
+- Tests unitaires Vitest + test fichier api.test.ts
+- Assainissement DOMPurify (sanitize util)
+- Error boundaries (root, auth, main, chat)
+- CI GitHub Actions
+- Pagination : getMessagesPaginated, getNotificationsPaginated, getProfilesPaginated + useInfiniteScroll
+- PWA : manifest.json, sw.js
+- React 19 use() : daily-profile migré
+
+## Session 2 (features + correctifs)
+- **Logo** cliquable, icône PWA 192/512
+- **"Modifier" caché** pour Déconnexion/Centre d'aide
+- **/onboarding → /register**
+- **18+ & CGU** checkbox register
+- **Stories/Antennes/Boutique** dans bottom nav + menu "Plus"
+- **Daily swipe limit** 20/jour gratuit
+- **Gifts PayDunya** create-checkout, webhook, 15% fee
+- **Mobile Money** pays/opérateur/carte
+- **Premium labels** compteur swipe, super like
+- **Home page** refonte animations + descriptions
+- **Self-messaging bloqué**
+- **View-once media** en DM (flouté → révélé au clic)
+- **Stories → Premium** redirection
+- **Subscription type** strict dans settings
+
+## Conventions
+- RSC par défaut, "use client" si interactivité
+- glass-card / glass-light
+- #D92D4A primaire, #6B6258/#9E9488 secondaire
+- Icônes lucide-react
+- p-2.5 min pour boutons icône (44px Apple HIG)
+- BottomSheets : Escape + backdrop + swipe + focus trap
+<!-- END:erosia-summary -->

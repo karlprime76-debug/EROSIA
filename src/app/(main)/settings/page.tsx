@@ -153,8 +153,8 @@ export default function SettingsPage() {
       title: 'Abonnement',
       items: [
         {
-          icon: Crown, label: 'Erosia Premium',
-          desc: subscriptionTier === 'premium' ? 'Actif' : 'Gratuit',
+          icon: Crown, label: subscriptionTier === 'premium' ? '✅ Premium actif' : '👑 Erosia Premium',
+          desc: subscriptionTier === 'premium' ? 'Compte Premium — tous les avantages débloqués' : 'Compte Gratuit — fonctionnalités limitées',
           render: () => (
             <div className="mt-2 space-y-2">
               {upgradeSuccess && (

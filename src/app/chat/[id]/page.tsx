@@ -81,6 +81,7 @@ export default function ChatPage() {
   const typingTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const lastTypingBroadcast = useRef(0)
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null)
+  const [isSelfChat, setIsSelfChat] = useState(false)
   const [icebreakers, setIcebreakers] = useState<Icebreaker[]>([])
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
   const [reactingMessageId, setReactingMessageId] = useState<string | null>(null)
@@ -100,6 +101,8 @@ export default function ChatPage() {
   const [playlist, setPlaylist] = useState<Array<{ id: string; title: string; artist?: string; url?: string }>>([])
   const [newSongTitle, setNewSongTitle] = useState('')
   const [newSongUrl, setNewSongUrl] = useState('')
+  const [viewOnce, setViewOnce] = useState(false)
+  const [revealedOnce, setRevealedOnce] = useState<Record<string, boolean>>({})
 
   const loadPlaylist = async () => {
     const { data } = await getPlaylist(id)
@@ -214,6 +217,8 @@ export default function ChatPage() {
       if (!matchData) { setLoading(false); return }
       setMatch(matchData)
       const otherId = matchData.user1_id === user.id ? matchData.user2_id : matchData.user1_id
+
+      if (otherId === user.id) { setIsSelfChat(true); setLoading(false); return }
 
       const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).single()
       if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
@@ -353,8 +358,22 @@ export default function ChatPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    await sendPhotoMessage(id, file)
+    if (viewOnce) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const fileName = `chat/${id}/${Date.now()}_${user.id}_once.${ext}`
+      const { error: uploadError } = await supabase.storage.from('chat_photos').upload(fileName, file)
+      if (uploadError) return
+      const { data: urlData } = supabase.storage.from('chat_photos').getPublicUrl(fileName)
+      await supabase.from('messages').insert({
+        match_id: id, sender_id: user.id, image_url: urlData.publicUrl, view_once: true,
+      })
+    } else {
+      await sendPhotoMessage(id, file)
+    }
     e.target.value = ''
+    setViewOnce(false)
   }
 
   const startRecording = async () => {
@@ -413,6 +432,22 @@ export default function ChatPage() {
   if (loading) return (
     <div className="flex-1 flex items-center justify-center bg-transparent">
       <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+    </div>
+  )
+
+  if (isSelfChat) return (
+    <div className="flex-1 flex items-center justify-center bg-transparent px-6">
+      <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#D92D4A]/20 to-transparent mx-auto mb-4 flex items-center justify-center">
+          <span className="text-3xl">🙅</span>
+        </div>
+        <h2 className="text-xl font-bold mb-1">Chat indisponible</h2>
+        <p className="text-[#9E9488] text-sm mb-6">Tu ne peux pas t&rsquo;envoyer des messages à toi-même.</p>
+        <button onClick={() => router.push('/matches')}
+          className="w-full py-3.5 rounded-full text-white font-semibold transition active:scale-95" style={{ background: '#D92D4A' }}>
+          Retour aux matchs
+        </button>
+      </div>
     </div>
   )
 
@@ -566,18 +601,37 @@ export default function ChatPage() {
               <AudioPlayer src={m.audio_url} />
             </div>
           ) : m.image_url ? (
-            <div className={`max-w-[80%] rounded-2xl overflow-hidden ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
-              <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
+            <div className={`max-w-[80%] rounded-2xl overflow-hidden relative ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
+              {m.view_once && m.sender_id !== currentUser?.id ? (
+                <div className="relative">
+                  {revealedOnce[m.id] ? (
+                    <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
+                  ) : (
+                    <button onClick={() => setRevealedOnce(r => ({ ...r, [m.id]: true }))} className="block w-full">
+                      <Image src={m.image_url} alt="Photo à vue unique" width={300} height={400} className="w-full object-cover blur-xl brightness-50" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white text-xs font-medium bg-black/50 px-3 py-1.5 rounded-full">Appuie pour voir 👁️</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
+              )}
+              {m.sender_id === currentUser?.id && m.view_once && (
+                <span className="absolute top-1 right-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">👁️ 1x</span>
+              )}
             </div>
-          ) : (
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
-              ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10'
-              : 'glass-card self-start'
-            }`}>
-              <p className="text-sm leading-relaxed">{m.text}</p>
-              {m.sender_id === currentUser?.id && (
-                <span className="text-[10px] ml-1">
-                  {m.read_at ? (
+              ) : (
+                <div className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
+                  ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10'
+                  : 'glass-card self-start'
+                }`}>
+                  <p className="text-sm leading-relaxed">{m.text}</p>
+                  {m.sender_id === currentUser?.id && (
+                    <span className="text-[10px] ml-1">
+                      {m.view_once && <span className="text-[#D92D4A] mr-0.5">👁️</span>}
+                      {m.read_at ? (
                     <span className="text-[#D92D4A]">✓✓</span>
                   ) : (
                     <span className="text-[#6B6258]">✓</span>
@@ -642,6 +696,10 @@ export default function ChatPage() {
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         <button type="button" aria-label="Photo" onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
           <Camera size={16} className="text-[#9E9488]" />
+        </button>
+        <button type="button" aria-label="Vue unique" onClick={() => setViewOnce(!viewOnce)}
+          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${viewOnce ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'glass-light text-[#6B6258] hover:border-white/20'}`}>
+          <span className="text-xs font-bold">1x</span>
         </button>
         <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all" />

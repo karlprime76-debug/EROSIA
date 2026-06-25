@@ -60,12 +60,12 @@ export default function StoriesPage() {
         <div className="flex-1" />
         {isPremium ? (
           <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:shadow-[0_0_15px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
             <Plus size={18} />
           </button>
         ) : (
-          <button onClick={() => router.push('/settings')} title="Premium requis"
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628]">
+          <button onClick={() => { alert('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.'); router.push('/settings') }} title="Premium requis"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628] hover:bg-[#2A2826] transition-all active:scale-90">
             <Lock size={16} className="text-[#6B6258]" />
           </button>
         )}

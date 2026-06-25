@@ -57,6 +57,7 @@ export interface Message {
   audio_url?: string
   expires_at?: string
   read_at?: string
+  view_once?: boolean
   created_at: string
 }
 
@@ -1049,21 +1050,36 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
 }
 
 // ---- MOBILE MONEY ----
-export async function saveMobileMoneyAccount(phone: string, operator: string) {
+const COUNTRIES = {
+  SN: { name: 'Sénégal', operators: ['Orange Money', 'Free Money', 'Wave'] },
+  CI: { name: 'Côte d\'Ivoire', operators: ['Orange Money', 'MTN Mobile Money', 'Moov Money', 'Wave'] },
+  ML: { name: 'Mali', operators: ['Orange Money', 'Moov Money'] },
+  BF: { name: 'Burkina Faso', operators: ['Orange Money', 'Moov Money', 'Wave'] },
+  TG: { name: 'Togo', operators: ['Orange Money', 'Moov Money'] },
+  BJ: { name: 'Bénin', operators: ['Orange Money', 'Moov Money', 'MTN Mobile Money'] },
+  CM: { name: 'Cameroun', operators: ['Orange Money', 'MTN Mobile Money'] },
+  CG: { name: 'Congo', operators: ['Airtel Money', 'MTN Mobile Money'] },
+}
+
+export function getCountries() {
+  return Object.entries(COUNTRIES).map(([code, v]) => ({ code, name: v.name, operators: v.operators }))
+}
+
+export async function savePaymentAccount(data: { type: 'mobile_money' | 'card'; phone?: string; country?: string; operator?: string; card_last4?: string; card_brand?: string }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
   const { error } = await supabase.from('payment_accounts').upsert({
-    user_id: user.id, phone, operator, type: 'mobile_money',
+    user_id: user.id, ...data,
   }, { onConflict: 'user_id' })
   return { error: error?.message }
 }
 
-export async function getMobileMoneyAccount() {
+export async function getPaymentAccount() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase
     .from('payment_accounts').select('*').eq('user_id', user.id).maybeSingle()
-  return data as { phone: string; operator: string } | null
+  return data as { phone?: string; operator?: string; country?: string; type: string; card_last4?: string; card_brand?: string } | null
 }
 
 // ---- GIFT PAYMENT ----
