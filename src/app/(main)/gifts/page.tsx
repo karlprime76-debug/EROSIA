@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send, Lock } from 'lucide-react'
-import { getGifts, sendGift, getMatches, checkPremium } from '@/lib/api'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Send, Smartphone } from 'lucide-react'
+import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getMobileMoneyAccount, saveMobileMoneyAccount } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 
 interface GiftItem {
@@ -19,8 +19,12 @@ interface MatchItem {
   user2_id: string
 }
 
-export default function GiftsPage() {
+const FEE_PERCENT = 15
+const OPERATORS = ['Orange Money', 'Free Money', 'Wave', 'MTN Mobile Money', 'Moov Money']
+
+function GiftsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [gifts, setGifts] = useState<GiftItem[]>([])
   const [matches, setMatches] = useState<MatchItem[]>([])
   const [myId, setMyId] = useState('')
@@ -28,31 +32,57 @@ export default function GiftsPage() {
   const [selectedMatch, setSelectedMatch] = useState('')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
-  const [isPremium, setIsPremium] = useState(false)
+  const [received, setReceived] = useState<Array<{ id: string; gift: GiftItem; sender: { name: string; photos: string[] }; created_at: string }>>([])
+  const [showMobileMoney, setShowMobileMoney] = useState(false)
+  const [mmPhone, setMmPhone] = useState('')
+  const [mmOperator, setMmOperator] = useState('Orange Money')
+  const [mmSaved, setMmSaved] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('success') === '1') {
+      alert('Paiement réussi ! Le cadeau a été envoyé.')
+      router.replace('/gifts')
+    }
+  }, [searchParams, router])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
     }).catch(() => {})
-    checkPremium().then(setIsPremium).catch(() => {})
     getGifts().then(({ data }) => { if (data) setGifts(data) }).catch(() => {})
-    getMatches().then(({ data }) => {
-      if (data) setMatches(data)
+    getMatches().then(({ data }) => { if (data) setMatches(data) }).catch(() => {})
+    getReceivedGifts().then(({ data }) => {
+      setReceived(data as typeof received)
+    }).catch(() => {})
+    getMobileMoneyAccount().then(acc => {
+      if (acc) { setMmPhone(acc.phone); setMmOperator(acc.operator); setMmSaved(true) }
     }).catch(() => {})
   }, [])
 
   const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
+
+  const selectedGiftData = gifts.find(g => g.id === selectedGift)
 
   const handleSend = async () => {
     if (!selectedGift || !selectedMatch) return
     setSending(true)
     const match = matches.find(m => m.id === selectedMatch)
     if (!match) return
-    await sendGift(getOtherId(match), selectedGift, selectedMatch, message || undefined)
+    const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, message || undefined)
+    if (result.url) {
+      window.location.href = result.url
+      return
+    }
+    alert(result.error ?? 'Erreur de paiement')
     setSending(false)
-    setSelectedGift(null)
-    setSelectedMatch('')
-    setMessage('')
+  }
+
+  const handleSaveMobileMoney = async () => {
+    if (!mmPhone || mmPhone.length < 8) return
+    const { error } = await saveMobileMoneyAccount(mmPhone, mmOperator)
+    if (error) { alert(error); return }
+    setMmSaved(true)
+    setShowMobileMoney(false)
   }
 
   return (
@@ -62,6 +92,36 @@ export default function GiftsPage() {
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
+        <button onClick={() => setShowMobileMoney(!showMobileMoney)}
+          className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
+          <Smartphone size={20} className="text-[#6B6258]" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Compte Mobile Money</p>
+            <p className="text-xs text-[#9E9488]">{mmSaved ? `${mmOperator} — ${mmPhone}` : 'Non connecté'}</p>
+          </div>
+        </button>
+
+        {showMobileMoney && (
+          <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
+            <div>
+              <label className="text-xs text-[#9E9488] mb-1 block">Opérateur</label>
+              <select value={mmOperator} onChange={e => setMmOperator(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none">
+                {OPERATORS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-[#9E9488] mb-1 block">Numéro de téléphone</label>
+              <input value={mmPhone} onChange={e => setMmPhone(e.target.value)} placeholder="+221 77 123 45 67"
+                className="w-full px-3 py-2 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+            </div>
+            <button onClick={handleSaveMobileMoney}
+              className="w-full py-2.5 rounded-full text-white text-sm font-semibold" style={{ background: '#D92D4A' }}>
+              Enregistrer
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3">
           {gifts.map(g => (
             <button key={g.id} onClick={() => setSelectedGift(g.id)}
@@ -69,14 +129,19 @@ export default function GiftsPage() {
               <span className="text-3xl block mb-1">{g.emoji || '🎁'}</span>
               <p className="text-[10px] font-medium truncate">{g.name}</p>
               <p className="text-[10px] text-[#D92D4A] font-bold">{g.price_cents / 100}€</p>
+              <p className="text-[8px] text-[#6B6258]">+{FEE_PERCENT}% frais</p>
             </button>
           ))}
         </div>
 
-        {selectedGift && (
-          <div className="space-y-3">
+        {selectedGift && selectedGiftData && (
+          <div className="glass-card rounded-xl p-4 space-y-3">
+            <p className="text-sm text-center">
+              <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[#D92D4A]">{(selectedGiftData.price_cents * (1 + FEE_PERCENT/100)) / 100}€</strong>
+              <br /><span className="text-xs text-[#6B6258]">(dont {FEE_PERCENT}% de frais de service)</span>
+            </p>
             <div>
-              <label className="text-xs text-[#9E9488] mb-1 block">Destinataire (match)</label>
+              <label className="text-xs text-[#9E9488] mb-1 block">Destinataire</label>
               <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
                 <option value="">Sélectionner un match...</option>
@@ -90,20 +155,38 @@ export default function GiftsPage() {
               <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Un petit mot..."
                 rows={2} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
             </div>
-            {isPremium ? (
-              <button onClick={handleSend} disabled={!selectedMatch || sending}
-                className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
-                <Send size={16} /> {sending ? 'Envoi...' : 'Envoyer le cadeau'}
-              </button>
-            ) : (
-              <button onClick={() => router.push('/settings')}
-                className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
-                <Lock size={16} /> Premium requis
-              </button>
-            )}
+            <button onClick={handleSend} disabled={!selectedMatch || sending}
+              className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
+              <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${(selectedGiftData.price_cents * (1 + FEE_PERCENT/100)) / 100}€`}
+            </button>
+          </div>
+        )}
+
+        {received.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
+            <div className="space-y-2">
+              {received.slice(0, 5).map(r => (
+                <div key={r.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3">
+                  <span className="text-2xl">{r.gift?.emoji || '🎁'}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
+                    <p className="text-xs text-[#9E9488]">De {r.sender?.name || 'Inconnu'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+export default function GiftsPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>}>
+      <GiftsContent />
+    </Suspense>
   )
 }

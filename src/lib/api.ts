@@ -989,6 +989,24 @@ export async function getDailyProfile() {
   return { data: profile as Profile | null, error: null }
 }
 
+// ---- DAILY SWIPE LIMIT ----
+const DAILY_SWIPE_LIMIT_FREE = 20
+
+export async function getDailySwipeCount() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { count: 0, limit: DAILY_SWIPE_LIMIT_FREE }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const { count } = await supabase
+    .from('swipes')
+    .select('*', { count: 'exact', head: true })
+    .eq('swiper_id', user.id)
+    .gte('created_at', today.toISOString())
+  const { tier } = await getSubscriptionStatus()
+  const limit = tier === 'premium' ? Infinity : DAILY_SWIPE_LIMIT_FREE
+  return { count: count ?? 0, limit }
+}
+
 // 99. Paginated queries
 const PAGE_SIZE = 20
 
@@ -1028,4 +1046,34 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   q = q.range(from, to)
   const { data, error } = await q
   return { data: data as Profile[] | null, error: error?.message }
+}
+
+// ---- MOBILE MONEY ----
+export async function saveMobileMoneyAccount(phone: string, operator: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+  const { error } = await supabase.from('payment_accounts').upsert({
+    user_id: user.id, phone, operator, type: 'mobile_money',
+  }, { onConflict: 'user_id' })
+  return { error: error?.message }
+}
+
+export async function getMobileMoneyAccount() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('payment_accounts').select('*').eq('user_id', user.id).maybeSingle()
+  return data as { phone: string; operator: string } | null
+}
+
+// ---- GIFT PAYMENT ----
+export async function createGiftCheckout(giftId: string, receiverId: string, matchId: string, message?: string) {
+  const res = await fetch('/api/paydunya/create-gift-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ giftId, receiverId, matchId, message }),
+  })
+  const data = await res.json()
+  if (!res.ok) return { error: data.error }
+  return { url: data.url as string }
 }

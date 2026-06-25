@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,6 +22,7 @@ export default function RegisterPage() {
     if (password.length < 8) { setError('8 caractères minimum'); return }
     const ageNum = parseInt(age)
     if (!ageNum || ageNum < 18 || ageNum > 120) { setError('Âge invalide (18-120)'); return }
+    if (!acceptedTerms) { setError('Tu dois accepter les conditions générales'); return }
 
     setLoading(true)
     try {
@@ -72,6 +74,12 @@ export default function RegisterPage() {
           <input id="reg-age" value={age} onChange={e => setAge(e.target.value)} type="number" placeholder="Âge" min={18} max={120}
             className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
         </div>
+        <p className="text-xs text-[#6B6258] text-center">En créant un compte, tu certifies avoir <strong className="text-[#9E9488]">18 ans ou plus</strong> et tu acceptes nos <a href="/cgu" target="_blank" className="underline text-[#D92D4A]">conditions générales</a>.</p>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)}
+            className="mt-0.5 accent-[#D92D4A]" />
+          <span className="text-xs text-[#9E9488]">J&rsquo;ai 18 ans ou plus et j&rsquo;accepte les conditions générales</span>
+        </label>
         <button type="submit" disabled={loading}
           className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
           {loading ? 'Inscription...' : 'Créer mon compte'}

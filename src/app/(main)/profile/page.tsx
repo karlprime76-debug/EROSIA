@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -108,11 +108,8 @@ export default function ProfilePage() {
       const isDark = html.classList.toggle('dark')
       localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
     }},
-    { icon: Film, label: 'Mes stories', action: () => router.push('/stories') },
-    { icon: CalendarHeart, label: 'Antennes', action: () => router.push('/events') },
     { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
     { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
-    { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
     { icon: Star, label: 'Profil du jour', action: () => router.push('/daily-profile') },
     { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },

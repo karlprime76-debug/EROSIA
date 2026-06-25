@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, type Profile } from '@/lib/api'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
@@ -32,10 +33,15 @@ export default function DiscoverPage() {
   const [swipeAnim, setSwipeAnim] = useState<'idle' | 'left' | 'right'>('idle')
   const [compatScores, setCompatScores] = useState<Record<string, number>>({})
   const [storiesUserIds, setStoriesUserIds] = useState<Set<string>>(new Set())
+  const [swipeCount, setSwipeCount] = useState(0)
+  const [swipeLimit, setSwipeLimit] = useState(20)
+  const [isPremium, setIsPremium] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY))
+    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) })
+    checkPremium().then(setIsPremium)
   }, [])
 
   useEffect(() => {
@@ -93,6 +99,11 @@ export default function DiscoverPage() {
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
     const p = profiles[idx]
     if (!p) return
+    if (!isPremium && swipeCount >= swipeLimit) {
+      alert('Tu as atteint ta limite de swipe du jour. Passe à Premium pour swiper sans limite !')
+      router.push('/settings')
+      return
+    }
     if (dir === 'super_like') {
       if (superLikesLeft <= 0) return
       const result = await consumeSuperLike()
@@ -140,8 +151,13 @@ export default function DiscoverPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center justify-between px-5 pt-6 pb-3">
-        <Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" />
+        <Link href="/discover"><Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" /></Link>
         <div className="flex items-center gap-2">
+          {!isPremium && (
+            <span className="text-[10px] text-[#6B6258] bg-[#1C1C1E] px-2 py-1 rounded-full border border-[#2A2826]">
+              {swipeLimit - swipeCount} swipes
+            </span>
+          )}
           {hasSwiped && <button onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
           <button onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
           <button onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>

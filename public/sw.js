@@ -28,7 +28,7 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Erosia'
     const options = {
       body: data.body || '',
-      icon: data.icon || '/icone.png',
+      icon: data.icon || '/logo.png',
       badge: '/favicon.png',
       data: { url: data.url || '/' },
     }

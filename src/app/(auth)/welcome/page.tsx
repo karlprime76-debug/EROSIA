@@ -48,7 +48,7 @@ export default function WelcomePage() {
 
           <div className="w-full max-w-sm flex flex-col gap-3 lg:max-w-md animate-fade-up" style={{ animationDelay: '450ms' }}>
             <Link
-              href="/onboarding"
+              href="/register"
               className="group w-full py-4 rounded-full text-center font-semibold text-base sm:text-lg transition-all duration-300 active:scale-95 hover:shadow-[0_0_40px_rgba(217,45,74,0.4)] relative overflow-hidden"
               style={{ background: 'linear-gradient(135deg, #D92D4A, #A8102A)' }}>
               <span className="relative z-10 text-white">Commencer l&rsquo;aventure</span>

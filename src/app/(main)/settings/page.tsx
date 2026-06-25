@@ -223,7 +223,7 @@ export default function SettingsPage() {
                       <p className={`text-sm font-medium ${danger ? 'text-[#D92D4A]' : ''}`}>{label}</p>
                       {desc && <p className="text-xs text-[#6B6258]">{desc}</p>}
                     </div>
-                    {onClick && !danger && (
+                    {onClick && !danger && label !== 'Se déconnecter' && label !== 'Centre d\'aide' && (
                       <button onClick={onClick}
                         className="text-xs text-[#D92D4A] font-medium shrink-0">Modifier</button>
                     )}
