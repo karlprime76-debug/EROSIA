@@ -1,3 +1,26 @@
+-- Ensure notifications table exists (from schema_v3)
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('match', 'flirt', 'message', 'super_like', 'verification')),
+  actor_id UUID REFERENCES profiles(id),
+  metadata JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+CREATE POLICY "Users can view own notifications"
+  ON notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
+CREATE POLICY "Users can update own notifications"
+  ON notifications FOR UPDATE
+  USING (auth.uid() = user_id);
+
 -- Enable pg_net extension
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
@@ -22,15 +45,15 @@ BEGIN
 
   IF notif_type = 'match' THEN
     notif_title := 'Nouveau match !';
-    notif_body := actor_name || ' t\'a liké·e aussi ❤️';
+    notif_body := actor_name || ' t''a liké·e aussi ❤️';
     notif_url := '/matches';
   ELSIF notif_type = 'flirt' THEN
-    notif_title := 'Clin d\'œil reçu !';
-    notif_body := actor_name || ' t\'a envoyé un clin d\'œil 😉';
+    notif_title := 'Clin d''œil reçu !';
+    notif_body := actor_name || ' t''a envoyé un clin d''œil 😉';
     notif_url := '/matches';
   ELSIF notif_type = 'message' THEN
     notif_title := 'Nouveau message';
-    notif_body := actor_name || ' t\'a envoyé un message';
+    notif_body := actor_name || ' t''a envoyé un message';
     notif_url := '/chat/' || (NEW.metadata->>'match_id');
   ELSE
     notif_title := 'Erosia';

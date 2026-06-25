@@ -4,10 +4,13 @@
   "description": "Là où les cœurs se rencontrent",
   "start_url": "/discover",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0A0A0A",
-  "theme_color": "#0A0A0A",
+  "theme_color": "#D92D4A",
+  "categories": ["social", "dating"],
+  "orientation": "portrait",
   "icons": [
-    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icone.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icone.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

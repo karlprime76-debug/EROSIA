@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
@@ -23,9 +23,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
-      const id = setTimeout(() => setUpgradeSuccess(true), 0)
+      startTransition(() => setUpgradeSuccess(true))
       router.replace('/settings')
-      return () => clearTimeout(id)
     }
     getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') })
     getTravelMode().then(mode => {
@@ -34,6 +33,23 @@ export default function SettingsPage() {
     })
     getGhostMode().then(setGhostMode)
   }, [router])
+
+  useEffect(() => {
+    if (!upgradeSuccess) return
+    let attempts = 0
+    const id = setInterval(async () => {
+      attempts++
+      const { tier } = await getSubscriptionStatus()
+      if (tier === 'premium') {
+        setSubscriptionTier('premium')
+        setIsPremium(true)
+        clearInterval(id)
+      } else if (attempts >= 10) {
+        clearInterval(id)
+      }
+    }, 2000)
+    return () => clearInterval(id)
+  }, [upgradeSuccess])
 
   const handleLogout = async () => {
     await signOut()

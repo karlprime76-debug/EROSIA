@@ -18,8 +18,12 @@ export async function POST(request: NextRequest) {
   if (data.hash !== expectedHash) return NextResponse.json({ error: 'Invalid hash' }, { status: 401 })
 
   const confirmed = await confirmInvoice(invoiceToken)
-  if (confirmed.status !== 'completed' || confirmed.invoice?.status !== 'completed') {
+  if (confirmed.status !== 'completed' && confirmed.status !== 'success') {
     return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
+  }
+  const invoiceStatus = confirmed.invoice?.status
+  if (invoiceStatus !== 'completed' && invoiceStatus !== 'success') {
+    return NextResponse.json({ error: 'Invoice not completed' }, { status: 400 })
   }
 
   const admin = createAdminClient()

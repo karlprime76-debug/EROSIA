@@ -16,9 +16,13 @@ export async function POST(request: Request) {
     `${origin}/settings?premium=success`,
   )
 
-  if (result.status !== 'completed' || !result.response_text) {
-    return NextResponse.json({ error: result.response_text ?? 'PayDunya error' }, { status: 500 })
+  if (result.status !== 'success' || !result.token) {
+    return NextResponse.json({ error: result.response_text ?? 'Échec de la création du paiement' }, { status: 500 })
   }
 
-  return NextResponse.json({ url: result.response_text })
+  const paymentUrl = result.response_text?.startsWith('http')
+    ? result.response_text
+    : `https://payment.paydunya.com/payment/${result.token}`
+
+  return NextResponse.json({ url: paymentUrl })
 }

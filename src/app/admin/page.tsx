@@ -57,9 +57,6 @@ export default function AdminPage() {
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
-    const admin = supabase.auth.getSession()
-    if (!admin) return
-
     const { error: updateError } = await supabase
       .from('verification_requests')
       .update({ status: approved ? 'approved' : 'rejected' })

@@ -3,12 +3,12 @@ import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 
 function ensureVapidConfigured() {
-  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
     throw new Error('VAPID keys not configured')
   }
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.NEXT_PUBLIC_VAPID_KEY,
     process.env.VAPID_PRIVATE_KEY
   )
 }

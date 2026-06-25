@@ -7,7 +7,10 @@ export const metadata: Metadata = {
   title: "Erosia",
   description: "Là où les cœurs se rencontrent",
   manifest: "/manifest.json",
-  other: { 'theme-color': '#0A0A0A' },
+  icons: {
+    apple: { url: "/icone.png", sizes: "180x180", type: "image/png" },
+  },
+  other: { 'theme-color': '#D92D4A' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

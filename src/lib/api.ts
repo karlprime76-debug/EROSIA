@@ -128,6 +128,14 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
 export async function createSwipe(swipedId: string, direction: Swipe['direction']) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const { tier } = await getSubscriptionStatus()
+  if (tier !== 'premium') {
+    const { count } = await supabase
+      .from('swipes').select('*', { count: 'exact', head: true })
+      .eq('swiper_id', user.id)
+      .gte('created_at', new Date().toISOString().slice(0, 10))
+    if (count && count >= 20) return { error: 'Limite de swipe atteinte' }
+  }
   const { data, error } = await supabase.from('swipes').insert({
     swiper_id: user.id, swiped_id: swipedId, direction,
   }).select().single()
@@ -327,9 +335,24 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
 
 // 2. Super like limit
 export async function getSuperLikesRemaining() {
-  const { data, error } = await supabase.rpc('get_super_likes_remaining')
-  if (error) return 0
-  return (data as number) ?? 0
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  const { tier } = await getSubscriptionStatus()
+  if (tier === 'premium') return 99
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('super_likes_remaining, super_likes_reset_at')
+    .eq('id', user.id)
+    .single()
+  if (error || !data) return 0
+  const resetDate = new Date(data.super_likes_reset_at)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (resetDate < today) {
+    await supabase.from('profiles').update({ super_likes_remaining: 1, super_likes_reset_at: new Date().toISOString() }).eq('id', user.id)
+    return 1
+  }
+  return data.super_likes_remaining ?? 0
 }
 
 export async function useSuperLike() {
@@ -337,8 +360,12 @@ export async function useSuperLike() {
   if (remaining <= 0) return { error: 'Plus de super like disponible aujourd\'hui' }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase.from('profiles').update({ super_likes_remaining: remaining - 1 }).eq('id', user.id)
-  return { error: error?.message }
+  const { tier } = await getSubscriptionStatus()
+  if (tier !== 'premium') {
+    const { error } = await supabase.from('profiles').update({ super_likes_remaining: remaining - 1 }).eq('id', user.id)
+    return { error: error?.message }
+  }
+  return {}
 }
 
 // 3. Incognito mode
