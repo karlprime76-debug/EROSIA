@@ -72,13 +72,13 @@ export default function DiscoverPage() {
         if (data) setProfiles(data)
         setLoading(false)
       })
-    getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(console.error)
+    getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => {})
   }, [])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
-    }).catch(console.error)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {

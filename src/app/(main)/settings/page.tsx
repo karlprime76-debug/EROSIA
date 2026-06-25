@@ -64,7 +64,8 @@ export default function SettingsPage() {
       await fetch('/api/auth/delete-account', { method: 'POST' })
       await supabase.auth.signOut()
       router.push('/')
-    } catch {
+    } catch (e) {
+      console.error('Delete account error:', e)
       await supabase.auth.signOut()
       router.push('/')
     }
