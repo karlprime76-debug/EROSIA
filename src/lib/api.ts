@@ -95,7 +95,7 @@ export async function signOut() {
 
 export async function resetPassword(email: string) {
   const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia-prod.vercel.app'
-  return supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/reset-password` })
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
 }
 
 export async function updatePassword(password: string) {
@@ -432,8 +432,18 @@ export async function createCheckoutSession() {
 export async function getSubscriptionStatus() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { tier: 'free' as const }
-  const { data } = await supabase.from('profiles').select('subscription_tier').eq('id', user.id).single()
-  return { tier: (data?.subscription_tier ?? 'free') as 'free' | 'premium' }
+  const { data } = await supabase.from('profiles').select('subscription_tier, premium_expires_at').eq('id', user.id).single()
+  const tier = ((data?.subscription_tier ?? 'free') as 'free' | 'premium')
+  if (tier === 'premium' && data?.premium_expires_at && new Date(data.premium_expires_at) < new Date()) {
+    await supabase.from('profiles').update({ subscription_tier: 'free', premium_expires_at: null }).eq('id', user.id)
+    return { tier: 'free' as const }
+  }
+  return { tier }
+}
+
+export async function checkPremium() {
+  const { tier } = await getSubscriptionStatus()
+  return tier === 'premium'
 }
 
 // ---- FEATURE 2: Selfie verification ----

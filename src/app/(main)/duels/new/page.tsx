@@ -3,8 +3,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { createDuel, getProfiles } from '@/lib/api'
+import { ArrowLeft, Lock } from 'lucide-react'
+import { createDuel, getProfiles, checkPremium } from '@/lib/api'
 
 export default function NewDuelPage() {
   const router = useRouter()
@@ -12,10 +12,13 @@ export default function NewDuelPage() {
   const [selectedA, setSelectedA] = useState<string>('')
   const [selectedB, setSelectedB] = useState<string>('')
   const [creating, setCreating] = useState(false)
+  const [isPremium, setIsPremium] = useState<boolean | null>(null)
 
   const loadProfiles = async () => {
     const { data } = await getProfiles([])
     if (data) setProfiles(data)
+    const premium = await checkPremium()
+    setIsPremium(premium)
   }
 
   useState(() => { loadProfiles() })
@@ -56,10 +59,17 @@ export default function NewDuelPage() {
             ))}
           </select>
         </div>
-        <button onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
-          className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
-          {creating ? 'Création...' : 'Lancer le duel'}
-        </button>
+        {isPremium === false ? (
+          <button onClick={() => router.push('/settings')}
+            className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
+            <Lock size={16} /> Premium requis
+          </button>
+        ) : (
+          <button onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
+            className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
+            {creating ? 'Création...' : 'Lancer le duel'}
+          </button>
+        )}
       </div>
     </div>
   )

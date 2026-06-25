@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
-import { getActiveStories, uploadStory, deleteStory } from '@/lib/api'
+import { ArrowLeft, Plus, Trash2, Lock } from 'lucide-react'
+import { getActiveStories, uploadStory, deleteStory, checkPremium } from '@/lib/api'
 
 interface Story {
   id: string
@@ -21,12 +21,14 @@ export default function StoriesPage() {
   const [stories, setStories] = useState<Story[]>([])
   const [uploading, setUploading] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  const [isPremium, setIsPremium] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
     })
+    checkPremium().then(setIsPremium)
     const t = setInterval(() => setNow(Date.now()), 60000)
     return () => clearInterval(t)
   }, [])
@@ -55,10 +57,17 @@ export default function StoriesPage() {
         <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
         <div className="flex-1" />
-        <button onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
-          <Plus size={18} />
-        </button>
+        {isPremium ? (
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+            className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
+            <Plus size={18} />
+          </button>
+        ) : (
+          <button onClick={() => router.push('/settings')} title="Premium requis"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628]">
+            <Lock size={16} className="text-[#6B6258]" />
+          </button>
+        )}
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleUpload} className="hidden" />
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">

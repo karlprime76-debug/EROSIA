@@ -110,7 +110,6 @@ export default function ProfilePage() {
     { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
     { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
     { icon: Star, label: 'Profil du jour', action: () => router.push('/daily-profile') },
-    { icon: Headphones, label: 'Playlist', action: () => router.push('/playlist') },
     { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
   ]

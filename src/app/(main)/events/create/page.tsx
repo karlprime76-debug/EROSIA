@@ -3,8 +3,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { createEvent } from '@/lib/api'
+import { ArrowLeft, Lock } from 'lucide-react'
+import { createEvent, checkPremium } from '@/lib/api'
 
 const types = [
   { value: 'date_night', label: 'Date night' },
@@ -22,6 +22,9 @@ export default function CreateEventPage() {
   const [type, setType] = useState<string>('other')
   const [maxParticipants, setMaxParticipants] = useState('')
   const [saving, setSaving] = useState(false)
+  const [isPremium, setIsPremium] = useState<boolean | null>(null)
+
+  useState(() => { checkPremium().then(setIsPremium) })
 
   const handleSubmit = async () => {
     if (!title) return
@@ -78,10 +81,17 @@ export default function CreateEventPage() {
           <input type="number" value={maxParticipants} onChange={e => setMaxParticipants(e.target.value)} placeholder="50"
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
         </div>
-        <button onClick={handleSubmit} disabled={!title || saving}
-          className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
-          {saving ? 'Création...' : 'Créer l\'antenne'}
-        </button>
+        {isPremium === false ? (
+          <button onClick={() => router.push('/settings')}
+            className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
+            <Lock size={16} /> Premium requis
+          </button>
+        ) : (
+          <button onClick={handleSubmit} disabled={!title || saving}
+            className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
+            {saving ? 'Création...' : 'Créer l\'antenne'}
+          </button>
+        )}
       </div>
     </div>
   )

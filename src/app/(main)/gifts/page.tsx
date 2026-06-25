@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send } from 'lucide-react'
-import { getGifts, sendGift, getMatches } from '@/lib/api'
+import { ArrowLeft, Send, Lock } from 'lucide-react'
+import { getGifts, sendGift, getMatches, checkPremium } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 
 export default function GiftsPage() {
@@ -16,11 +16,13 @@ export default function GiftsPage() {
   const [selectedMatch, setSelectedMatch] = useState('')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
     })
+    checkPremium().then(setIsPremium)
     getGifts().then(({ data }) => { if (data) setGifts(data) })
     getMatches().then(({ data }) => {
       if (data) setMatches(data)
@@ -76,10 +78,17 @@ export default function GiftsPage() {
               <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Un petit mot..."
                 rows={2} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
             </div>
-            <button onClick={handleSend} disabled={!selectedMatch || sending}
-              className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
-              <Send size={16} /> {sending ? 'Envoi...' : 'Envoyer le cadeau'}
-            </button>
+            {isPremium ? (
+              <button onClick={handleSend} disabled={!selectedMatch || sending}
+                className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
+                <Send size={16} /> {sending ? 'Envoi...' : 'Envoyer le cadeau'}
+              </button>
+            ) : (
+              <button onClick={() => router.push('/settings')}
+                className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
+                <Lock size={16} /> Premium requis
+              </button>
+            )}
           </div>
         )}
       </div>
