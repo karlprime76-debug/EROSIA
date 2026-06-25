@@ -15,6 +15,16 @@ export interface Profile {
   looking_for: LookingFor
   created_at: string
   last_seen?: string
+  incognito: boolean
+  latitude?: number
+  longitude?: number
+  super_likes_remaining: number
+  super_likes_reset_at: string
+  travel_city?: string
+  travel_active?: boolean
+  subscription_tier?: 'free' | 'premium'
+  stripe_customer_id?: string
+  subscription_id?: string
 }
 
 export interface Swipe {
@@ -39,6 +49,14 @@ export interface Message {
   text: string | null
   image_url: string | null
   created_at: string
+}
+
+export type ReportReason = 'fake' | 'harassment' | 'spam' | 'inappropriate' | 'other'
+
+export interface BlockedProfile {
+  blocked_id: string
+  created_at: string
+  blocked: { name: string; photos: string[] } | null
 }
 
 const supabase = createClient()
@@ -77,12 +95,13 @@ export async function updatePassword(password: string) {
   return { error: error?.message }
 }
 
-export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
+export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase.from('profiles').select('*')
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  if (!filters?.showIncognito) q = q.eq('incognito', false)
   const { data, error } = await q
   return { data: data as Profile[] | null, error: error?.message }
 }
@@ -273,3 +292,306 @@ export async function deleteLastSwipe() {
   const { error } = await supabase.from('swipes').delete().eq('id', last.id)
   return { error: error?.message }
 }
+
+// ---- NEW FEATURES ----
+
+// 1. Geolocation
+export async function updateLocation(latitude: number, longitude: number) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('profiles').update({ latitude, longitude }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+export async function getProfilesNearby(lat: number, lng: number, radiusKm: number, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
+  // Use PostGIS-like approach: approximate using lat/lng difference
+  // 1 degree lat ≈ 111km, 1 degree lng ≈ 111*cos(lat) km
+  const latDelta = radiusKm / 111
+  const lngDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180))
+  let q = supabase
+    .from('profiles')
+    .select('*')
+    .gte('latitude', lat - latDelta)
+    .lte('latitude', lat + latDelta)
+    .gte('longitude', lng - lngDelta)
+    .lte('longitude', lng + lngDelta)
+  if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
+  if (filters?.minAge) q = q.gte('age', filters.minAge)
+  if (filters?.maxAge) q = q.lte('age', filters.maxAge)
+  if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  const { data, error } = await q
+  return { data: data as Profile[] | null, error: error?.message }
+}
+
+// 2. Super like limit
+export async function getSuperLikesRemaining() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  // Check if we need to reset
+  const { data } = await supabase.from('profiles').select('super_likes_remaining, super_likes_reset_at').eq('id', user.id).single()
+  if (!data) return 0
+  const now = new Date()
+  const resetDate = new Date(data.super_likes_reset_at)
+  if (now.getDate() !== resetDate.getDate() || now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
+    // Reset daily
+    await supabase.from('profiles').update({ super_likes_remaining: 1, super_likes_reset_at: now.toISOString() }).eq('id', user.id)
+    return 1
+  }
+  return data.super_likes_remaining
+}
+
+export async function useSuperLike() {
+  const remaining = await getSuperLikesRemaining()
+  if (remaining <= 0) return { error: 'Plus de super like disponible aujourd\'hui' }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('profiles').update({ super_likes_remaining: remaining - 1 }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+// 3. Incognito mode
+export async function setIncognito(incognito: boolean) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('profiles').update({ incognito }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+export async function getIncognito() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data } = await supabase.from('profiles').select('incognito').eq('id', user.id).single()
+  return data?.incognito ?? false
+}
+
+// 4. Push subscriptions
+export async function savePushSubscription(endpoint: string, p256dh: string, auth: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('push_subscriptions').insert({
+    user_id: user.id, endpoint, p256dh, auth,
+  })
+  return { error: error?.message }
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint)
+  return { error: error?.message }
+}
+
+// 5. Quiz
+export async function getQuizQuestions() {
+  const { data, error } = await supabase.from('quiz_questions').select('*')
+  return { data: data as Array<{ id: string; question: string; options: Array<{ text: string; trait: string }>; category: string | null }> | null, error: error?.message }
+}
+
+export async function saveQuizAnswers(answers: Array<{ questionId: string; answerIndex: number }>) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  // Upsert each answer
+  for (const a of answers) {
+    await supabase.from('quiz_answers').upsert({
+      user_id: user.id, question_id: a.questionId, answer_index: a.answerIndex,
+    }, { onConflict: 'user_id,question_id' })
+  }
+  return { error: null }
+}
+
+export async function getQuizAnswers() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase.from('quiz_answers').select('*').eq('user_id', user.id)
+  return { data: data ?? [], error: error?.message }
+}
+
+// 6. Compatibility
+export async function getCompatibilityWith(otherUserId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { score: 0 }
+  const { data } = await supabase.rpc('get_compatibility', { user_a_id: user.id, user_b_id: otherUserId })
+  return { score: (data as number) ?? 0 }
+}
+
+// 7. Blocked users management
+export async function getBlockedProfiles() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_id, created_at, blocked:profiles!blocks_blocked_id_fkey(name, photos)')
+    .eq('blocker_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+// 9. Typing indicator (no SQL, uses Realtime channels)
+
+// ---- FEATURE 1: Premium / Stripe ----
+export async function createCheckoutSession(priceId: string) {
+  const res = await fetch('/api/stripe/create-checkout', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ priceId }),
+  })
+  const data = await res.json()
+  if (!res.ok) return { error: data.error }
+  return { url: data.url as string }
+}
+
+export async function getSubscriptionStatus() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { tier: 'free' as const }
+  const { data } = await supabase.from('profiles').select('subscription_tier').eq('id', user.id).single()
+  return { tier: (data?.subscription_tier ?? 'free') as 'free' | 'premium' }
+}
+
+// ---- FEATURE 2: Selfie verification ----
+export async function submitVerification(photoFile: File) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const ext = photoFile.name.split('.').pop() ?? 'jpg'
+  const fileName = `verification/${user.id}/${Date.now()}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('verification_photos').upload(fileName, photoFile)
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: urlData } = supabase.storage.from('verification_photos').getPublicUrl(fileName)
+
+  const { data, error } = await supabase.from('verification_requests').insert({
+    user_id: user.id, photo_url: urlData.publicUrl,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function getVerificationStatus() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { status: null }
+  const { data } = await supabase
+    .from('verification_requests')
+    .select('status')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return { status: (data?.status as 'pending' | 'approved' | 'rejected' | null) ?? null }
+}
+
+// ---- FEATURE 3: Icebreakers ----
+export async function getIcebreakers(category?: string) {
+  let q = supabase.from('icebreakers').select('*')
+  if (category) q = q.eq('category', category)
+  const { data, error } = await q
+  return { data: data as Array<{ id: string; question: string; category: string | null }> | null, error: error?.message }
+}
+
+// ---- FEATURE 4: Stories ----
+export async function uploadStory(file: File) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const fileName = `stories/${user.id}/${Date.now()}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('stories').upload(fileName, file)
+  if (uploadError) return { error: uploadError.message }
+
+  const { data: urlData } = supabase.storage.from('stories').getPublicUrl(fileName)
+
+  const type = file.type.startsWith('video/') ? 'video' : 'image'
+
+  const { data, error } = await supabase.from('stories').insert({
+    user_id: user.id, media_url: urlData.publicUrl, type,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function getActiveStories() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('stories')
+    .select('*, profile:profiles!stories_user_id_fkey(name, photos, is_verified)')
+    .gte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function deleteStory(storyId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('stories').delete().eq('id', storyId)
+  return { error: error?.message }
+}
+
+// ---- FEATURE 5: Travel mode ----
+export async function setTravelMode(city: string, active: boolean) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('profiles').update({ travel_city: city, travel_active: active }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+export async function getTravelMode() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { city: null, active: false }
+  const { data } = await supabase.from('profiles').select('travel_city, travel_active').eq('id', user.id).single()
+  return { city: data?.travel_city ?? null, active: data?.travel_active ?? false }
+}
+
+// ---- FEATURE 6: Message reactions ----
+export async function addReaction(messageId: string, emoji: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('message_reactions').insert({
+    message_id: messageId, user_id: user.id, emoji,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function removeReaction(messageId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', user.id)
+  return { error: error?.message }
+}
+
+export async function getReactions(messageId: string) {
+  const { data, error } = await supabase
+    .from('message_reactions')
+    .select('*, profile:profiles!message_reactions_user_id_fkey(name)')
+    .eq('message_id', messageId)
+  return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 7: Notifications ----
+export async function getNotifications() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*, actor:profiles!notifications_actor_id_fkey(name, photos)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function markNotificationRead(notificationId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('notifications').update({ read: true }).eq('id', notificationId)
+  return { error: error?.message }
+}
+
+export async function getUnreadCount() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  const { count } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('read', false)
+  return count ?? 0
+}
+
+// ---- FEATURE 8: Compatibility ----
+// Already has getCompatibilityWith() above (line 405)

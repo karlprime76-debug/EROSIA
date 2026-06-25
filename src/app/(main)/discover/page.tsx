@@ -3,21 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, type Profile } from '@/lib/api'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityWith, getActiveStories, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 
-const SUPER_LIKE_DAILY = 3
+const SUPER_LIKE_DAILY = 1
 
-function getInitialSuperLikes(): number {
-  if (typeof window === 'undefined') return SUPER_LIKE_DAILY
-  const stored = localStorage.getItem('erosia_superlikes_date')
-  const today = new Date().toDateString()
-  if (stored !== today) return SUPER_LIKE_DAILY
-  const count = parseInt(localStorage.getItem('erosia_superlikes_count') ?? '0', 10)
-  return SUPER_LIKE_DAILY - count
-}
+const REPORT_REASONS = ['Compte faux', 'Harcèlement', 'Spam', 'Contenu inapproprié', 'Autre'] as const
 
 const lookingForLabel = (v: string) => ({ friendship: 'Amitié', casual: 'Plan cul', fwb: 'FWB', serious: 'Sérieux', open: 'Libre' }[v] ?? v)
 
@@ -26,18 +19,37 @@ export default function DiscoverPage() {
   const [idx, setIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [matchModal, setMatchModal] = useState<{ profile: Profile; matchId: string } | null>(null)
-  const [superLikesLeft, setSuperLikesLeft] = useState(getInitialSuperLikes)
+  const [superLikesLeft, setSuperLikesLeft] = useState(SUPER_LIKE_DAILY)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({ minAge: 18, maxAge: 99, lookingFor: '' })
   const [flirtedIds, setFlirtedIds] = useState<string[]>([])
-  const [blockedIds, setBlockedIds] = useState<string[]>([])
   const [hasSwiped, setHasSwiped] = useState(false)
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+  const [distanceKm, setDistanceKm] = useState<number | null>(null)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [compatScores, setCompatScores] = useState<Record<string, number>>({})
+  const [storiesUserIds, setStoriesUserIds] = useState<Set<string>>(new Set())
   const router = useRouter()
+
+  useEffect(() => {
+    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY))
+  }, [])
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude)
+        setLng(pos.coords.longitude)
+        updateLocation(pos.coords.latitude, pos.coords.longitude)
+      },
+      () => {}
+    )
+  }, [])
 
   useEffect(() => {
     Promise.all([getSwipedIds(), getBlockedIds(), getLastSwipe()])
       .then(([swiped, blocked, last]) => {
-        setBlockedIds(blocked)
         setHasSwiped(!!last)
         return getProfiles([...swiped, ...blocked], { minAge: 18, maxAge: 99 })
       })
@@ -50,19 +62,47 @@ export default function DiscoverPage() {
     getSentFlirtIds().then(ids => setFlirtedIds(ids))
   }, [])
 
+  useEffect(() => {
+    getActiveStories().then(({ data }) => {
+      if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!profiles.length) return
+    const load = async () => {
+      const scores: Record<string, number> = {}
+      for (const p of profiles) {
+        const { score } = await getCompatibilityWith(p.id)
+        scores[p.id] = score
+      }
+      setCompatScores(scores)
+    }
+    load()
+  }, [profiles])
+
+  const fetchProfiles = async (extraBlocked: string[] = []) => {
+    const swiped = await getSwipedIds()
+    const blocked = await getBlockedIds()
+    const exclude = [...swiped, ...blocked, ...extraBlocked]
+    const opts = { ...filters, lookingFor: filters.lookingFor || undefined }
+    if (distanceKm !== null && lat !== null && lng !== null) {
+      return getProfilesNearby(lat, lng, distanceKm, exclude, opts)
+    }
+    return getProfiles(exclude, opts)
+  }
+
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
     const p = profiles[idx]
     if (!p) return
     if (dir === 'super_like') {
       if (superLikesLeft <= 0) return
-      setSuperLikesLeft((s) => s - 1)
-      const today = new Date().toDateString()
-      if (localStorage.getItem('erosia_superlikes_date') !== today) {
-        localStorage.setItem('erosia_superlikes_date', today)
-        localStorage.setItem('erosia_superlikes_count', '0')
+      const result = await consumeSuperLike()
+      if (result?.error) {
+        alert("Plus de super like aujourd'hui")
+        return
       }
-      const c = parseInt(localStorage.getItem('erosia_superlikes_count') ?? '0', 10)
-      localStorage.setItem('erosia_superlikes_count', String(c + 1))
+      setSuperLikesLeft((s) => s - 1)
     }
     await createSwipe(p.id, dir)
     setHasSwiped(true)
@@ -74,8 +114,7 @@ export default function DiscoverPage() {
     if (next >= profiles.length) {
       setProfiles([])
       setIdx(0)
-      const swiped = await getSwipedIds()
-      const { data } = await getProfiles([...swiped, ...blockedIds], { ...filters, lookingFor: filters.lookingFor || undefined })
+      const { data } = await fetchProfiles()
       if (data) setProfiles(data)
     } else {
       setIdx(next)
@@ -86,10 +125,10 @@ export default function DiscoverPage() {
     const last = await getLastSwipe()
     if (!last) { setHasSwiped(false); return }
     await deleteLastSwipe()
-    const swiped = await getSwipedIds()
-    const { data } = await getProfiles([...swiped, ...blockedIds], { ...filters, lookingFor: filters.lookingFor || undefined })
+    const { data } = await fetchProfiles()
     if (data) setProfiles(data)
     setIdx(0)
+    const swiped = await getSwipedIds()
     setHasSwiped(swiped.length > 0)
   }
 
@@ -138,17 +177,22 @@ export default function DiscoverPage() {
               <option value="open">Relation libre</option>
             </select>
           </div>
-          <button onClick={() => {
+          <div>
+            <label className="text-xs font-medium text-[#9E9488] mb-1 block">Distance</label>
+            <select value={distanceKm ?? ''} onChange={e => setDistanceKm(e.target.value ? Number(e.target.value) : null)}
+              className="w-full bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] rounded-lg px-3 py-2 text-sm">
+              <option value="">Tout</option>
+              <option value="10">10 km</option>
+              <option value="25">25 km</option>
+              <option value="50">50 km</option>
+              <option value="100">100 km</option>
+            </select>
+          </div>
+          <button onClick={async () => {
             setShowFilters(false); setLoading(true)
-            Promise.all([getSwipedIds(), getBlockedIds()]).then(([swiped, blocked]) => {
-              setBlockedIds(blocked)
-              return getProfiles([...swiped, ...blocked], { ...filters, lookingFor: filters.lookingFor || undefined })
-            }).then(({ data }) => {
-              setTimeout(() => {
-                if (data) setProfiles(data)
-                setLoading(false)
-              })
-            })
+            const { data } = await fetchProfiles()
+            if (data) setProfiles(data)
+            setLoading(false)
           }}
             className="w-full py-2.5 rounded-full text-white font-semibold text-sm" style={{ background: '#D92D4A' }}>
             Appliquer les filtres
@@ -167,6 +211,15 @@ export default function DiscoverPage() {
           <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-black/40 bg-[#1C1C1E] sensual-border">
             <div className="relative w-full h-full">
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
+              {storiesUserIds.has(current.id) && (
+                <div className="absolute inset-0 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#0A0A0A]" />
+              )}
+              {compatScores[current.id] !== undefined && (
+                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-bold shadow-lg"
+                  style={{ background: compatScores[current.id] >= 70 ? '#22C55E' : compatScores[current.id] >= 40 ? '#EAB308' : '#EF4444' }}>
+                  {compatScores[current.id]}%
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
               <div className="absolute bottom-20 left-4 right-4 pointer-events-none">
@@ -193,8 +246,7 @@ export default function DiscoverPage() {
                 if (!current) return
                 if (confirm('Bloquer ce profil ?')) {
                   await blockProfile(current.id)
-                  const swiped = await getSwipedIds()
-                  const { data } = await getProfiles([...swiped, ...blockedIds, current.id], { minAge: 18, maxAge: 99, lookingFor: filters.lookingFor || undefined })
+                  const { data } = await fetchProfiles([current.id])
                   if (data) setProfiles(data)
                   setIdx(0)
                 }
@@ -208,9 +260,14 @@ export default function DiscoverPage() {
               <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
                 <X size={28} className="text-red-500" />
               </button>
-              <button onClick={() => swipe('super_like')} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
-                <Star size={22} className="text-indigo-500" />
-              </button>
+              <div className="relative">
+                <button onClick={() => swipe('super_like')} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
+                  <Star size={22} className="text-indigo-500" />
+                </button>
+                <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-[#1C1C1E] rounded-full px-1 border border-indigo-500/30">
+                  {superLikesLeft}/{SUPER_LIKE_DAILY}
+                </span>
+              </div>
               <button onClick={async () => {
                 if (!current || flirtedIds.includes(current.id)) return
                 await sendFlirt(current.id)
@@ -222,10 +279,42 @@ export default function DiscoverPage() {
               <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
                 <Heart size={28} className="text-green-500" />
               </button>
+              <button onClick={() => setShowReportModal(true)} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
+                <Flag size={18} className="text-[#6B6258]" />
+              </button>
             </div>
           </TiltCard>
         )}
       </div>
+
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
+          <div className="bg-[#1C1C1E] rounded-3xl p-8 max-w-sm w-full text-center relative z-10">
+            <h2 className="text-xl font-bold mb-2">Signaler ce profil</h2>
+            <p className="text-[#9E9488] text-sm mb-5">Pour quelle raison ?</p>
+            <div className="space-y-2">
+              {REPORT_REASONS.map((reason) => (
+                <button key={reason} onClick={async () => {
+                  if (!current) return
+                  const { error } = await reportProfile(current.id, reason)
+                  setShowReportModal(false)
+                  if (error) {
+                    alert('Erreur lors du signalement')
+                  } else {
+                    alert('Signalement envoyé')
+                  }
+                }}
+                  className="w-full py-3 rounded-lg text-sm font-medium bg-[#2A2826] text-[#F5F0EB] hover:bg-[#3A3836] transition-colors">
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowReportModal(false)} className="w-full py-3 mt-3 text-[#9E9488] text-sm">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {matchModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">

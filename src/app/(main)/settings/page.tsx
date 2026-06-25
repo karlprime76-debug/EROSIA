@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, Trash2, Shield as ShieldIcon } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, Trash2, Shield as ShieldIcon, Crown, MapPin } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode } from '@/lib/api'
+import ToggleSwitch from '@/components/ToggleSwitch'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -11,10 +13,18 @@ export default function SettingsPage() {
   const [visibility, setVisibility] = useState('all')
   const [notifPush, setNotifPush] = useState(true)
   const [notifEmail, setNotifEmail] = useState(true)
+  const [subscriptionTier, setSubscriptionTier] = useState('free')
+  const [travelActive, setTravelActive] = useState(false)
+  const [travelCity, setTravelCity] = useState('')
 
   useEffect(() => {
     supabase.from('profiles').select('looking_for').eq('id', supabase.auth.getUser().then(({ data }) => data.user?.id)).single()
       .then(() => {}) // placeholder — we could store prefs in profile later
+    getSubscriptionStatus().then(r => setSubscriptionTier(r.tier))
+    getTravelMode().then(mode => {
+      setTravelActive(mode.active)
+      setTravelCity(mode.city ?? '')
+    })
   }, [])
 
   const handleDelete = async () => {
@@ -29,6 +39,20 @@ export default function SettingsPage() {
       await supabase.auth.signOut()
       router.push('/')
     }
+  }
+
+  const handleUpgrade = async () => {
+    const { url } = await createCheckoutSession('price_premium_monthly')
+    if (url) window.location.href = url
+  }
+
+  const handleTravelToggle = async (v: boolean) => {
+    setTravelActive(v)
+    await setTravelMode(travelCity, v)
+  }
+
+  const saveTravelCity = async () => {
+    await setTravelMode(travelCity, travelActive)
   }
 
   const visibilityOptions = [
@@ -88,6 +112,53 @@ export default function SettingsPage() {
         {
           icon: Trash2, label: 'Supprimer mon compte', desc: 'Irréversible', danger: true,
           onClick: handleDelete,
+        },
+      ],
+    },
+    {
+      title: 'Abonnement',
+      items: [
+        {
+          icon: Crown, label: 'Erosia Premium',
+          desc: subscriptionTier === 'premium' ? 'Actif' : 'Gratuit',
+          render: () => (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${subscriptionTier === 'premium' ? 'bg-[#22C55E]' : 'bg-[#6B6258]'}`} />
+                <span className="text-xs text-[#9E9488]">{subscriptionTier === 'premium' ? 'Premium actif' : 'Compte gratuit'}</span>
+              </div>
+              {subscriptionTier !== 'premium' && (
+                <button onClick={handleUpgrade}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-white"
+                  style={{ background: 'linear-gradient(135deg, #D92D4A, #C85A17)' }}>
+                  Passer à Premium
+                </button>
+              )}
+            </div>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Voyage',
+      items: [
+        {
+          icon: MapPin, label: 'Mode voyage',
+          desc: travelActive ? `Actif : ${travelCity || 'Non défini'}` : 'Inactif',
+          render: () => (
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center justify-between">
+                <span className="text-xs text-[#9E9488]">Activer</span>
+                <ToggleSwitch enabled={travelActive} onChange={handleTravelToggle} />
+              </label>
+              {travelActive && (
+                <input value={travelCity} onChange={e => setTravelCity(e.target.value)} onBlur={saveTravelCity}
+                  placeholder="Nom de la ville..."
+                  className="w-full px-3 py-2 rounded-lg bg-[#262628] text-sm text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]"
+                />
+              )}
+            </div>
+          ),
         },
       ],
     },

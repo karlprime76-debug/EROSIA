@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, type Profile, type LookingFor } from '@/lib/api'
 
@@ -78,12 +78,14 @@ export default function ProfilePage() {
   )
 
   const menu = [
+    { icon: BadgeCheck, label: 'Vérification', action: () => router.push('/verify') },
     { icon: Shield, label: 'Confidentialité', action: () => router.push('/settings') },
     { icon: Palette, label: 'Apparence', action: () => {
       const html = document.documentElement
       const isDark = html.classList.toggle('dark')
       localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
     }},
+    { icon: Film, label: 'Mes stories', action: () => router.push('/stories') },
     { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
   ]

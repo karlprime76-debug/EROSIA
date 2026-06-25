@@ -1,12 +1,27 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { Send, Camera, X } from 'lucide-react'
+
+interface Icebreaker {
+  id: string
+  question: string
+  category: string | null
+}
+
+interface Reaction {
+  id: string
+  message_id: string
+  user_id: string
+  emoji: string
+  created_at: string
+  profile: { name: string } | null
+}
 
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +33,44 @@ export default function ChatPage() {
   const [now, setNow] = useState(() => Date.now())
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [typingUserId, setTypingUserId] = useState<string | null>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout>(undefined)
+  const lastTypingBroadcast = useRef(0)
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null)
+  const [icebreakers, setIcebreakers] = useState<Icebreaker[]>([])
+  const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
+  const [reactingMessageId, setReactingMessageId] = useState<string | null>(null)
+
+  const loadMessages = useCallback(async () => {
+    const { data } = await getMessages(id)
+    if (data) {
+      setMessages(data)
+      const r: Record<string, Reaction[]> = {}
+      for (const m of data) {
+        if (m.id) {
+          const { data: rd } = await getReactions(m.id)
+          if (rd) r[m.id] = rd
+        }
+      }
+      setReactions(r)
+    }
+  }, [id])
+
+  const handleIcebreaker = async (text: string) => {
+    await sendMessage(id, text)
+    loadMessages()
+  }
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    const existing = reactions[messageId]?.find(r => r.user_id === currentUser?.id)
+    if (existing && existing.emoji === emoji) {
+      await removeReaction(messageId)
+    } else {
+      await addReaction(messageId, emoji)
+    }
+    setReactingMessageId(null)
+    loadMessages()
+  }
 
   useEffect(() => {
     let profileChannel: ReturnType<typeof supabase.channel> | undefined
@@ -25,6 +78,7 @@ export default function ChatPage() {
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
+      setCurrentUser(user)
 
       const { data: match } = await supabase.from('matches').select('*').eq('id', id).single()
       if (!match) { setLoading(false); return }
@@ -33,8 +87,7 @@ export default function ChatPage() {
       const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).single()
       if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
 
-      const { data } = await getMessages(id)
-      if (data) setMessages(data)
+      await loadMessages()
       setLoading(false)
 
       profileChannel = supabase
@@ -59,10 +112,37 @@ export default function ChatPage() {
       channel.unsubscribe()
       profileChannel?.unsubscribe()
     }
-  }, [id])
+  }, [id, loadMessages])
+
+  useEffect(() => {
+    getIcebreakers().then(({ data }) => {
+      if (data) setIcebreakers(data.slice(0, 5))
+    })
+  }, [])
+
+  useEffect(() => {
+    const channel = supabase.channel(`typing:match-${id}`)
+    channel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
+      if (payload.payload.userId !== currentUser?.id) {
+        setTypingUserId(payload.payload.userId)
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = setTimeout(() => setTypingUserId(null), 2000)
+      }
+    })
+    channel.subscribe()
+    return () => { supabase.removeChannel(channel); clearTimeout(typingTimeoutRef.current) }
+  }, [id, currentUser?.id])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+
+  const broadcastTyping = useCallback(() => {
+    const now = Date.now()
+    if (now - lastTypingBroadcast.current > 300) {
+      lastTypingBroadcast.current = now
+      supabase.channel(`typing:match-${id}`).send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
+    }
+  }, [id, currentUser?.id])
 
   const handleSend = async () => {
     if (!text.trim()) return
@@ -123,7 +203,20 @@ export default function ChatPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {messages.map((m) => (
+        {messages.length === 0 && icebreakers.length > 0 && (
+          <div className="px-4 py-4">
+            <p className="text-xs text-[#9E9488] mb-3 font-medium uppercase tracking-wider">Pour briser la glace</p>
+            <div className="flex flex-wrap gap-2">
+              {icebreakers.map((ib, i) => (
+                <button key={i} onClick={() => handleIcebreaker(ib.question)}
+                  className="px-4 py-2.5 rounded-full text-sm bg-[#1C1C1E] border border-[#2A2826] text-[#E8E0D8] hover:border-[#D92D4A] transition">
+                  {ib.question}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {messages.map((m) =>
           m.image_url ? (
             <div key={m.id} className="max-w-[75%] rounded-2xl overflow-hidden bg-[#262628]">
               <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
@@ -131,18 +224,45 @@ export default function ChatPage() {
           ) : (
             <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#262628] self-start">
               <p className="text-sm">{m.text}</p>
+              <div className="flex items-center gap-1 mt-1">
+                {reactions[m.id]?.length > 0 && (
+                  <div className="flex gap-0.5">
+                    {reactions[m.id].map((r: Reaction, i: number) => (
+                      <span key={i} className="text-sm">{r.emoji}</span>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
+                  className="text-[#6B6258] hover:text-white text-xs ml-1">
+                  +
+                </button>
+              </div>
+              {reactingMessageId === m.id && (
+                <div className="flex gap-1 mt-1">
+                  {['❤️', '😂', '😮', '😢', '🔥', '👍'].map(emoji => (
+                    <button key={emoji} onClick={() => handleReact(m.id, emoji)}
+                      className="text-lg hover:scale-125 transition">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )
-        ))}
+        )}
         <div ref={bottomRef} />
       </div>
+
+      {typingUserId && (
+        <div className="text-xs text-[#9E9488] px-4 py-1 italic animate-pulse">est en train d&rsquo;écrire...</div>
+      )}
 
       <div className="flex items-center gap-2 px-4 py-3 border-t border-[#2A2826]">
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         <button onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#1A1A1C]">
           <Camera size={16} className="text-[#9E9488]" />
         </button>
-        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C] text-sm outline-none" />
         <button onClick={handleSend} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: '#D92D4A' }}>
           <Send size={16} className="text-white" />
