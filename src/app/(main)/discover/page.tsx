@@ -135,14 +135,13 @@ export default function DiscoverPage() {
   const current = profiles[idx]
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
+    <div className="flex-1 flex items-center justify-center bg-transparent">
       <div className="animate-spin w-10 h-10 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
     <div className="flex-1 flex flex-col">
-      <div className="sensual-overlay" />
       <header className="flex items-center justify-between px-5 pt-6 pb-3">
         <Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" />
         <div className="flex items-center gap-2">

@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#141414] px-8 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-transparent px-8 text-center">
         <span className="text-6xl mb-4">✅</span>
         <h2 className="text-2xl font-bold mb-2">Mot de passe mis à jour !</h2>
         <button onClick={() => router.push('/login')}
@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#141414] px-8 justify-center max-w-sm mx-auto w-full">
+    <div className="flex-1 flex flex-col bg-transparent px-8 justify-center max-w-sm mx-auto w-full">
       <h2 className="text-2xl font-bold mb-1">Nouveau mot de passe</h2>
       <p className="text-[#9E9488] mb-8">Choisis un mot de passe sécurisé</p>
 

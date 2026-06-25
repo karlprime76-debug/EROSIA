@@ -116,8 +116,7 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto">
-      <div className="sensual-overlay" />
+    <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
       <header className="flex items-center justify-between px-5 pt-6 pb-3">
         <h2 className="text-3xl font-bold">Mon Profil</h2>
         <button onClick={() => setEditing(!editing)} className="px-5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 glass-light hover:bg-white/10"

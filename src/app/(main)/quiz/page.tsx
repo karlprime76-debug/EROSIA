@@ -71,7 +71,7 @@ export default function QuizPage() {
   const progress = ((current + 1) / questions.length) * 100
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
         <div className="flex-1">

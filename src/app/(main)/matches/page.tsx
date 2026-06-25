@@ -63,8 +63,7 @@ export default function MatchesPage() {
   )
 
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="sensual-overlay" />
+    <div className="flex-1 flex flex-col bg-transparent">
       <header className="px-5 pt-6 pb-4">
         <h2 className="text-3xl font-bold">
           Matchs

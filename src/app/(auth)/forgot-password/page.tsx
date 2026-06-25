@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#141414] px-8 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-transparent px-8 text-center">
         <span className="text-6xl mb-4">📧</span>
         <h2 className="text-2xl font-bold mb-2">Email envoyé !</h2>
         <p className="text-[#9E9488] mb-2">Vérifie ta boîte de réception.</p>
@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#141414] px-8 justify-center max-w-sm mx-auto w-full">
+    <div className="flex-1 flex flex-col bg-transparent px-8 justify-center max-w-sm mx-auto w-full">
       <h2 className="text-2xl font-bold mb-1">Mot de passe oublié</h2>
       <p className="text-[#9E9488] mb-8">Reçois un lien pour en créer un nouveau</p>
 

@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#141414] px-8 text-center">
+      <div className="bg-transparent flex-1 flex flex-col items-center justify-center px-8 text-center">
         <span className="text-6xl mb-4">📧</span>
         <h2 className="text-2xl font-bold mb-2">Compte créé !</h2>
         <p className="text-[#9E9488] mb-8">Vérifie tes emails pour confirmer ton inscription.</p>
@@ -36,7 +36,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#141414] px-8 justify-center max-w-sm mx-auto w-full">
+    <div className="bg-transparent flex-1 flex flex-col px-8 justify-center max-w-sm mx-auto w-full">
       <h2 className="text-2xl font-bold mb-1">Crée ton compte</h2>
       <p className="text-[#9E9488] mb-8">Rejoins la communauté Erosia</p>
 

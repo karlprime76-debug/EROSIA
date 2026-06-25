@@ -21,7 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#141414] px-8 justify-center max-w-sm mx-auto w-full">
+    <div className="bg-transparent flex-1 flex flex-col px-8 justify-center max-w-sm mx-auto w-full">
       <h2 className="text-2xl font-bold mb-1">Content de te revoir</h2>
       <p className="text-[#9E9488] mb-8">Connecte-toi pour continuer l&rsquo;aventure</p>
 

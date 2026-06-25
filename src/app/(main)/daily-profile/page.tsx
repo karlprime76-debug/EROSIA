@@ -28,7 +28,7 @@ export default function DailyProfilePage() {
   }
 
   if (!profile) return (
-    <div className="flex-1 flex flex-col">
+    <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
@@ -44,7 +44,7 @@ export default function DailyProfilePage() {
   )
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>

@@ -21,7 +21,7 @@ export default function OnboardingPage() {
   const s = slides[slide]
 
   return (
-    <div className="flex-1 flex flex-col bg-[#141414] px-8">
+    <div className="bg-transparent flex-1 flex flex-col px-8">
       <div className="flex-1 flex flex-col items-center justify-center">
         <span className="text-7xl mb-8">{s.emoji}</span>
         <h2 className="text-2xl font-bold text-center mb-3">{s.title}</h2>

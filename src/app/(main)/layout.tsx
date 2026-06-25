@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Flame, Heart, Bell, User, Settings } from 'lucide-react'
 import { getNotificationUnreadCount } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
+import { SensualBackground } from '@/components/3d/SensualBackground'
 
 const tabs = [
   { href: '/discover', icon: Flame, label: 'Découvrir' },
@@ -35,18 +36,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, [])
 
   return (
-    <div className="flex-1 flex flex-col max-w-lg mx-auto w-full bg-[#141414] shadow-sm relative">
-      <div className="sensual-overlay" />
-      <main className="flex-1 flex flex-col">{children}</main>
-      <div className="h-px bg-gradient-to-r from-transparent via-[#D92D4A]/20 to-transparent" />
-      <nav className="relative flex border-t border-[#2A2826]/60 bg-[#141414]/90 backdrop-blur-xl px-4 pb-3 pt-2 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.3)]" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
+    <div className="flex-1 flex flex-col w-full min-h-screen relative">
+      <SensualBackground />
+      <main className="flex-1 flex flex-col relative z-10 pb-20">{children}</main>
+      <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-lg left-1/2 -translate-x-1/2
+        flex border-t border-white/5 bg-black/40 backdrop-blur-2xl px-4 pb-3 pt-2
+        shadow-[0_-8px_32px_rgba(0,0,0,0.5)] rounded-t-3xl"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname.startsWith(href)
           return (
             <Link key={href} href={href} className="flex-1 flex flex-col items-center gap-0.5 py-1 relative">
               <div className="relative">
-                <Icon size={24} className={active ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
-                {active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#D92D4A]" />}
+                <Icon size={22} className={active ? 'text-[#D92D4A] drop-shadow-[0_0_8px_rgba(217,45,74,0.5)]' : 'text-[#6B6258]'} />
+                {active && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#D92D4A] shadow-[0_0_6px_rgba(217,45,74,0.8)]" />}
               </div>
               <span className={`text-[10px] font-medium ${active ? 'text-[#D92D4A]' : 'text-[#6B6258]'}`}>{label}</span>
               {href === '/notifications' && unreadCount > 0 && (

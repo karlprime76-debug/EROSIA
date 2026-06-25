@@ -365,15 +365,15 @@ export default function ChatPage() {
   const isOnline = otherProfile?.last_seen && (now - new Date(otherProfile.last_seen).getTime() < 60000)
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-[#1C1C1E]">
+    <div className="flex-1 flex items-center justify-center bg-transparent">
       <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
-    <div className="flex-1 flex flex-col max-w-lg mx-auto w-full relative">
-      <div className="sensual-overlay" />
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2826]/60 glass-light">
+    <div className="flex-1 flex flex-col w-full relative bg-transparent">
+
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/20 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#4A4238]'}`} />
