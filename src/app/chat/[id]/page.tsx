@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
-import { Send, Camera, X, Mic, Play, Square } from 'lucide-react'
+import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff } from 'lucide-react'
 
 interface Icebreaker {
   id: string
@@ -88,8 +88,23 @@ export default function ChatPage() {
   const [recording, setRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [showEphemeralOpts, setShowEphemeralOpts] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
+  const [callStatus, setCallStatus] = useState<string | null>(null)
+  const [callId, setCallId] = useState<string | null>(null)
+  const localVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteVideoRef = useRef<HTMLVideoElement>(null)
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
+  const [showPlaylist, setShowPlaylist] = useState(false)
+  const [playlist, setPlaylist] = useState<Array<{ id: string; title: string; artist?: string; url?: string }>>([])
+  const [newSongTitle, setNewSongTitle] = useState('')
+  const [newSongUrl, setNewSongUrl] = useState('')
+
+  const loadPlaylist = async () => {
+    const { data } = await getPlaylist(id)
+    if (data) setPlaylist(data)
+  }
 
   const loadMessages = useCallback(async () => {
     const { data } = await getMessages(id)
@@ -111,6 +126,14 @@ export default function ChatPage() {
     loadMessages()
   }
 
+  const handleAIIcebreaker = async () => {
+    if (!otherProfile) return
+    const { data, error } = await getIcebreakerSuggestion(otherProfile.id)
+    if (data && !error) {
+      setAiSuggestion(data as string)
+    }
+  }
+
   const handleReact = async (messageId: string, emoji: string) => {
     const existing = reactions[messageId]?.find(r => r.user_id === currentUser?.id)
     if (existing && existing.emoji === emoji) {
@@ -120,6 +143,58 @@ export default function ChatPage() {
     }
     setReactingMessageId(null)
     loadMessages()
+  }
+
+  const handleStartCall = async () => {
+    if (!otherProfile?.id) return
+    const { data, error } = await startCall(id, otherProfile.id)
+    if (error || !data) return
+    setCallId(data[0]?.id ?? null)
+    setCallStatus('ringing')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+      peerConnectionRef.current = pc
+      stream.getTracks().forEach(t => pc.addTrack(t, stream))
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'ice-candidate', payload: { candidate: e.candidate } })
+        }
+      }
+      pc.ontrack = (e) => {
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
+      }
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'offer', payload: { offer } })
+      setCallStatus('connected')
+    } catch (e) {
+      console.error('Call failed:', e)
+      setCallStatus(null)
+    }
+  }
+
+  const handleEndCall = async () => {
+    if (callId) { const r = await endCall(callId); void r }
+    peerConnectionRef.current?.close()
+    const stream = localVideoRef.current?.srcObject as MediaStream | null
+    stream?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
+    setCallStatus(null)
+    setCallId(null)
+  }
+
+  const handleAddPlaylist = async () => {
+    if (!newSongTitle) return
+    await addPlaylistItem(id, newSongTitle, undefined, newSongUrl || undefined)
+    setNewSongTitle('')
+    setNewSongUrl('')
+    loadPlaylist()
+  }
+
+  const handleRemovePlaylist = async (itemId: string) => {
+    await removePlaylistItem(itemId)
+    loadPlaylist()
   }
 
   useEffect(() => {
@@ -186,6 +261,35 @@ export default function ChatPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+
+  useEffect(() => {
+    const channel = supabase.channel(`call:${id}`)
+    channel.on('broadcast', { event: 'offer' }, (payload: { payload: { offer: RTCSessionDescriptionInit } }) => {
+      const handleOffer = async () => {
+        setCallStatus('connected')
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+        peerConnectionRef.current = pc
+        stream.getTracks().forEach(t => pc.addTrack(t, stream))
+        pc.ontrack = (e) => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0] }
+        await pc.setRemoteDescription(new RTCSessionDescription(payload.payload.offer))
+        const answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+        supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'answer', payload: { answer } })
+      }
+      handleOffer()
+    })
+    channel.subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [id])
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      markAsRead(id)
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [id, messages.length])
 
   const broadcastTyping = useCallback(() => {
     const now = Date.now()
@@ -267,28 +371,57 @@ export default function ChatPage() {
   )
 
   return (
-    <div className="flex-1 flex flex-col bg-[#1C1C1E] max-w-lg mx-auto w-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2826]">
-        <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-[#4A4238]'}`} />
+    <div className="flex-1 flex flex-col max-w-lg mx-auto w-full relative">
+      <div className="sensual-overlay" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2826]/60 glass-light">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#4A4238]'}`} />
+          </div>
           <div>
             <p className="font-semibold text-sm">{otherProfile?.name ?? 'Utilisateur'}</p>
             {otherProfile?.last_seen && !isOnline && (
-              <p className="text-xs text-[#6B6258]">{formatLastSeen(otherProfile.last_seen)}</p>
+              <p className="text-[10px] text-[#6B6258]">{formatLastSeen(otherProfile.last_seen)}</p>
             )}
-            {isOnline && <p className="text-xs text-green-500">En ligne</p>}
+            {isOnline && <p className="text-[10px] text-green-400">En ligne</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258] hover:bg-white/5'}`}>
+            <Music size={16} />
+          </button>
           <button onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
-            className={`text-xs px-2 py-1 rounded ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258]'}`}>
+            className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#6B6258] border border-transparent hover:border-white/10'}`}>
             {match?.ephemeral ? 'Éphémère' : 'Permanent'}
           </button>
-          <button onClick={handleUnmatch} className="p-2.5">
-            <X size={18} className="text-[#6B6258]" />
+          <button onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#6B6258] hover:bg-white/5 disabled:opacity-30 transition-all">
+            <Video size={16} />
+          </button>
+          <button onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
+            <X size={16} className="text-[#6B6258]" />
           </button>
         </div>
       </div>
+
+      {callStatus && (
+        <div className="absolute inset-0 z-50 bg-black flex flex-col">
+          <div className="flex-1 relative bg-zinc-900">
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <video ref={localVideoRef} autoPlay playsInline muted className="absolute bottom-4 right-4 w-24 h-36 rounded-lg object-cover bg-zinc-800 border-2 border-white/20" />
+          </div>
+          <div className="px-8 py-6 flex items-center justify-center gap-6">
+            <p className="text-sm text-white/60 absolute left-8">
+              {callStatus === 'ringing' ? 'Appel en cours...' : callStatus === 'connected' ? 'En communication' : ''}
+            </p>
+            <button onClick={handleEndCall}
+              className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
+              <PhoneOff size={24} fill="white" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showEphemeralOpts && (
         <div className="px-4 py-2 bg-[#1C1C1E] border-b border-[#2A2826]">
@@ -307,33 +440,86 @@ export default function ChatPage() {
         </div>
       )}
 
+      {showPlaylist && (
+        <div className="border-b border-[#2A2826] bg-[#1C1C1E] px-4 py-3 max-h-48 overflow-y-auto">
+          <p className="text-xs text-[#9E9488] font-medium mb-2 uppercase tracking-wider">Playlist partagée</p>
+          {playlist.length === 0 ? (
+            <p className="text-xs text-[#6B6258]">Ajoutez des musiques à votre playlist</p>
+          ) : playlist.map(item => (
+            <div key={item.id} className="flex items-center justify-between py-1.5">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{item.title}</p>
+                {item.artist && <p className="text-[10px] text-[#6B6258]">{item.artist}</p>}
+              </div>
+              <button onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          <div className="flex gap-2 mt-2">
+            <input value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} placeholder="Titre..."
+              className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+            <input value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} placeholder="URL..."
+              className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+            <button onClick={handleAddPlaylist}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ background: '#D92D4A' }}>
+              +
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && icebreakers.length > 0 && (
-          <div className="px-4 py-4">
+          <div className="px-4 py-4 animate-fade-up">
             <p className="text-xs text-[#9E9488] mb-3 font-medium uppercase tracking-wider">Pour briser la glace</p>
             <div className="flex flex-wrap gap-2">
               {icebreakers.map((ib, i) => (
                 <button key={i} onClick={() => handleIcebreaker(ib.question)}
-                  className="px-4 py-2.5 rounded-full text-sm bg-[#1C1C1E] border border-[#2A2826] text-[#E8E0D8] hover:border-[#D92D4A] transition">
+                  className="px-4 py-2.5 rounded-full text-sm glass-card border border-[#2A2826] text-[#E8E0D8] hover:border-[#D92D4A]/30 transition-all active:scale-95">
                   {ib.question}
                 </button>
               ))}
             </div>
+            <button onClick={handleAIIcebreaker}
+              className="mt-2 text-xs px-3 py-1.5 rounded-full bg-[#D92D4A]/10 text-[#D92D4A] border border-[#D92D4A]/20 hover:bg-[#D92D4A]/20 transition">
+              Générer une suggestion IA
+            </button>
+            {aiSuggestion && (
+              <div className="mt-2">
+                <button onClick={() => { sendMessage(id, aiSuggestion); setAiSuggestion(null); }}
+                  className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
+                  ✨ {aiSuggestion}
+                </button>
+              </div>
+            )}
           </div>
         )}
         {messages.map((m) =>
           m.audio_url ? (
-            <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#262628] self-start">
+            <div key={m.id} className={`max-w-[80%] px-4 py-3 rounded-2xl ${m.sender_id === currentUser?.id ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
               <AudioPlayer src={m.audio_url} />
             </div>
           ) : m.image_url ? (
-            <div key={m.id} className="max-w-[75%] rounded-2xl overflow-hidden bg-[#262628]">
+            <div key={m.id} className={`max-w-[80%] rounded-2xl overflow-hidden ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
               <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
             </div>
           ) : (
-            <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#262628] self-start">
-              <p className="text-sm">{m.text}</p>
-              <div className="flex items-center gap-1 mt-1">
+            <div key={m.id} className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
+              ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10'
+              : 'glass-card self-start'
+            }`}>
+              <p className="text-sm leading-relaxed">{m.text}</p>
+              {m.sender_id === currentUser?.id && (
+                <span className="text-[10px] ml-1">
+                  {m.read_at ? (
+                    <span className="text-[#D92D4A]">✓✓</span>
+                  ) : (
+                    <span className="text-[#6B6258]">✓</span>
+                  )}
+                </span>
+              )}
+              <div className="flex items-center gap-1 mt-1.5">
                 {reactions[m.id]?.length > 0 && (
                   <div className="flex gap-0.5">
                     {reactions[m.id].map((r: Reaction, i: number) => (
@@ -342,15 +528,15 @@ export default function ChatPage() {
                   </div>
                 )}
                 <button onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
-                  className="text-[#6B6258] hover:text-white text-xs ml-1">
+                  className="text-[#6B6258] hover:text-white text-xs ml-1 transition">
                   +
                 </button>
               </div>
               {reactingMessageId === m.id && (
-                <div className="flex gap-1 mt-1">
+                <div className="flex gap-1.5 mt-1.5">
                   {['❤️', '😂', '😮', '😢', '🔥', '👍'].map(emoji => (
                     <button key={emoji} onClick={() => handleReact(m.id, emoji)}
-                      className="text-lg hover:scale-125 transition">
+                      className="text-lg hover:scale-125 transition-all active:scale-150">
                       {emoji}
                     </button>
                   ))}
@@ -363,37 +549,47 @@ export default function ChatPage() {
       </div>
 
       {typingUserId && (
-        <div className="text-xs text-[#9E9488] px-4 py-1 italic animate-pulse">est en train d&rsquo;écrire...</div>
-      )}
-
-      {recording && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#D92D4A]/10">
-          <div className="w-2 h-2 rounded-full bg-[#D92D4A] animate-pulse" />
-          <span className="text-xs text-[#D92D4A] font-medium">
-            Enregistrement {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
-          </span>
+        <div className="text-xs text-[#9E9488] px-4 py-2 italic animate-pulse flex items-center gap-2">
+          <div className="flex gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          est en train d&rsquo;écrire...
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-[#2A2826]">
+      {recording && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#D92D4A]/10 border-t border-[#D92D4A]/10">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#D92D4A] animate-glow" />
+          <span className="text-xs text-[#D92D4A] font-medium tabular-nums">
+            {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+          </span>
+          <div className="flex-1 h-1 bg-[#2A2826] rounded-full overflow-hidden max-w-[120px]">
+            <div className="h-full bg-[#D92D4A] rounded-full animate-pulse" style={{ width: `${(recordingTime / 60) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[#2A2826]/60 bg-[#141414]/80 backdrop-blur-md">
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <button onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#1A1A1C]">
+        <button onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
           <Camera size={16} className="text-[#9E9488]" />
         </button>
         <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C] text-sm outline-none" />
+          placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all" />
         <button onClick={startRecording} disabled={recording}
-          className="p-2 text-[#6B6258] hover:text-white disabled:opacity-30">
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6258] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
           <Mic size={18} />
         </button>
         {recording ? (
           <button onClick={stopRecording}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A]">
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A] hover:shadow-[0_0_15px_rgba(217,45,74,0.3)] active:scale-90 transition-all">
             <Square size={16} fill="white" />
           </button>
         ) : (
           <button onClick={handleSend} disabled={!text.trim()}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30 active:scale-90 transition-all"
             style={{ background: '#D92D4A' }}>
             <Send size={16} />
           </button>

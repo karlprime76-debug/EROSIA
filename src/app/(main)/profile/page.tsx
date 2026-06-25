@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift, Headphones } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, type Profile, type LookingFor } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -16,6 +16,8 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
   const [now, setNow] = useState(() => Date.now())
+  const [profileTraits, setProfileTraits] = useState<string[]>([])
+  const [streak, setStreak] = useState(0)
   const videoRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -24,7 +26,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }) }
       setLoading(false)
     })()
   }, [])
@@ -107,49 +109,63 @@ export default function ProfilePage() {
     { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
     { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
     { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
+    { icon: Star, label: 'Profil du jour', action: () => router.push('/daily-profile') },
+    { icon: Headphones, label: 'Playlist', action: () => router.push('/playlist') },
     { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
   ]
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
-        <h2 className="text-2xl font-bold">Mon Profil</h2>
-        <button onClick={() => setEditing(!editing)} className="text-sm font-semibold" style={{ color: '#D92D4A' }}>
+      <div className="sensual-overlay" />
+      <header className="flex items-center justify-between px-5 pt-6 pb-3">
+        <h2 className="text-3xl font-bold">Mon Profil</h2>
+        <button onClick={() => setEditing(!editing)} className="px-5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 glass-light hover:bg-white/10"
+          style={{ color: editing ? '#9E9488' : '#D92D4A' }}>
           {editing ? 'Annuler' : 'Modifier'}
         </button>
       </header>
 
       <div className="px-4">
-        <div className="bg-[#1C1C1E] rounded-2xl p-6 mb-4 border border-[#2A2826]">
+        <div className="glass-card rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full bg-zinc-200 overflow-hidden">
-                {profile?.photos?.[0] ? (
-                  <Image src={profile.photos[0]} alt={profile.name} width={80} height={80} className="object-cover w-full h-full" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-3xl">?</div>
-                )}
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
+                  {profile?.photos?.[0] ? (
+                    <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-3xl">?</div>
+                  )}
+                </div>
               </div>
               <button onClick={handlePhoto} disabled={uploading}
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#141414]"
                 style={{ background: '#D92D4A' }}>
                 {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
               </button>
             </div>
             <div>
-              <p className="text-lg font-bold">{profile?.name ?? 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
+              <div className="flex items-center gap-1 flex-wrap">
+                <p className="text-xl font-bold">{profile?.name ?? 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
+                {streak > 0 && (
+                  <div className="flex items-center gap-1 text-sm ml-2">
+                    <span>🔥</span>
+                    <span className="text-[#EAB308] font-bold">{streak}</span>
+                  </div>
+                )}
+              </div>
               {profile?.location && <p className="text-sm text-[#6B6258]">📍 {profile.location}</p>}
               {profile?.last_seen && <p className="text-xs text-[#9E9488] mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
             </div>
           </div>
 
           {profile && profile.photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               {profile.photos.map((photo, idx) => (
                 <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#262628]">
                   <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
                       <button onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" title="Photo principale">
@@ -217,31 +233,48 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
-            {profile?.bio && <div className="mb-4"><h3 className="font-semibold text-sm mb-1">Bio</h3><p className="text-[#9E9488] text-sm">{profile.bio}</p></div>}
+            {profile?.bio && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-1.5 text-[#9E9488] uppercase tracking-wider">Bio</h3>
+                <p className="text-sm leading-relaxed">{profile.bio}</p>
+              </div>
+            )}
             {profile?.interests && profile.interests.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-semibold text-sm mb-2">Centres d&rsquo;intérêt</h3>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Centres d&rsquo;intérêt</h3>
+                <div className="flex flex-wrap gap-2">
                   {profile.interests.map(i => (
-                    <span key={i} className="text-xs bg-[#262628] px-3 py-1 rounded-full">{i}</span>
+                    <span key={i} className="text-xs bg-[#D92D4A]/8 px-3 py-1.5 rounded-full border border-[#D92D4A]/10 text-[#D92D4A]">{i}</span>
                   ))}
                 </div>
               </div>
             )}
             {profile?.looking_for && (
-              <div className="mb-6">
-                <h3 className="font-semibold text-sm mb-1">Ce que je cherche</h3>
-                <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-3 py-1 rounded-full">
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Ce que je cherche</h3>
+                <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-3 py-1.5 rounded-full border border-[#D92D4A]/10">
                   {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
                 </span>
+              </div>
+            )}
+            {profileTraits.length > 0 && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Personnalité</h3>
+                <div className="flex flex-wrap gap-2">
+                  {profileTraits.map((trait: string, i: number) => (
+                    <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-[#D92D4A]/10 text-[#D92D4A] border border-[#D92D4A]/20">
+                      {trait}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </>
         )}
 
-        <div className="bg-[#1C1C1E] rounded-2xl border border-[#2A2826] overflow-hidden mb-8">
+        <div className="glass-card rounded-2xl overflow-hidden mb-8 divide-y divide-[#2A2826]/50">
           {menu.map(({ icon: Icon, label, danger, action }) => (
-            <button key={label} onClick={action} className="w-full flex items-center justify-between px-4 py-3.5 border-b border-[#2A2826] last:border-0 text-left">
+            <button key={label} onClick={action} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
               <div className="flex items-center gap-3">
                 <Icon size={20} className={danger ? 'text-red-500' : 'text-[#9E9488]'} />
                 <span className={danger ? 'text-red-500 text-sm font-medium' : 'text-sm'}>{label}</span>

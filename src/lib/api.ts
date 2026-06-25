@@ -16,6 +16,8 @@ export interface Profile {
   created_at: string
   last_seen?: string
   incognito: boolean
+  ghost_mode: boolean
+  last_active_at?: string
   latitude?: number
   longitude?: number
   super_likes_remaining: number
@@ -42,6 +44,7 @@ export interface Match {
   user2_id: string
   created_at: string
   ephemeral?: boolean
+  read_count?: number
 }
 
 export interface Message {
@@ -52,6 +55,7 @@ export interface Message {
   image_url: string | null
   audio_url?: string
   expires_at?: string
+  read_at?: string
   created_at: string
 }
 
@@ -586,7 +590,7 @@ export async function markNotificationRead(notificationId: string) {
   return { error: error?.message }
 }
 
-export async function getUnreadCount() {
+export async function getNotificationUnreadCount() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return 0
   const { count } = await supabase
@@ -831,4 +835,154 @@ export async function getReceivedGifts() {
     .eq('receiver_id', user.id)
     .order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 17: Visio-Chat ----
+export async function startCall(matchId: string, calleeId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('calls').insert({
+    match_id: matchId, caller_id: user.id, callee_id: calleeId, status: 'ringing',
+  }).select().single()
+  return { data: data ?? null, error: error?.message }
+}
+
+export async function endCall(callId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('calls').update({
+    status: 'ended', ended_at: new Date().toISOString(),
+  }).eq('id', callId).select().single()
+  return { data: data ?? null, error: error?.message }
+}
+
+export async function getCallStatus(matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null }
+  const { data, error } = await supabase
+    .from('calls').select('*').eq('match_id', matchId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  return { data: data ?? null, error: error?.message }
+}
+
+// ---- FEATURE 18: Quiz Profile Display ----
+export async function getProfileTraits(userId: string) {
+  const { data, error } = await supabase.rpc('get_user_top_traits', { p_user_id: userId })
+  return { data: data as Array<{ trait: string; count: number }> | null, error: error?.message }
+}
+
+export async function getProfileQuizSummary(userId: string) {
+  const { data, error } = await supabase.rpc('get_profile_quiz_summary', { p_user_id: userId })
+  return { data: data as Array<{ question: string; answer: string; trait: string }> | null, error: error?.message }
+}
+
+// ---- FEATURE 19: Read Receipts ----
+export async function markAsRead(matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.rpc('mark_messages_read', { p_match_id: matchId, p_reader_id: user.id })
+  return { data: data as number | null, error: error?.message }
+}
+
+export async function getUnreadCount(matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  const { data } = await supabase.rpc('get_unread_count', { p_match_id: matchId, p_user_id: user.id })
+  return (data as number) ?? 0
+}
+
+export async function getLastReadAt(matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('messages').select('read_at').eq('match_id', matchId)
+    .not('read_at', 'is', null).order('read_at', { ascending: false }).limit(1).maybeSingle()
+  return data?.read_at ?? null
+}
+
+// ---- FEATURE 20: Ghost Mode ----
+export async function setGhostMode(enabled: boolean) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('profiles').update({
+    ghost_mode: enabled, last_active_at: new Date().toISOString(),
+  }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+export async function getGhostMode() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data } = await supabase.from('profiles').select('ghost_mode').eq('id', user.id).single()
+  return data?.ghost_mode ?? false
+}
+
+// ---- FEATURE 21: Icebreaker AI ----
+export async function getIcebreakerSuggestion(targetId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.rpc('generate_icebreaker', { p_user_id: user.id, p_target_id: targetId })
+  return { data: data as string | null, error: error?.message }
+}
+
+export async function markIcebreakerUsed(suggestionId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('icebreaker_suggestions').update({ used: true }).eq('id', suggestionId).eq('user_id', user.id)
+  return { error: error?.message }
+}
+
+export async function getIcebreakerSuggestions() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('icebreaker_suggestions')
+    .select('*, target:profiles!icebreaker_suggestions_target_id_fkey(name, photos)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 22: Streaks ----
+export async function getStreak() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null }
+  const { data, error } = await supabase.from('streaks').select('*').eq('user_id', user.id).maybeSingle()
+  return { data: data as { current_streak: number; longest_streak: number; last_message_date: string } | null, error: error?.message }
+}
+
+// ---- FEATURE 23: Shared Playlist ----
+export async function addPlaylistItem(matchId: string, title: string, artist?: string, url?: string, platform?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('playlist_items').insert({
+    match_id: matchId, user_id: user.id, title, artist: artist ?? null, url: url ?? null, platform: platform ?? 'spotify',
+  }).select().single()
+  return { data: data ?? null, error: error?.message }
+}
+
+export async function removePlaylistItem(itemId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('playlist_items').delete().eq('id', itemId).eq('user_id', user.id)
+  return { error: error?.message }
+}
+
+export async function getPlaylist(matchId: string) {
+  const { data, error } = await supabase
+    .from('playlist_items')
+    .select('*, user:profiles!playlist_items_user_id_fkey(name)')
+    .eq('match_id', matchId)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 24: Daily Profile ----
+export async function getDailyProfile() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data: rpcData, error: rpcError } = await supabase.rpc('select_daily_profile')
+  if (!rpcData || rpcError) return { data: null, error: rpcError?.message }
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', rpcData as string).single()
+  return { data: profile as Profile | null, error: null }
 }

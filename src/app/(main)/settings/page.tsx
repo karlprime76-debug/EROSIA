@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, Trash2, Shield as ShieldIcon, Crown, MapPin } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode } from '@/lib/api'
+import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 
 export default function SettingsPage() {
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [subscriptionTier, setSubscriptionTier] = useState('free')
   const [travelActive, setTravelActive] = useState(false)
   const [travelCity, setTravelCity] = useState('')
+  const [ghostMode, setGhostMode] = useState(false)
 
   useEffect(() => {
     supabase.from('profiles').select('looking_for').eq('id', supabase.auth.getUser().then(({ data }) => data.user?.id)).single()
@@ -25,6 +26,7 @@ export default function SettingsPage() {
       setTravelActive(mode.active)
       setTravelCity(mode.city ?? '')
     })
+    getGhostMode().then(setGhostMode)
   }, [])
 
   const handleDelete = async () => {
@@ -49,6 +51,11 @@ export default function SettingsPage() {
   const handleTravelToggle = async (v: boolean) => {
     setTravelActive(v)
     await setTravelMode(travelCity, v)
+  }
+
+  const handleGhostToggle = async (v: boolean) => {
+    setGhostMode(v)
+    await setGhostModeApi(v)
   }
 
   const saveTravelCity = async () => {
@@ -97,6 +104,13 @@ export default function SettingsPage() {
                 </button>
               </label>
             </div>
+          ),
+        },
+        {
+          icon: EyeOff, label: 'Mode fantôme',
+          desc: ghostMode ? 'Invisible pour les autres' : 'Visible',
+          render: () => (
+            <ToggleSwitch enabled={ghostMode} onChange={handleGhostToggle} />
           ),
         },
       ],

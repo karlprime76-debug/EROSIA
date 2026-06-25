@@ -58,32 +58,38 @@ export default function MatchesPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-10 h-10 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="px-5 pt-4 pb-3">
-        <h2 className="text-2xl font-bold">Matchs</h2>
-        <p className="text-[#9E9488] text-sm">{convs.length} conversation{convs.length > 1 ? 's' : ''}</p>
+      <div className="sensual-overlay" />
+      <header className="px-5 pt-6 pb-4">
+        <h2 className="text-3xl font-bold">
+          Matchs
+          <span className="text-[#6B6258] text-lg ml-2 font-normal">{convs.length}</span>
+        </h2>
+        <p className="text-[#6B6258] text-sm mt-0.5">Conversations et œillades</p>
       </header>
 
-      <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
+      <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
         {flirts.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <div className="mb-6 animate-fade-up">
+            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Eye size={14} className="text-[#D92D4A]" /> Œillades reçues
             </h3>
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {flirts.map((f) => (
-                <div key={f.sender_id} className="flex flex-col items-center gap-1 min-w-[72px]">
-                  <div className="w-14 h-14 rounded-full bg-[#262628] overflow-hidden border border-[#2A2826]">
-                    {f.sender?.photos?.[0] ? (
-                      <Image src={f.sender.photos[0]} alt={f.sender.name} width={56} height={56} className="object-cover w-full h-full" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-lg">?</div>
-                    )}
+                <div key={f.sender_id} className="flex flex-col items-center gap-1.5 min-w-[72px] group">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#262628] to-[#1C1C1E] overflow-hidden border-2 border-[#2A2826] group-hover:border-[#D92D4A]/30 transition-colors p-0.5">
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      {f.sender?.photos?.[0] ? (
+                        <Image src={f.sender.photos[0]} alt={f.sender.name} width={64} height={64} className="object-cover w-full h-full" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-lg">?</div>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-[#9E9488] truncate max-w-[72px]">{f.sender?.name ?? 'Inconnu'}</p>
                 </div>
@@ -93,26 +99,41 @@ export default function MatchesPage() {
         )}
 
         {convs.length === 0 ? (
-          <div className="text-center mt-20">
-            <Heart size={64} className="text-[#4A4238] mx-auto mb-4" />
-            <p className="font-semibold">Pas encore de matchs</p>
-            <p className="text-[#6B6258] text-sm mt-1">Continue à découvrir des profils !</p>
-          </div>
-        ) : convs.map((c) => (
-          <Link key={c.matchId} href={`/chat/${c.matchId}`}
-            className="flex items-center gap-3 p-3 bg-[#1C1C1E] rounded-xl border border-[#2A2826] hover:shadow-sm shadow-black/20 transition">
-            <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
-              className="rounded-full object-cover bg-[#262628]" />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold">{c.profile.name}</p>
-              <p className="text-sm text-[#6B6258] truncate">Dites bonjour ! 👋</p>
+          <div className="text-center mt-16 animate-fade-up">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
+              <Heart size={36} className="text-[#D92D4A]/40" />
             </div>
-            <MessageCircle size={20} className="text-[#5A5248]" />
-            <button onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1">
-              <X size={16} className="text-[#5A5248] hover:text-red-500 transition-colors" />
-            </button>
-          </Link>
-        ))}
+            <h3 className="font-semibold text-lg">Pas encore de matchs</h3>
+            <p className="text-[#6B6258] text-sm mt-1 max-w-xs mx-auto leading-relaxed">
+              Continue à découvrir des profils et trouve l&rsquo;âme qui te correspond.
+            </p>
+            <Link href="/discover" className="inline-block mt-6 px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:shadow-[0_0_20px_rgba(217,45,74,0.3)] active:scale-95"
+              style={{ background: '#D92D4A' }}>
+              Découvrir
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2 animate-fade-up">
+            {convs.map((c) => (
+              <Link key={c.matchId} href={`/chat/${c.matchId}`}
+                className="flex items-center gap-3 p-3 glass-card rounded-2xl transition-all duration-200 hover:border-[#D92D4A]/20 active:scale-[0.98] group">
+                <div className="relative shrink-0">
+                  <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
+                    className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#10B981] border-2 border-[#141414]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm">{c.profile.name}</p>
+                  <p className="text-xs text-[#6B6258] truncate mt-0.5">Dites bonjour 👋</p>
+                </div>
+                <MessageCircle size={18} className="text-[#5A5248]" />
+                <button onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X size={14} className="text-[#5A5248] hover:text-red-500 transition-colors" />
+                </button>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

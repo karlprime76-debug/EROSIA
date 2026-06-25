@@ -136,23 +136,24 @@ export default function DiscoverPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-10 h-10 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
-        <Image src="/logo.png" alt="Erosia" width={100} height={33} />
-        <div className="flex items-center gap-3">
-          {hasSwiped && <button onClick={handleRewind} className="p-2"><RotateCcw size={20} /></button>}
-          <button onClick={() => setShowFilters(!showFilters)} className="p-2"><SlidersHorizontal size={20} /></button>
-          <button onClick={() => router.push('/matches')} className="p-2"><MessageCircle size={20} /></button>
+      <div className="sensual-overlay" />
+      <header className="flex items-center justify-between px-5 pt-6 pb-3">
+        <Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" />
+        <div className="flex items-center gap-2">
+          {hasSwiped && <button onClick={handleRewind} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
+          <button onClick={() => setShowFilters(!showFilters)} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
+          <button onClick={() => router.push('/matches')} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
         </div>
       </header>
 
       {showFilters && (
-        <div className="mx-4 mb-3 p-4 bg-[#1A1A1C] rounded-2xl space-y-3 text-sm">
+        <div className="mx-4 mb-3 p-4 glass-card rounded-2xl space-y-3 text-sm animate-scale-in">
           <div>
             <label className="text-xs font-medium text-[#9E9488] mb-1 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
             <div className="flex gap-3 items-center">
@@ -194,7 +195,7 @@ export default function DiscoverPage() {
             if (data) setProfiles(data)
             setLoading(false)
           }}
-            className="w-full py-2.5 rounded-full text-white font-semibold text-sm" style={{ background: '#D92D4A' }}>
+            className="w-full py-3 rounded-full text-white font-semibold text-sm transition-all active:scale-95 hover:shadow-[0_0_20px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
             Appliquer les filtres
           </button>
         </div>
@@ -202,13 +203,15 @@ export default function DiscoverPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 pb-2">
         {!current ? (
-          <div className="text-center">
-            <Globe size={64} className="text-[#5A5248] mx-auto mb-4" />
-            <p className="text-lg font-semibold">Plus de profils</p>
-            <p className="text-[#6B6258] text-sm mt-1">Reviens plus tard ou modifie tes filtres</p>
+          <div className="text-center animate-fade-up">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
+              <Globe size={36} className="text-[#D92D4A]/40" />
+            </div>
+            <p className="text-xl font-semibold">Plus de profils</p>
+            <p className="text-[#6B6258] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
-          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-black/40 bg-[#1C1C1E] sensual-border">
+          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-xl shadow-black/50 bg-[#1C1C1E] sensual-border animate-scale-in">
             <div className="relative w-full h-full">
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
               {storiesUserIds.has(current.id) && (
@@ -256,15 +259,15 @@ export default function DiscoverPage() {
               </button>
             </div>
 
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-5">
-              <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
-                <X size={28} className="text-red-500" />
+            <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-4">
+              <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                <X size={26} className="text-red-400" />
               </button>
               <div className="relative">
-                <button onClick={() => swipe('super_like')} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
-                  <Star size={22} className="text-indigo-500" />
+                <button onClick={() => swipe('super_like')} className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-indigo-600/30 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-indigo-500/50">
+                  <Star size={22} className="text-indigo-400" />
                 </button>
-                <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-[#1C1C1E] rounded-full px-1 border border-indigo-500/30">
+                <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-zinc-900 rounded-full px-1.5 border border-indigo-500/40">
                   {superLikesLeft}/{SUPER_LIKE_DAILY}
                 </span>
               </div>
@@ -273,13 +276,13 @@ export default function DiscoverPage() {
                 await sendFlirt(current.id)
                 setFlirtedIds(ids => [...ids, current.id])
               }}
-                className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
-                <Eye size={22} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
+                className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-[#D92D4A]/30">
+                <Eye size={20} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
               </button>
-              <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
-                <Heart size={28} className="text-green-500" />
+              <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-green-500/30 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]">
+                <Heart size={26} className="text-green-400" />
               </button>
-              <button onClick={() => setShowReportModal(true)} className="w-11 h-11 rounded-full bg-[#1C1C1E] shadow-lg shadow-black/30 flex items-center justify-center">
+              <button onClick={() => setShowReportModal(true)} className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-zinc-500/50">
                 <Flag size={18} className="text-[#6B6258]" />
               </button>
             </div>
@@ -288,8 +291,8 @@ export default function DiscoverPage() {
       </div>
 
       {showReportModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
-          <div className="bg-[#1C1C1E] rounded-3xl p-8 max-w-sm w-full text-center relative z-10">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+          <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center animate-scale-in">
             <h2 className="text-xl font-bold mb-2">Signaler ce profil</h2>
             <p className="text-[#9E9488] text-sm mb-5">Pour quelle raison ?</p>
             <div className="space-y-2">
@@ -304,12 +307,12 @@ export default function DiscoverPage() {
                     alert('Signalement envoyé')
                   }
                 }}
-                  className="w-full py-3 rounded-lg text-sm font-medium bg-[#2A2826] text-[#F5F0EB] hover:bg-[#3A3836] transition-colors">
+                  className="w-full py-3 rounded-lg text-sm font-medium bg-white/5 text-[#F5F0EB] hover:bg-white/10 transition-all border border-white/5">
                   {reason}
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowReportModal(false)} className="w-full py-3 mt-3 text-[#9E9488] text-sm">
+            <button onClick={() => setShowReportModal(false)} className="w-full py-3 mt-3 text-[#9E9488] text-sm hover:text-white transition">
               Annuler
             </button>
           </div>
@@ -317,23 +320,25 @@ export default function DiscoverPage() {
       )}
 
       {matchModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
           <MatchBurst />
-          <div className="bg-[#1C1C1E] rounded-3xl p-8 max-w-sm w-full text-center animate-bounce-in relative z-10">
-            <Heart size={72} className="mx-auto mb-4" style={{ color: '#D92D4A' }} fill="#D92D4A" />
+          <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center animate-scale-in relative z-10">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#A8102A] mx-auto mb-5 flex items-center justify-center shadow-[0_0_30px_rgba(217,45,74,0.3)]">
+              <Heart size={40} className="text-white" fill="white" />
+            </div>
             <h2 className="text-3xl font-bold" style={{ color: '#D92D4A' }}>C&rsquo;est un match !</h2>
             <p className="text-[#9E9488] mt-1">Vous vous êtes mutuellement likés</p>
             <div className="flex items-center justify-center gap-4 my-6">
-              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover" />
-              <Heart size={24} className="text-[#D92D4A]" fill="#D92D4A" />
-              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover" />
+              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
+              <Heart size={24} className="text-[#D92D4A]/60" fill="#D92D4A" />
+              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
             </div>
             <p className="font-semibold mb-6">{matchModal.profile.name}</p>
             <button onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
-              className="w-full py-3.5 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
+              className="w-full py-3.5 rounded-full text-white font-semibold transition-all active:scale-95 hover:shadow-[0_0_25px_rgba(217,45,74,0.4)]" style={{ background: '#D92D4A' }}>
               Envoyer un message
             </button>
-            <button onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-[#9E9488] text-sm">Continuer à swiper</button>
+            <button onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-[#9E9488] text-sm hover:text-white transition">Continuer à swiper</button>
           </div>
         </div>
       )}
