@@ -25,6 +25,7 @@ export interface Profile {
   subscription_tier?: 'free' | 'premium'
   stripe_customer_id?: string
   subscription_id?: string
+  video_url?: string
 }
 
 export interface Swipe {
@@ -40,6 +41,7 @@ export interface Match {
   user1_id: string
   user2_id: string
   created_at: string
+  ephemeral?: boolean
 }
 
 export interface Message {
@@ -48,6 +50,8 @@ export interface Message {
   sender_id: string
   text: string | null
   image_url: string | null
+  audio_url?: string
+  expires_at?: string
   created_at: string
 }
 
@@ -595,3 +599,236 @@ export async function getUnreadCount() {
 
 // ---- FEATURE 8: Compatibility ----
 // Already has getCompatibilityWith() above (line 405)
+
+// ---- FEATURE 9: Audio messages ----
+export async function uploadAudio(file: File, matchId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const ext = file.name.split('.').pop() ?? 'mp3'
+  const fileName = `chat_audio/${matchId}/${Date.now()}_${user.id}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('chat_audio').upload(fileName, file)
+  if (uploadError) return { error: uploadError.message }
+  const { data: urlData } = supabase.storage.from('chat_audio').getPublicUrl(fileName)
+  return { url: urlData.publicUrl }
+}
+
+export async function sendAudioMessage(matchId: string, audioUrl: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('messages').insert({
+    match_id: matchId, sender_id: user.id, audio_url: audioUrl,
+  }).select().single()
+  return { data: data as Message | null, error: error?.message }
+}
+
+// ---- FEATURE 10: Video profile ----
+export async function uploadProfileVideo(file: File) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const ext = file.name.split('.').pop() ?? 'mp4'
+  const fileName = `profile_videos/${user.id}/${Date.now()}.${ext}`
+  const { error: uploadError } = await supabase.storage.from('profile_videos').upload(fileName, file)
+  if (uploadError) return { error: uploadError.message }
+  const { data: urlData } = supabase.storage.from('profile_videos').getPublicUrl(fileName)
+  const { error } = await supabase.from('profiles').update({ video_url: urlData.publicUrl }).eq('id', user.id)
+  return { url: urlData.publicUrl, error: error?.message }
+}
+
+export async function deleteProfileVideo() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data: profile } = await supabase.from('profiles').select('video_url').eq('id', user.id).single()
+  if (profile?.video_url) {
+    const fileName = profile.video_url.split('/profile_videos/').pop()
+    if (fileName) await supabase.storage.from('profile_videos').remove([fileName])
+  }
+  const { error } = await supabase.from('profiles').update({ video_url: null }).eq('id', user.id)
+  return { error: error?.message }
+}
+
+// ---- FEATURE 11: Moderation ----
+export async function flagContent(type: string, id: string, text?: string, url?: string) {
+  const { data, error } = await supabase.rpc('flag_content', {
+    p_content_type: type, p_content_id: id, p_content_text: text ?? null, p_content_url: url ?? null,
+  })
+  return { data, error: error?.message }
+}
+
+export async function getModerationQueue() {
+  const { data, error } = await supabase.from('moderation_queue').select('*').order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function reviewContent(id: string, approved: boolean) {
+  const { error } = await supabase.from('moderation_queue').update({ reviewed: true }).eq('id', id)
+  if (!approved) return { error: error?.message }
+  return { error: error?.message }
+}
+
+// ---- FEATURE 12: Events ----
+export async function createEvent(eventData: {
+  title: string; description?: string; location?: string; latitude?: number; longitude?: number;
+  event_date?: string; max_participants?: number; type: 'date_night' | 'meetup' | 'party' | 'other'
+}) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('events').insert({
+    ...eventData, creator_id: user.id,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function getEvents() {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
+    .order('event_date', { ascending: true })
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function joinEvent(eventId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('event_participants').insert({
+    event_id: eventId, user_id: user.id, status: 'accepted',
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function leaveEvent(eventId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id)
+  return { error: error?.message }
+}
+
+export async function getMyEvents() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('events')
+    .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
+    .eq('creator_id', user.id)
+    .order('event_date', { ascending: true })
+  return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 13: Duels ----
+export async function createDuel(profileAId: string, profileBId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('duels').insert({
+    creator_id: user.id, profile_a_id: profileAId, profile_b_id: profileBId,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function voteDuel(duelId: string, chosenId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('duel_votes').insert({
+    duel_id: duelId, voter_id: user.id, chosen_id: chosenId,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function getDuels() {
+  const { data, error } = await supabase
+    .from('duels')
+    .select('*, profile_a:profiles!duels_profile_a_id_fkey(name, photos), profile_b:profiles!duels_profile_b_id_fkey(name, photos), votes:duel_votes(*)')
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+// ---- FEATURE 14: Date ideas ----
+export async function getDateIdeas(category?: string) {
+  let q = supabase.from('date_ideas').select('*')
+  if (category) q = q.eq('category', category)
+  const { data, error } = await q
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function saveDateIdea(ideaId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('user_date_ideas').insert({ user_id: user.id, idea_id: ideaId })
+  return { error: error?.message }
+}
+
+export async function removeDateIdea(ideaId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('user_date_ideas').delete().eq('user_id', user.id).eq('idea_id', ideaId)
+  return { error: error?.message }
+}
+
+export async function getMyDateIdeas() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('user_date_ideas')
+    .select('*, idea:date_ideas!user_date_ideas_idea_id_fkey(*)')
+    .eq('user_id', user.id)
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function getMutualDateIdeas(otherUserId: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data } = await supabase
+    .from('user_date_ideas')
+    .select('idea_id')
+    .eq('user_id', user.id)
+  const myIdeaIds = (data ?? []).map(d => d.idea_id)
+  if (myIdeaIds.length === 0) return { data: [], error: null }
+  const { data: otherData, error: otherError } = await supabase
+    .from('user_date_ideas')
+    .select('*, idea:date_ideas!user_date_ideas_idea_id_fkey(*)')
+    .eq('user_id', otherUserId)
+    .in('idea_id', myIdeaIds)
+  return { data: otherData ?? [], error: otherError?.message }
+}
+
+// ---- FEATURE 15: Ephemeral chat ----
+export async function toggleEphemeral(matchId: string, enabled: boolean) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { error } = await supabase.from('matches').update({ ephemeral: enabled }).eq('id', matchId)
+  return { error: error?.message }
+}
+
+export async function sendEphemeralMessage(matchId: string, text: string, expiresInMinutes: number) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString()
+  const { data, error } = await supabase.from('messages').insert({
+    match_id: matchId, sender_id: user.id, text, expires_at: expiresAt,
+  }).select().single()
+  return { data: data as Message | null, error: error?.message }
+}
+
+// ---- FEATURE 16: Gifts ----
+export async function getGifts() {
+  const { data, error } = await supabase.from('gifts').select('*')
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function sendGift(receiverId: string, giftId: string, matchId: string, message?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data, error } = await supabase.from('sent_gifts').insert({
+    sender_id: user.id, receiver_id: receiverId, gift_id: giftId, match_id: matchId, message: message ?? null,
+  }).select().single()
+  return { data, error: error?.message }
+}
+
+export async function getReceivedGifts() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('sent_gifts')
+    .select('*, sender:profiles!sent_gifts_sender_id_fkey(name, photos), gift:gifts!sent_gifts_gift_id_fkey(*)')
+    .eq('receiver_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}

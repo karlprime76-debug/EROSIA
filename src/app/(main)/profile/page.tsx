@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, type Profile, type LookingFor } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, type Profile, type LookingFor } from '@/lib/api'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
   const [now, setNow] = useState(() => Date.now())
+  const videoRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -27,7 +28,12 @@ export default function ProfilePage() {
       setLoading(false)
     })()
   }, [])
-
+  const loadProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+  }
   const handlePhoto = async () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -66,6 +72,17 @@ export default function ProfilePage() {
     return `Vu il y a ${h} h`
   }
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    await uploadProfileVideo(f)
+    loadProfile()
+  }
+  const handleDeleteVideo = async () => {
+    await deleteProfileVideo()
+    loadProfile()
+  }
+
   const handleLogout = async () => {
     await signOut()
     router.push('/')
@@ -86,6 +103,10 @@ export default function ProfilePage() {
       localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
     }},
     { icon: Film, label: 'Mes stories', action: () => router.push('/stories') },
+    { icon: CalendarHeart, label: 'Antennes', action: () => router.push('/events') },
+    { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
+    { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
+    { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
     { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
     { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
   ]
@@ -143,6 +164,26 @@ export default function ProfilePage() {
                   {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}
                 </div>
               ))}
+            </div>
+          )}
+          {editing && (
+            <div className="mt-4">
+              <p className="text-xs text-[#9E9488] mb-2 font-medium">Vidéo d&rsquo;introduction</p>
+              {profile?.video_url ? (
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1C1C1E]">
+                  <video src={profile.video_url} controls className="w-full h-full object-cover" />
+                  <button onClick={handleDeleteVideo}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => videoRef.current?.click()}
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#6B6258]">
+                  <Camera size={24} />
+                </button>
+              )}
+              <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
             </div>
           )}
         </div>

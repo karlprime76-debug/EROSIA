@@ -1,0 +1,66 @@
+'use client'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { createDuel, getProfiles } from '@/lib/api'
+
+export default function NewDuelPage() {
+  const router = useRouter()
+  const [profiles, setProfiles] = useState<any[]>([])
+  const [selectedA, setSelectedA] = useState<string>('')
+  const [selectedB, setSelectedB] = useState<string>('')
+  const [creating, setCreating] = useState(false)
+
+  const loadProfiles = async () => {
+    const { data } = await getProfiles([])
+    if (data) setProfiles(data)
+  }
+
+  useState(() => { loadProfiles() })
+
+  const handleCreate = async () => {
+    if (!selectedA || !selectedB || selectedA === selectedB) return
+    setCreating(true)
+    await createDuel(selectedA, selectedB)
+    setCreating(false)
+    router.push('/duels')
+  }
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <header className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <h2 className="text-2xl font-bold">Nouveau duel</h2>
+      </header>
+      <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
+        <p className="text-sm text-[#9E9488]">Choisis deux profils à opposer</p>
+        <div>
+          <label className="text-xs text-[#9E9488] mb-1 block">Profil A</label>
+          <select value={selectedA} onChange={e => setSelectedA(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
+            <option value="">Sélectionner...</option>
+            {profiles.filter(p => p.id !== selectedB).map(p => (
+              <option key={p.id} value={p.id}>{p.name}, {p.age}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-[#9E9488] mb-1 block">Profil B</label>
+          <select value={selectedB} onChange={e => setSelectedB(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
+            <option value="">Sélectionner...</option>
+            {profiles.filter(p => p.id !== selectedA).map(p => (
+              <option key={p.id} value={p.id}>{p.name}, {p.age}</option>
+            ))}
+          </select>
+        </div>
+        <button onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
+          className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
+          {creating ? 'Création...' : 'Lancer le duel'}
+        </button>
+      </div>
+    </div>
+  )
+}

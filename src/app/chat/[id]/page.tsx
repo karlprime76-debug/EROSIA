@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
-import { Send, Camera, X } from 'lucide-react'
+import { Send, Camera, X, Mic, Play, Square } from 'lucide-react'
 
 interface Icebreaker {
   id: string
@@ -21,6 +21,50 @@ interface Reaction {
   emoji: string
   created_at: string
   profile: { name: string } | null
+}
+
+function AudioPlayer({ src }: { src: string }) {
+  const [playing, setPlaying] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  const toggle = () => {
+    if (!audioRef.current) return
+    if (playing) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play()
+    }
+    setPlaying(!playing)
+  }
+
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a) return
+    const onLoaded = () => setDuration(a.duration)
+    const onTime = () => setCurrentTime(a.currentTime)
+    const onEnd = () => setPlaying(false)
+    a.addEventListener('loadedmetadata', onLoaded)
+    a.addEventListener('timeupdate', onTime)
+    a.addEventListener('ended', onEnd)
+    return () => { a.removeEventListener('loadedmetadata', onLoaded); a.removeEventListener('timeupdate', onTime); a.removeEventListener('ended', onEnd) }
+  }, [])
+
+  return (
+    <div className="flex items-center gap-2">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <button onClick={toggle} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
+        {playing ? <Square size={12} /> : <Play size={12} fill="currentColor" />}
+      </button>
+      <span className="text-xs text-[#9E9488] tabular-nums">
+        {Math.floor(currentTime)}s / {Math.floor(duration)}s
+      </span>
+      <div className="flex-1 h-1 bg-[#2A2826] rounded-full overflow-hidden">
+        <div className="h-full bg-[#D92D4A] transition-all" style={{ width: duration ? `${(currentTime / duration) * 100}%` : 0 }} />
+      </div>
+    </div>
+  )
 }
 
 export default function ChatPage() {
@@ -40,6 +84,12 @@ export default function ChatPage() {
   const [icebreakers, setIcebreakers] = useState<Icebreaker[]>([])
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
   const [reactingMessageId, setReactingMessageId] = useState<string | null>(null)
+  const [match, setMatch] = useState<{ ephemeral?: boolean } | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [showEphemeralOpts, setShowEphemeralOpts] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const loadMessages = useCallback(async () => {
     const { data } = await getMessages(id)
@@ -80,9 +130,10 @@ export default function ChatPage() {
       if (!user) { setLoading(false); return }
       setCurrentUser(user)
 
-      const { data: match } = await supabase.from('matches').select('*').eq('id', id).single()
-      if (!match) { setLoading(false); return }
-      const otherId = match.user1_id === user.id ? match.user2_id : match.user1_id
+      const { data: matchData } = await supabase.from('matches').select('*').eq('id', id).single()
+      if (!matchData) { setLoading(false); return }
+      setMatch(matchData)
+      const otherId = matchData.user1_id === user.id ? matchData.user2_id : matchData.user1_id
 
       const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).single()
       if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
@@ -160,6 +211,37 @@ export default function ChatPage() {
     e.target.value = ''
   }
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      const chunks: BlobPart[] = []
+
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' })
+        const { url } = await uploadAudio(file, id)
+        if (url) await sendAudioMessage(id, url)
+        stream.getTracks().forEach(t => t.stop())
+      }
+
+      mediaRecorder.start()
+      setRecording(true)
+      setRecordingTime(0)
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(t => { if (t >= 60) stopRecording(); return t + 1 })
+      }, 1000)
+    } catch {}
+  }
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+  }
+
   const handleUnmatch = async () => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
       await unmatchUser(id)
@@ -197,10 +279,33 @@ export default function ChatPage() {
             {isOnline && <p className="text-xs text-green-500">En ligne</p>}
           </div>
         </div>
-        <button onClick={handleUnmatch} className="p-2.5">
-          <X size={18} className="text-[#6B6258]" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
+            className={`text-xs px-2 py-1 rounded ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258]'}`}>
+            {match?.ephemeral ? 'Éphémère' : 'Permanent'}
+          </button>
+          <button onClick={handleUnmatch} className="p-2.5">
+            <X size={18} className="text-[#6B6258]" />
+          </button>
+        </div>
       </div>
+
+      {showEphemeralOpts && (
+        <div className="px-4 py-2 bg-[#1C1C1E] border-b border-[#2A2826]">
+          <p className="text-xs text-[#9E9488] mb-2">Messages éphémères</p>
+          <div className="flex gap-2">
+            <button onClick={() => { toggleEphemeral(id, false); setShowEphemeralOpts(false) }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-[#262628] text-white">
+              Désactivé
+            </button>
+            <button onClick={() => { toggleEphemeral(id, true); setShowEphemeralOpts(false) }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-[#D92D4A]/20 text-[#D92D4A]">
+              Activé (24h)
+            </button>
+          </div>
+          <p className="text-[10px] text-[#6B6258] mt-1">Les messages disparaîtront après 24h</p>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && icebreakers.length > 0 && (
@@ -217,7 +322,11 @@ export default function ChatPage() {
           </div>
         )}
         {messages.map((m) =>
-          m.image_url ? (
+          m.audio_url ? (
+            <div key={m.id} className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#262628] self-start">
+              <AudioPlayer src={m.audio_url} />
+            </div>
+          ) : m.image_url ? (
             <div key={m.id} className="max-w-[75%] rounded-2xl overflow-hidden bg-[#262628]">
               <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
             </div>
@@ -257,6 +366,15 @@ export default function ChatPage() {
         <div className="text-xs text-[#9E9488] px-4 py-1 italic animate-pulse">est en train d&rsquo;écrire...</div>
       )}
 
+      {recording && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#D92D4A]/10">
+          <div className="w-2 h-2 rounded-full bg-[#D92D4A] animate-pulse" />
+          <span className="text-xs text-[#D92D4A] font-medium">
+            Enregistrement {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 px-4 py-3 border-t border-[#2A2826]">
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         <button onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#1A1A1C]">
@@ -264,9 +382,22 @@ export default function ChatPage() {
         </button>
         <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C] text-sm outline-none" />
-        <button onClick={handleSend} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: '#D92D4A' }}>
-          <Send size={16} className="text-white" />
+        <button onClick={startRecording} disabled={recording}
+          className="p-2 text-[#6B6258] hover:text-white disabled:opacity-30">
+          <Mic size={18} />
         </button>
+        {recording ? (
+          <button onClick={stopRecording}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A]">
+            <Square size={16} fill="white" />
+          </button>
+        ) : (
+          <button onClick={handleSend} disabled={!text.trim()}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30"
+            style={{ background: '#D92D4A' }}>
+            <Send size={16} />
+          </button>
+        )}
       </div>
     </div>
   )
