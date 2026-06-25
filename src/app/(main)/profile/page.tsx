@@ -48,9 +48,10 @@ export default function ProfilePage() {
       const file = input.files?.[0]
       if (!file || !profile) return
       setUploading(true)
-      const { url } = await uploadPhoto(file, profile.id, 0)
-      if (url) {
-        const photos = [url, ...(profile.photos?.filter(p => p !== url) ?? [])]
+      const result = await uploadPhoto(file, profile.id, 0)
+      if (result.error) { alert(result.error); setUploading(false); return }
+      if (result.url) {
+        const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
         await updateProfile(profile.id, { photos })
         setProfile({ ...profile, photos })
       }
@@ -81,7 +82,8 @@ export default function ProfilePage() {
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    await uploadProfileVideo(f)
+    const result = await uploadProfileVideo(f)
+    if (result.error) { alert(result.error); return }
     loadProfile()
   }
   const handleDeleteVideo = async () => {

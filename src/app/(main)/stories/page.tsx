@@ -38,7 +38,8 @@ export default function StoriesPage() {
     const f = e.target.files?.[0]
     if (!f) return
     setUploading(true)
-    await uploadStory(f)
+    const result = await uploadStory(f)
+    if (result.error) { alert(result.error); setUploading(false); return }
     setUploading(false)
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
