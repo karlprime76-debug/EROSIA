@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, checkPremium } from '@/lib/api'
+import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, checkPremium, signOut } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 
 export default function SettingsPage() {
@@ -35,6 +35,11 @@ export default function SettingsPage() {
     })
     getGhostMode().then(setGhostMode)
   }, [])
+
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/')
+  }
 
   const handleDelete = async () => {
     if (!confirm('Supprimer définitivement ton compte ? Cette action est irréversible.')) return
@@ -140,6 +145,10 @@ export default function SettingsPage() {
           icon: ShieldIcon, label: 'Centre d\'aide',
           onClick: () => window.open('mailto:support@erosia.app', '_blank'),
           desc: 'support@erosia.app',
+        },
+        {
+          icon: LogOut, label: 'Se déconnecter',
+          onClick: handleLogout,
         },
         {
           icon: Trash2, label: 'Supprimer mon compte', desc: 'Irréversible', danger: true,

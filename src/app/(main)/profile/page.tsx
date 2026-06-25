@@ -88,8 +88,8 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    const { error } = await signOut()
-    if (!error) router.push('/')
+    await signOut()
+    router.push('/')
   }
 
   if (loading) return (
