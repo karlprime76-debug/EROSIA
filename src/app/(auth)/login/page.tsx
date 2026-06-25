@@ -7,9 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
 const OAUTH_PROVIDERS = [
-  { id: 'google' as const, label: 'Google', icon: 'G' },
   { id: 'facebook' as const, label: 'Facebook', icon: 'f' },
-  { id: 'apple' as const, label: 'Apple', icon: '' },
 ]
 
 export default function LoginPage() {
@@ -41,7 +39,7 @@ export default function LoginPage() {
     router.push('/discover')
   }
 
-  const handleOAuth = async (provider: 'google' | 'facebook' | 'apple') => {
+  const handleOAuth = async (provider: 'facebook') => {
     setOauthLoading(provider)
     setError('')
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
