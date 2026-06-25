@@ -6,6 +6,8 @@ import SwRegister from "@/components/SwRegister"
 export const metadata: Metadata = {
   title: "Erosia",
   description: "Là où les cœurs se rencontrent",
+  manifest: "/manifest.json",
+  other: { 'theme-color': '#0A0A0A' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

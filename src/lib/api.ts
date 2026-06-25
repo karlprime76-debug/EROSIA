@@ -988,3 +988,44 @@ export async function getDailyProfile() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', rpcData as string).single()
   return { data: profile as Profile | null, error: null }
 }
+
+// 99. Paginated queries
+const PAGE_SIZE = 20
+
+export async function getMessagesPaginated(matchId: string, page: number) {
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  const { data, error } = await supabase
+    .from('messages').select('*').eq('match_id', matchId)
+    .order('created_at', { ascending: false })
+    .range(from, to)
+  return { data: data as Message[] | null, error: error?.message }
+}
+
+export async function getNotificationsPaginated(page: number) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null }
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*, actor:profiles!notifications_actor_id_fkey(name, photos)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .range(from, to)
+  return { data: data ?? null, error: error?.message }
+}
+
+export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+  let q = supabase.from('profiles').select('*')
+  if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
+  if (filters?.minAge) q = q.gte('age', filters.minAge)
+  if (filters?.maxAge) q = q.lte('age', filters.maxAge)
+  if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  if (!filters?.showIncognito) q = q.eq('incognito', false)
+  q = q.range(from, to)
+  const { data, error } = await q
+  return { data: data as Profile[] | null, error: error?.message }
+}

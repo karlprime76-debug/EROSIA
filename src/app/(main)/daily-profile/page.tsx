@@ -1,31 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Star } from 'lucide-react'
-import { getDailyProfile, checkForMatch, createSwipe, type Profile } from '@/lib/api'
+import { getDailyProfile, checkForMatch, createSwipe } from '@/lib/api'
 import Image from 'next/image'
 
-export default function DailyProfilePage() {
+function DailyProfileContent() {
   const router = useRouter()
-  const [profile, setProfile] = useState<Profile | null>(null)
   const [liking, setLiking] = useState(false)
-
-  useEffect(() => {
-    getDailyProfile().then(({ data }) => {
-      if (data) setProfile(data)
-    }).catch(() => {})
-  }, [])
-
-  const handleLike = async () => {
-    if (!profile) return
-    setLiking(true)
-    await createSwipe(profile.id, 'like')
-    const { isMatch } = await checkForMatch(profile.id)
-    if (isMatch) alert('C\'est un match ! 🔥')
-    setProfile(null)
-    setLiking(false)
-  }
+  const [profilePromise, setProfilePromise] = useState(() => getDailyProfile())
+  const { data: profile } = use(profilePromise)
 
   if (!profile) return (
     <div className="bg-transparent flex-1 flex flex-col">
@@ -42,6 +27,15 @@ export default function DailyProfilePage() {
       </div>
     </div>
   )
+
+  const handleLike = async () => {
+    setLiking(true)
+    await createSwipe(profile.id, 'like')
+    const { isMatch } = await checkForMatch(profile.id)
+    if (isMatch) alert('C\'est un match ! 🔥')
+    setProfilePromise(getDailyProfile())
+    setLiking(false)
+  }
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
@@ -73,5 +67,26 @@ export default function DailyProfilePage() {
         </button>
       </div>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="bg-transparent flex-1 flex flex-col">
+      <header className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <h2 className="text-2xl font-bold">Profil du jour</h2>
+      </header>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      </div>
+    </div>
+  )
+}
+
+export default function DailyProfilePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <DailyProfileContent />
+    </Suspense>
   )
 }
