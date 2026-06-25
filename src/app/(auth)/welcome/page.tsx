@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
 import { Flame, MessageCircle, Gift, MapPin, Shield, Star, ChevronRight } from 'lucide-react'
 
@@ -41,7 +40,9 @@ export default function WelcomePage() {
         lg:flex-row lg:items-center lg:justify-between lg:max-w-7xl lg:mx-auto lg:w-full relative z-10">
 
         <div className="flex flex-col items-center pt-16 pb-8 lg:pt-0 lg:items-start lg:flex-1 lg:pb-0">
-          <Image src="/logo.png" alt="Erosia" width={200} height={66} className="mb-6 sm:w-56 lg:w-64 drop-shadow-[0_0_30px_rgba(217,45,74,0.5)] animate-pulse-glow" priority />
+          <img src="/logo.png" alt="Erosia" width={200} height={66}
+            className="mb-6 sm:w-56 lg:w-64 drop-shadow-[0_0_30px_rgba(217,45,74,0.5)] animate-pulse-glow"
+            style={{ maxWidth: '100%', height: 'auto' }} />
 
           <div className="relative animate-fade-up">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-3 leading-tight text-center lg:text-left">
