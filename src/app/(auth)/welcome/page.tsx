@@ -40,9 +40,10 @@ export default function WelcomePage() {
         lg:flex-row lg:items-center lg:justify-between lg:max-w-7xl lg:mx-auto lg:w-full relative z-10">
 
         <div className="flex flex-col items-center pt-16 pb-8 lg:pt-0 lg:items-start lg:flex-1 lg:pb-0">
-          <img src="/logo.png" alt="Erosia" width={200} height={66}
-            className="mb-6 sm:w-56 lg:w-64 drop-shadow-[0_0_30px_rgba(217,45,74,0.5)] animate-pulse-glow"
-            style={{ maxWidth: '100%', height: 'auto' }} />
+          <div className="mb-6 flex items-center gap-3 animate-pulse-glow">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="#D92D4A"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight">Erosia</span>
+          </div>
 
           <div className="relative animate-fade-up">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-3 leading-tight text-center lg:text-left">

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
 import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, type Profile } from '@/lib/api'
+import { supabase } from '@/lib/supabase/client'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
@@ -36,12 +37,18 @@ export default function DiscoverPage() {
   const [swipeCount, setSwipeCount] = useState(0)
   const [swipeLimit, setSwipeLimit] = useState(20)
   const [isPremium, setIsPremium] = useState(false)
+  const [myPhoto, setMyPhoto] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY))
     getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) })
     checkPremium().then(setIsPremium)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) supabase.from('profiles').select('photos').eq('id', user.id).single().then(({ data }) => {
+        if (data?.photos?.[0]) setMyPhoto(data.photos[0])
+      })
+    })
   }, [])
 
   useEffect(() => {
@@ -352,9 +359,10 @@ export default function DiscoverPage() {
             <h2 className="text-3xl font-bold" style={{ color: '#D92D4A' }}>C&rsquo;est un match !</h2>
             <p className="text-[#9E9488] mt-1">Vous vous êtes mutuellement likés</p>
             <div className="flex items-center justify-center gap-4 my-6">
-              <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Vous" width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
+              {myPhoto ? <Image src={myPhoto} alt="Vous" width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
+                : <div className="w-20 h-20 rounded-full bg-[#262628] flex items-center justify-center text-[#6B6258] text-2xl">?</div>}
               <Heart size={24} className="text-[#D92D4A]/60" fill="#D92D4A" />
-              <Image src={matchModal.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
+              <Image src={matchModal.profile.photos?.[0] ?? ''} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
             </div>
             <p className="font-semibold mb-6">{matchModal.profile.name}</p>
             <button onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
