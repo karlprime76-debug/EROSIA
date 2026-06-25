@@ -72,9 +72,12 @@ export default function StoriesPage() {
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         {stories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-[#9E9488] text-sm">Aucune story pour le moment</p>
-            <p className="text-[#6B6258] text-xs mt-1">Ajoute une photo ou vidéo qui disparaîtra dans 24h</p>
+          <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
+              <span className="text-3xl opacity-40">📸</span>
+            </div>
+            <p className="text-lg font-semibold">Aucune story</p>
+            <p className="text-[#6B6258] text-sm mt-1 max-w-xs leading-relaxed">Ajoute une photo qui disparaîtra dans 24h.</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">

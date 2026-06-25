@@ -3,15 +3,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift, Headphones } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, Film, BadgeCheck, CalendarHeart, Swords, Heart, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
+import Lightbox from '@/components/Lightbox'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
@@ -131,7 +133,9 @@ export default function ProfilePage() {
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
                   {profile?.photos?.[0] ? (
-                    <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
+                    <button onClick={() => setLightboxIdx(0)} className="w-full h-full">
+                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
+                    </button>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-3xl">?</div>
                   )}
@@ -162,7 +166,9 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-2.5">
               {profile.photos.map((photo, idx) => (
                 <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#262628]">
-                  <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
+                  <button onClick={() => setLightboxIdx(idx)} className="w-full h-full">
+                    <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
+                  </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
                       <button onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
@@ -282,6 +288,10 @@ export default function ProfilePage() {
           ))}
         </div>
       </div>
+
+      {lightboxIdx !== null && profile?.photos && (
+        <Lightbox images={profile.photos} initialIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      )}
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, B
 import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityWith, getActiveStories, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
+import { DiscoverSkeleton } from '@/components/Skeleton'
 
 const SUPER_LIKE_DAILY = 1
 
@@ -28,6 +29,7 @@ export default function DiscoverPage() {
   const [lng, setLng] = useState<number | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [swipeAnim, setSwipeAnim] = useState<'idle' | 'left' | 'right'>('idle')
   const [compatScores, setCompatScores] = useState<Record<string, number>>({})
   const [storiesUserIds, setStoriesUserIds] = useState<Set<string>>(new Set())
   const router = useRouter()
@@ -104,6 +106,9 @@ export default function DiscoverPage() {
       }
       setSuperLikesLeft((s) => s - 1)
     }
+    setSwipeAnim(dir === 'like' ? 'right' : 'left')
+    await new Promise(r => setTimeout(r, 300))
+    setSwipeAnim('idle')
     await createSwipe(p.id, dir)
     setHasSwiped(true)
     if (dir === 'like' || dir === 'super_like') {
@@ -134,11 +139,7 @@ export default function DiscoverPage() {
 
   const current = profiles[idx]
 
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-transparent">
-      <div className="animate-spin w-10 h-10 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
-    </div>
-  )
+  if (loading) return <DiscoverSkeleton />
 
   return (
     <div className="flex-1 flex flex-col">
@@ -210,7 +211,9 @@ export default function DiscoverPage() {
             <p className="text-[#6B6258] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
-          <TiltCard className="w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-xl shadow-black/50 bg-[#1C1C1E] sensual-border animate-scale-in">
+          <TiltCard className={`w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-xl shadow-black/50 bg-[#1C1C1E] sensual-border animate-scale-in transition-all duration-300 ${
+            swipeAnim === 'left' ? 'opacity-0 -translate-x-48 rotate-12 scale-90' : swipeAnim === 'right' ? 'opacity-0 translate-x-48 -rotate-12 scale-90' : ''
+          }`}>
             <div className="relative w-full h-full">
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
               {storiesUserIds.has(current.id) && (

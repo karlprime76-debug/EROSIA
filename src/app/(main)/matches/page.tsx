@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Heart, MessageCircle, Eye, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getReceivedFlirts, unmatchUser, type Profile } from '@/lib/api'
+import { MatchesSkeleton } from '@/components/Skeleton'
 
 interface Conversation {
   matchId: string
@@ -62,11 +63,7 @@ export default function MatchesPage() {
     }
   }
 
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-10 h-10 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
-    </div>
-  )
+  if (loading) return <MatchesSkeleton />
 
   return (
     <div className="flex-1 flex flex-col bg-transparent">

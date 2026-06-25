@@ -58,9 +58,12 @@ export default function NotificationsPage() {
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Bell size={40} className="text-[#6B6258] mb-3" />
-            <p className="text-[#9E9488] text-sm">Aucune notification</p>
+          <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
+              <Bell size={36} className="text-[#D92D4A]/40" />
+            </div>
+            <p className="text-lg font-semibold">Aucune notification</p>
+            <p className="text-[#6B6258] text-sm mt-1 max-w-xs leading-relaxed">Les matchs, messages et activités apparaîtront ici.</p>
           </div>
         ) : (
           <div className="space-y-1">

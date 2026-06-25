@@ -539,17 +539,36 @@ export default function ChatPage() {
             )}
           </div>
         )}
-        {messages.map((m) =>
-          m.audio_url ? (
-            <div key={m.id} className={`max-w-[80%] px-4 py-3 rounded-2xl ${m.sender_id === currentUser?.id ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
+        {messages.map((m, i) => {
+          const showDateSep = i === 0 || new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
+          const today = new Date().toDateString()
+          const mDate = new Date(m.created_at).toDateString()
+          const yesterday = new Date(Date.now() - 864e5).toDateString()
+          let dateLabel = ''
+          if (showDateSep) {
+            if (mDate === today) dateLabel = 'Aujourd\'hui'
+            else if (mDate === yesterday) dateLabel = 'Hier'
+            else dateLabel = new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+          }
+          return (
+          <div key={m.id} className="w-full">
+            {showDateSep && (
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-[#2A2826]" />
+                <span className="text-[10px] font-medium text-[#6B6258] uppercase tracking-wider">{dateLabel}</span>
+                <div className="flex-1 h-px bg-[#2A2826]" />
+              </div>
+            )}
+            {m.audio_url ? (
+            <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${m.sender_id === currentUser?.id ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
               <AudioPlayer src={m.audio_url} />
             </div>
           ) : m.image_url ? (
-            <div key={m.id} className={`max-w-[80%] rounded-2xl overflow-hidden ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl overflow-hidden ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
               <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
             </div>
           ) : (
-            <div key={m.id} className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
+            <div className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
               ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10'
               : 'glass-card self-start'
             }`}>
@@ -587,8 +606,10 @@ export default function ChatPage() {
                 </div>
               )}
             </div>
+            )}
+          </div>
           )
-        )}
+        })}
         <div ref={bottomRef} />
       </div>
 
