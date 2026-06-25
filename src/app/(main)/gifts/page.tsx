@@ -49,7 +49,7 @@ function GiftsContent() {
     getReceivedGifts().then(({ data }) => { setReceived(data as typeof received) }).catch(() => {})
     getPaymentAccount().then(acc => {
       if (acc) {
-        setSavedPayMethod(acc.type)
+        setSavedPayMethod(acc.type as 'mobile_money' | 'card')
         if (acc.type === 'mobile_money') {
           setPayPhone(acc.phone ?? ''); setPayOperator(acc.operator ?? 'Orange Money'); setPayCountry(acc.country ?? 'SN'); setPaySaved(true)
         } else if (acc.type === 'card') {

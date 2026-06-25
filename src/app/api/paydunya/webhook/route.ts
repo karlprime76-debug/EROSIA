@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const customData = confirmed.invoice?.custom_data as Record<string, string> | undefined ?? {}
+  const customData = confirmed.invoice?.custom_data ?? {}
   const userId = customData.user_id
   const giftId = customData.gift_id
   const receiverId = customData.receiver_id

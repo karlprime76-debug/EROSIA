@@ -30,5 +30,5 @@ export async function confirmInvoice(invoiceToken: string) {
   const res = await fetch(`${BASE}/checkout-invoice/confirm/${invoiceToken}`, {
     headers: headers(),
   })
-  return res.json() as Promise<{ status: string; invoice?: { status: string }; customer?: Record<string, string> }>
+  return res.json() as Promise<{ status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }>
 }

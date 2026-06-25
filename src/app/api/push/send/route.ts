@@ -2,21 +2,26 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 
-if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-  return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 })
+function ensureVapidConfigured() {
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    throw new Error('VAPID keys not configured')
+  }
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  )
 }
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-)
 
 export async function POST(request: Request) {
   try {
     const apiKey = request.headers.get('x-api-key')
     if (apiKey !== process.env.PUSH_API_KEY) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    try { ensureVapidConfigured() } catch {
+      return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 })
     }
 
     const { userId, title, body, url } = await request.json()

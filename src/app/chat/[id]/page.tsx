@@ -208,6 +208,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     let profileChannel: ReturnType<typeof supabase.channel> | undefined
+    let presenceChannel: ReturnType<typeof supabase.channel> | undefined
 
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -238,6 +239,7 @@ export default function ChatPage() {
           await presenceCh.track({ online: true })
         }
       })
+      presenceChannel = presenceCh
 
       profileChannel = supabase
         .channel(`profile:${otherId}`)
@@ -262,7 +264,7 @@ export default function ChatPage() {
     return () => {
       channel.unsubscribe()
       profileChannel?.unsubscribe()
-      supabase.removeChannel(supabase.channel(`presence:${otherId}`))
+      presenceChannel?.unsubscribe()
     }
   }, [id, loadMessages])
 
