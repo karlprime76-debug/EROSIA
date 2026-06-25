@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
@@ -9,16 +10,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
 
-    const admin = createAdminClient()
+    const supabase = await createClient()
 
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-      email, password, email_confirm: false,
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email, password,
     })
 
     if (authError || !authData.user) {
       return NextResponse.json({ error: authError?.message ?? 'Inscription échouée' }, { status: 400 })
     }
 
+    const admin = createAdminClient()
     const { error: profileError } = await admin.from('profiles').insert({
       id: authData.user.id, name, age, photos: [], interests: [],
     })

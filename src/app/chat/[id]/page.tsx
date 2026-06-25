@@ -103,6 +103,7 @@ export default function ChatPage() {
   const [newSongUrl, setNewSongUrl] = useState('')
   const [viewOnce, setViewOnce] = useState(false)
   const [revealedOnce, setRevealedOnce] = useState<Record<string, boolean>>({})
+  const [otherOnline, setOtherOnline] = useState(false)
 
   const loadPlaylist = async () => {
     const { data } = await getPlaylist(id)
@@ -226,6 +227,18 @@ export default function ChatPage() {
       await loadMessages()
       setLoading(false)
 
+      const presenceCh = supabase.channel(`presence:${otherId}`, {
+        config: { presence: { key: otherId } },
+      })
+      presenceCh.on('presence', { event: 'sync' }, () => {
+        setOtherOnline(Object.keys(presenceCh.presenceState()).length > 0)
+      })
+      presenceCh.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceCh.track({ online: true })
+        }
+      })
+
       profileChannel = supabase
         .channel(`profile:${otherId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${otherId}` }, (payload) => {
@@ -249,6 +262,7 @@ export default function ChatPage() {
     return () => {
       channel.unsubscribe()
       profileChannel?.unsubscribe()
+      supabase.removeChannel(supabase.channel(`presence:${otherId}`))
     }
   }, [id, loadMessages])
 
@@ -427,7 +441,7 @@ export default function ChatPage() {
     return `vu il y a ${hours} h`
   }
 
-  const isOnline = otherProfile?.last_seen && (now - new Date(otherProfile.last_seen).getTime() < 60000)
+  const isOnline = otherOnline || (otherProfile?.last_seen && (now - new Date(otherProfile.last_seen).getTime() < 60000))
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center bg-transparent">

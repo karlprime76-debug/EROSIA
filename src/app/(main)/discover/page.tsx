@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, type Profile } from '@/lib/api'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
@@ -23,7 +23,7 @@ export default function DiscoverPage() {
   const [matchModal, setMatchModal] = useState<{ profile: Profile; matchId: string } | null>(null)
   const [superLikesLeft, setSuperLikesLeft] = useState(SUPER_LIKE_DAILY)
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState({ minAge: 18, maxAge: 99, lookingFor: '' })
+  const [filters, setFilters] = useState({ minAge: 18, maxAge: 99, lookingFor: '', city: '' })
   const [flirtedIds, setFlirtedIds] = useState<string[]>([])
   const [hasSwiped, setHasSwiped] = useState(false)
   const [lat, setLat] = useState<number | null>(null)
@@ -90,6 +90,9 @@ export default function DiscoverPage() {
     const blocked = await getBlockedIds()
     const exclude = [...swiped, ...blocked, ...extraBlocked]
     const opts = { ...filters, lookingFor: filters.lookingFor || undefined }
+    if (filters.city.trim()) {
+      return searchProfilesByCity(filters.city.trim(), exclude, opts)
+    }
     if (distanceKm !== null && lat !== null && lng !== null) {
       return getProfilesNearby(lat, lng, distanceKm, exclude, opts)
     }
@@ -159,6 +162,7 @@ export default function DiscoverPage() {
             </span>
           )}
           {hasSwiped && <button onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
+          <button onClick={async () => { const r = await undoSuperLike(); if (r.error) alert(r.error); else { setSuperLikesLeft(s => s + 1); alert('Super like annulé') } }} aria-label="Annuler super like" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-indigo-500/30 active:scale-90"><Star size={16} className="text-indigo-400" /></button>
           <button onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
           <button onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
         </div>
@@ -200,6 +204,11 @@ export default function DiscoverPage() {
               <option value="50">50 km</option>
               <option value="100">100 km</option>
             </select>
+          </div>
+          <div>
+            <label htmlFor="filter-city" className="text-xs font-medium text-[#9E9488] mb-1 block">Ville</label>
+            <input id="filter-city" value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value }))} placeholder="Nom de ville"
+              className="w-full bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#D92D4A] transition-colors" />
           </div>
           <button onClick={async () => {
             setShowFilters(false); setLoading(true)

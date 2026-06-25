@@ -6,11 +6,18 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
+const OAUTH_PROVIDERS = [
+  { id: 'google' as const, label: 'Google', icon: 'G' },
+  { id: 'facebook' as const, label: 'Facebook', icon: 'f' },
+  { id: 'apple' as const, label: 'Apple', icon: '' },
+]
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -34,29 +41,60 @@ export default function LoginPage() {
     router.push('/discover')
   }
 
+  const handleOAuth = async (provider: 'google' | 'facebook' | 'apple') => {
+    setOauthLoading(provider)
+    setError('')
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    setOauthLoading(null)
+    if (oauthError) setError(oauthError.message)
+  }
+
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent relative">
       <FloatingHearts />
-      <form onSubmit={handleLogin} className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4 relative z-10">
+      <div className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4 relative z-10">
         <h2 className="text-2xl font-bold text-center">Connexion</h2>
         {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-        <div>
-          <label htmlFor="login-email" className="sr-only">Email</label>
-          <input id="login-email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
-            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+
+        <div className="flex gap-3">
+          {OAUTH_PROVIDERS.map((p) => (
+            <button key={p.id} onClick={() => handleOAuth(p.id)}
+              disabled={oauthLoading !== null}
+              className="flex-1 py-3 rounded-xl border border-[#2A2826] text-sm font-medium transition-all hover:border-white/20 active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2">
+              <span className="font-bold">{p.icon}</span>
+              <span className="hidden sm:inline">{p.label}</span>
+            </button>
+          ))}
         </div>
-        <div>
-          <label htmlFor="login-password" className="sr-only">Mot de passe</label>
-          <input id="login-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe" autoComplete="current-password"
-            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-[#2A2826]" />
+          <span className="text-xs text-[#6B6258]">ou</span>
+          <div className="flex-1 h-px bg-[#2A2826]" />
         </div>
-        <button type="submit" disabled={loading}
-          className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
-          {loading ? 'Connexion...' : 'Se connecter'}
-        </button>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label htmlFor="login-email" className="sr-only">Email</label>
+            <input id="login-email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
+              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+          </div>
+          <div>
+            <label htmlFor="login-password" className="sr-only">Mot de passe</label>
+            <input id="login-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe" autoComplete="current-password"
+              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+          </div>
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </button>
+        </form>
         <Link href="/forgot-password" className="block text-center text-sm text-[#9E9488] hover:text-white transition">Mot de passe oublié ?</Link>
         <Link href="/register" className="block text-center text-sm text-[#D92D4A] hover:underline">Créer un compte</Link>
-      </form>
+      </div>
     </div>
   )
 }

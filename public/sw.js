@@ -1,45 +1,31 @@
-const CACHE = 'erosia-v1'
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
-})
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim())
-})
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return
-  if (event.request.url.includes('/api/')) return
-  event.respondWith(
-    caches.open(CACHE).then((cache) =>
-      fetch(event.request).then((res) => {
-        cache.put(event.request, res.clone())
-        return res
-      }).catch(() => cache.match(event.request))
-    )
+self.addEventListener('push', (e) => {
+  let data = { title: 'Erosia', body: '', icon: '/logo.png', badge: '/logo.png', url: '/discover' }
+  try {
+    const parsed = e.data?.json()
+    if (parsed) data = { ...data, ...parsed }
+  } catch {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      data: { url: data.url },
+      vibrate: [200, 100, 200],
+    })
   )
 })
 
-self.addEventListener('push', (event) => {
-  if (!event.data) return
-  try {
-    const data = event.data.json()
-    const title = data.title || 'Erosia'
-    const options = {
-      body: data.body || '',
-      icon: data.icon || '/logo.png',
-      badge: '/favicon.png',
-      data: { url: data.url || '/' },
-    }
-    event.waitUntil(self.registration.showNotification(title, options))
-  } catch (e) {
-    console.error('Push notification error:', e)
-  }
-})
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  const url = event.notification.data?.url || '/'
-  event.waitUntil(clients.openWindow(url))
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const url = e.notification.data?.url ?? '/discover'
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const matching = clients.find((c) => c.url === url && 'focus' in c)
+      if (matching) return matching.focus()
+      return self.clients.openWindow(url)
+    })
+  )
 })

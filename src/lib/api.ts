@@ -1049,6 +1049,41 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   return { data: data as Profile[] | null, error: error?.message }
 }
 
+// ---- UNDO SUPER LIKE ----
+export async function undoSuperLike() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data } = await supabase
+    .from('swipes')
+    .select('*')
+    .eq('swiper_id', user.id)
+    .eq('direction', 'super_like')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as PostgrestMaybeSingleResponse<Swipe>
+  if (!data) return { error: 'Aucun super like à annuler' }
+  const { error: delErr } = await supabase.from('swipes').delete().eq('id', data.id)
+  if (delErr) return { error: delErr.message }
+  const remaining = await getSuperLikesRemaining()
+  await supabase.from('profiles').update({ super_likes_remaining: remaining + 1 }).eq('id', user.id)
+  return { error: null }
+}
+
+// ---- CITY SEARCH ----
+export async function searchProfilesByCity(city: string, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
+  let q = supabase
+    .from('profiles')
+    .select('*')
+    .ilike('location', `%${city}%`)
+  if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
+  if (filters?.minAge) q = q.gte('age', filters.minAge)
+  if (filters?.maxAge) q = q.lte('age', filters.maxAge)
+  if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  q = q.eq('incognito', false)
+  const { data, error } = await q
+  return { data: data as Profile[] | null, error: error?.message }
+}
+
 // ---- MOBILE MONEY ----
 const COUNTRIES = {
   SN: { name: 'Sénégal', operators: ['Orange Money', 'Free Money', 'Wave'] },
