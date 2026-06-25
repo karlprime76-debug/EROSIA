@@ -24,8 +24,6 @@ interface ModerationItem {
   created_at: string
 }
 
-const ADMIN_EMAILS = ['karlprime76@gmail.com']
-
 export default function AdminPage() {
   const [userEmail, setUserEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -46,10 +44,11 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user?.email) return
-      setUserEmail(user.email)
-      if (ADMIN_EMAILS.includes(user.email)) {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      setUserEmail(user.email ?? '')
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+      if (data?.is_admin) {
         setIsAdmin(true)
         loadData()
       }
