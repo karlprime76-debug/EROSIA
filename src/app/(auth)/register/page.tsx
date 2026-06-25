@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -12,7 +11,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,14 +52,26 @@ export default function RegisterPage() {
       <form onSubmit={handleRegister} className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4">
         <h2 className="text-2xl font-bold text-center">Inscription</h2>
         {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom" autoComplete="name"
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-        <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe (8+ car.)" autoComplete="new-password"
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-        <input value={age} onChange={e => setAge(e.target.value)} type="number" placeholder="Âge" min={18} max={120}
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        <div>
+          <label htmlFor="reg-name" className="sr-only">Prénom</label>
+          <input id="reg-name" value={name} onChange={e => setName(e.target.value)} placeholder="Prénom" autoComplete="name"
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
+        <div>
+          <label htmlFor="reg-email" className="sr-only">Email</label>
+          <input id="reg-email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
+        <div>
+          <label htmlFor="reg-password" className="sr-only">Mot de passe</label>
+          <input id="reg-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe (8+ car.)" autoComplete="new-password"
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
+        <div>
+          <label htmlFor="reg-age" className="sr-only">Âge</label>
+          <input id="reg-age" value={age} onChange={e => setAge(e.target.value)} type="number" placeholder="Âge" min={18} max={120}
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
         <button type="submit" disabled={loading}
           className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
           {loading ? 'Inscription...' : 'Créer mon compte'}

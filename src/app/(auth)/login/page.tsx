@@ -40,10 +40,16 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4 relative z-10">
         <h2 className="text-2xl font-bold text-center">Connexion</h2>
         {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-        <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe" autoComplete="current-password"
-          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        <div>
+          <label htmlFor="login-email" className="sr-only">Email</label>
+          <input id="login-email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
+        <div>
+          <label htmlFor="login-password" className="sr-only">Mot de passe</label>
+          <input id="login-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe" autoComplete="current-password"
+            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        </div>
         <button type="submit" disabled={loading}
           className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
           {loading ? 'Connexion...' : 'Se connecter'}

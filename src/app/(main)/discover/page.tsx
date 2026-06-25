@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityWith, getActiveStories, type Profile } from '@/lib/api'
+import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, type Profile } from '@/lib/api'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
@@ -72,12 +72,8 @@ export default function DiscoverPage() {
     if (!profiles.length) return
     let cancelled = false
     const load = async () => {
-      const results = await Promise.all(profiles.map(p => getCompatibilityWith(p.id)))
-      if (!cancelled) {
-        const scores: Record<string, number> = {}
-        results.forEach((r, i) => { if (r.score !== undefined) scores[profiles[i].id] = r.score })
-        setCompatScores(scores)
-      }
+      const scores = await getCompatibilityBatch(profiles.map(p => p.id))
+      if (!cancelled) setCompatScores(scores)
     }
     load()
     return () => { cancelled = true }
@@ -146,9 +142,9 @@ export default function DiscoverPage() {
       <header className="flex items-center justify-between px-5 pt-6 pb-3">
         <Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" />
         <div className="flex items-center gap-2">
-          {hasSwiped && <button onClick={handleRewind} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
-          <button onClick={() => setShowFilters(!showFilters)} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
-          <button onClick={() => router.push('/matches')} className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
+          {hasSwiped && <button onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
+          <button onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
+          <button onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
         </div>
       </header>
 
@@ -255,18 +251,18 @@ export default function DiscoverPage() {
                   if (data) setProfiles(data)
                   setIdx(0)
                 }
-              }}
+              }} aria-label="Bloquer"
                 className="absolute top-2 right-2 p-2 bg-black/40 rounded-full z-10">
                 <Shield size={16} className="text-[#6B6258]" />
               </button>
             </div>
 
             <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-4">
-              <button onClick={() => swipe('pass')} className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+              <button onClick={() => swipe('pass')} aria-label="Passer" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                 <X size={26} className="text-red-400" />
               </button>
               <div className="relative">
-                <button onClick={() => swipe('super_like')} className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-indigo-600/30 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-indigo-500/50">
+                <button onClick={() => swipe('super_like')} aria-label="Super like" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-indigo-600/30 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-indigo-500/50">
                   <Star size={22} className="text-indigo-400" />
                 </button>
                 <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-zinc-900 rounded-full px-1.5 border border-indigo-500/40">
@@ -277,14 +273,14 @@ export default function DiscoverPage() {
                 if (!current || flirtedIds.includes(current.id)) return
                 await sendFlirt(current.id)
                 setFlirtedIds(ids => [...ids, current.id])
-              }}
+              }} aria-label="Clin d'oeil"
                 className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-[#D92D4A]/30">
                 <Eye size={20} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
               </button>
-              <button onClick={() => swipe('like')} className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-green-500/30 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]">
+              <button onClick={() => swipe('like')} aria-label="Like" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-green-500/30 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]">
                 <Heart size={26} className="text-green-400" />
               </button>
-              <button onClick={() => setShowReportModal(true)} className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-zinc-500/50">
+              <button onClick={() => setShowReportModal(true)} aria-label="Signaler" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-zinc-500/50">
                 <Flag size={18} className="text-[#6B6258]" />
               </button>
             </div>

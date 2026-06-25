@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -7,22 +6,33 @@ import { ArrowLeft, MapPin, Calendar, Users, Plus } from 'lucide-react'
 import { getEvents, joinEvent, leaveEvent } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 
+interface EventItem {
+  id: string
+  title: string
+  description?: string
+  location?: string
+  event_date?: string
+  type?: string
+  max_participants?: number
+  participants?: { user_id: string; status: string }[]
+}
+
 export default function EventsPage() {
   const router = useRouter()
-  const [events, setEvents] = useState<any[]>([])
-  const [myId, setMyId] = useState<string>('')
+  const [events, setEvents] = useState<EventItem[]>([])
+  const [myId, setMyId] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    })
+    }).catch(() => {})
     getEvents().then(({ data }) => {
-      if (data) setEvents(data)
-    })
+      if (data) setEvents(data as EventItem[])
+    }).catch(() => {})
   }, [])
 
-  const isJoined = (e: any) => e.participants?.some((p: any) => p.user_id === myId && p.status === 'accepted')
-  const participantCount = (e: any) => e.participants?.filter((p: any) => p.status === 'accepted').length ?? 0
+  const isJoined = (e: EventItem) => e.participants?.some(p => p.user_id === myId && p.status === 'accepted')
+  const participantCount = (e: EventItem) => e.participants?.filter(p => p.status === 'accepted').length ?? 0
 
   const handleJoin = async (eventId: string) => {
     await joinEvent(eventId)
@@ -39,10 +49,10 @@ export default function EventsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Antennes</h2>
         <div className="flex-1" />
-        <button onClick={() => router.push('/events/create')}
+        <button onClick={() => router.push('/events/create')} aria-label="Créer une antenne"
           className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
           <Plus size={18} />
         </button>

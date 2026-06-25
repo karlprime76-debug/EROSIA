@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,23 +7,32 @@ import { getDuels, voteDuel } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import Image from 'next/image'
 
+interface DuelItem {
+  id: string
+  profile_a_id: string
+  profile_b_id: string
+  profile_a?: { name: string; photos: string[] }
+  profile_b?: { name: string; photos: string[] }
+  votes?: { voter_id: string; chosen_id: string }[]
+}
+
 export default function DuelsPage() {
   const router = useRouter()
-  const [duels, setDuels] = useState<any[]>([])
+  const [duels, setDuels] = useState<DuelItem[]>([])
   const [myId, setMyId] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    })
+    }).catch(() => {})
     getDuels().then(({ data }) => {
-      if (data) setDuels(data)
-    })
+      if (data) setDuels(data as DuelItem[])
+    }).catch(() => {})
   }, [])
 
-  const hasVoted = (duel: any) => duel.votes?.some((v: any) => v.voter_id === myId)
-  const totalVotes = (duel: any) => duel.votes?.length ?? 0
-  const votesFor = (duel: any, profileId: string) => duel.votes?.filter((v: any) => v.chosen_id === profileId).length ?? 0
+  const hasVoted = (duel: DuelItem) => duel.votes?.some(v => v.voter_id === myId)
+  const totalVotes = (duel: DuelItem) => duel.votes?.length ?? 0
+  const votesFor = (duel: DuelItem, profileId: string) => duel.votes?.filter(v => v.chosen_id === profileId).length ?? 0
 
   const handleVote = async (duelId: string, chosenId: string) => {
     await voteDuel(duelId, chosenId)
@@ -34,10 +42,10 @@ export default function DuelsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Duel</h2>
         <div className="flex-1" />
-        <button onClick={() => router.push('/duels/new')}
+        <button onClick={() => router.push('/duels/new')} aria-label="Nouveau duel"
           className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
           <Swords size={18} />
         </button>

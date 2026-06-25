@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, checkPremium, signOut } from '@/lib/api'
+import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, signOut } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 
 export default function SettingsPage() {
@@ -23,18 +23,17 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
-      setUpgradeSuccess(true)
+      const id = setTimeout(() => setUpgradeSuccess(true), 0)
       router.replace('/settings')
+      return () => clearTimeout(id)
     }
-    supabase.from('profiles').select('looking_for').eq('id', supabase.auth.getUser().then(({ data }) => data.user?.id)).single()
-      .then(() => {}) // placeholder — we could store prefs in profile later
     getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') })
     getTravelMode().then(mode => {
       setTravelActive(mode.active)
       setTravelCity(mode.city ?? '')
     })
     getGhostMode().then(setGhostMode)
-  }, [])
+  }, [router])
 
   const handleLogout = async () => {
     await signOut()
@@ -72,12 +71,6 @@ export default function SettingsPage() {
     if (v && !isPremium) { setUpgradeError('Mode fantôme réservé aux membres Premium.'); return }
     setGhostMode(v)
     await setGhostModeApi(v)
-  }
-
-  const handleTravelToggle = async (v: boolean) => {
-    if (v && !isPremium) { setUpgradeError('Mode voyage réservé aux membres Premium.'); return }
-    setTravelActive(v)
-    await setTravelMode(travelCity, v)
   }
 
   const saveTravelCity = async () => {
@@ -213,7 +206,7 @@ export default function SettingsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">

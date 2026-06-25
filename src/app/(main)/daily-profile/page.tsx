@@ -14,7 +14,7 @@ export default function DailyProfilePage() {
   useEffect(() => {
     getDailyProfile().then(({ data }) => {
       if (data) setProfile(data)
-    })
+    }).catch(() => {})
   }, [])
 
   const handleLike = async () => {
@@ -30,7 +30,7 @@ export default function DailyProfilePage() {
   if (!profile) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
       </header>
       <div className="flex-1 flex items-center justify-center px-8 text-center">
@@ -46,7 +46,7 @@ export default function DailyProfilePage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
         <Star size={18} className="text-[#EAB308]" />
       </header>

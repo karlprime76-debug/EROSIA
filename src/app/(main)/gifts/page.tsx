@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -7,10 +6,23 @@ import { ArrowLeft, Send, Lock } from 'lucide-react'
 import { getGifts, sendGift, getMatches, checkPremium } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 
+interface GiftItem {
+  id: string
+  name: string
+  emoji: string
+  price_cents: number
+}
+
+interface MatchItem {
+  id: string
+  user1_id: string
+  user2_id: string
+}
+
 export default function GiftsPage() {
   const router = useRouter()
-  const [gifts, setGifts] = useState<any[]>([])
-  const [matches, setMatches] = useState<any[]>([])
+  const [gifts, setGifts] = useState<GiftItem[]>([])
+  const [matches, setMatches] = useState<MatchItem[]>([])
   const [myId, setMyId] = useState('')
   const [selectedGift, setSelectedGift] = useState<string | null>(null)
   const [selectedMatch, setSelectedMatch] = useState('')
@@ -21,15 +33,15 @@ export default function GiftsPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    })
-    checkPremium().then(setIsPremium)
-    getGifts().then(({ data }) => { if (data) setGifts(data) })
+    }).catch(() => {})
+    checkPremium().then(setIsPremium).catch(() => {})
+    getGifts().then(({ data }) => { if (data) setGifts(data) }).catch(() => {})
     getMatches().then(({ data }) => {
       if (data) setMatches(data)
-    })
+    }).catch(() => {})
   }, [])
 
-  const getOtherId = (m: any) => m.user1_id === myId ? m.user2_id : m.user1_id
+  const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
 
   const handleSend = async () => {
     if (!selectedGift || !selectedMatch) return
@@ -46,7 +58,7 @@ export default function GiftsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">

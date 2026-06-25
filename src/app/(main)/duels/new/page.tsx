@@ -1,27 +1,33 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { createDuel, getProfiles, checkPremium } from '@/lib/api'
 
+interface NewDuelProfile {
+  id: string
+  name: string
+  age: number | null
+}
+
 export default function NewDuelPage() {
   const router = useRouter()
-  const [profiles, setProfiles] = useState<any[]>([])
-  const [selectedA, setSelectedA] = useState<string>('')
-  const [selectedB, setSelectedB] = useState<string>('')
+  const [profiles, setProfiles] = useState<NewDuelProfile[]>([])
+  const [selectedA, setSelectedA] = useState('')
+  const [selectedB, setSelectedB] = useState('')
   const [creating, setCreating] = useState(false)
   const [isPremium, setIsPremium] = useState<boolean | null>(null)
 
-  const loadProfiles = async () => {
-    const { data } = await getProfiles([])
-    if (data) setProfiles(data)
-    const premium = await checkPremium()
-    setIsPremium(premium)
-  }
-
-  useState(() => { loadProfiles() })
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await getProfiles([])
+      if (data) setProfiles(data as NewDuelProfile[])
+      const premium = await checkPremium()
+      setIsPremium(premium)
+    }
+    load()
+  }, [])
 
   const handleCreate = async () => {
     if (!selectedA || !selectedB || selectedA === selectedB) return
@@ -34,7 +40,7 @@ export default function NewDuelPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Nouveau duel</h2>
       </header>
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">

@@ -54,7 +54,7 @@ function AudioPlayer({ src }: { src: string }) {
   return (
     <div className="flex items-center gap-2">
       <audio ref={audioRef} src={src} preload="metadata" />
-      <button type="button" onClick={toggle} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
+      <button type="button" onClick={toggle} aria-label={playing ? 'Pause' : 'Lecture'} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
         {playing ? <Square size={12} /> : <Play size={12} fill="currentColor" />}
       </button>
       <span className="text-xs text-[#9E9488] tabular-nums">
@@ -74,7 +74,7 @@ export default function ChatPage() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
   const [otherProfile, setOtherProfile] = useState<{ id: string; name: string; last_seen: string } | null>(null)
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [typingUserId, setTypingUserId] = useState<string | null>(null)
@@ -310,11 +310,13 @@ export default function ChatPage() {
     })
     channel.subscribe()
 
+    const videoEl = localVideoRef.current
     return () => {
       supabase.removeChannel(channel)
       peerConnectionRef.current?.close()
-      const stream = localVideoRef.current?.srcObject as MediaStream | null
+      const stream = videoEl?.srcObject as MediaStream | null
       stream?.getTracks().forEach(t => t.stop())
+      if (videoEl) videoEl.srcObject = null
     }
   }, [id])
 
@@ -431,7 +433,7 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
+          <button type="button" aria-label="Playlist" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258] hover:bg-white/5'}`}>
             <Music size={16} />
           </button>
@@ -439,11 +441,11 @@ export default function ChatPage() {
             className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#6B6258] border border-transparent hover:border-white/10'}`}>
             {match?.ephemeral ? 'Éphémère' : 'Permanent'}
           </button>
-          <button type="button" onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
+          <button type="button" aria-label="Appel vidéo" onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
             className="w-9 h-9 rounded-full flex items-center justify-center text-[#6B6258] hover:bg-white/5 disabled:opacity-30 transition-all">
             <Video size={16} />
           </button>
-          <button type="button" onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
+          <button type="button" aria-label="Supprimer le match" onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
             <X size={16} className="text-[#6B6258]" />
           </button>
         </div>
@@ -459,7 +461,7 @@ export default function ChatPage() {
             <p className="text-sm text-white/60 absolute left-8">
               {callStatus === 'ringing' ? 'Appel en cours...' : callStatus === 'connected' ? 'En communication' : ''}
             </p>
-            <button type="button" onClick={handleEndCall}
+            <button type="button" aria-label="Raccrocher" onClick={handleEndCall}
               className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
               <PhoneOff size={24} fill="white" />
             </button>
@@ -495,7 +497,7 @@ export default function ChatPage() {
                 <p className="text-sm truncate">{item.title}</p>
                 {item.artist && <p className="text-[10px] text-[#6B6258]">{item.artist}</p>}
               </div>
-              <button type="button" onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
+              <button type="button" aria-label="Retirer de la playlist" onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
                 <X size={14} />
               </button>
             </div>
@@ -541,11 +543,11 @@ export default function ChatPage() {
         )}
         {messages.map((m, i) => {
           const showDateSep = i === 0 || new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
-          const today = new Date().toDateString()
           const mDate = new Date(m.created_at).toDateString()
-          const yesterday = new Date(Date.now() - 864e5).toDateString()
           let dateLabel = ''
           if (showDateSep) {
+            const today = new Date(now).toDateString()
+            const yesterday = new Date(now - 864e5).toDateString()
             if (mDate === today) dateLabel = 'Aujourd\'hui'
             else if (mDate === yesterday) dateLabel = 'Hier'
             else dateLabel = new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -638,22 +640,22 @@ export default function ChatPage() {
 
       <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[#2A2826]/60 bg-[#141414]/80 backdrop-blur-md">
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <button type="button" onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
+        <button type="button" aria-label="Photo" onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
           <Camera size={16} className="text-[#9E9488]" />
         </button>
         <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all" />
-        <button type="button" onClick={startRecording} disabled={recording}
+        <button type="button" aria-label="Message vocal" onClick={startRecording} disabled={recording}
           className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6258] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
           <Mic size={18} />
         </button>
         {recording ? (
-          <button type="button" onClick={stopRecording}
+          <button type="button" aria-label="Arrêter l'enregistrement" onClick={stopRecording}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A] hover:shadow-[0_0_15px_rgba(217,45,74,0.3)] active:scale-90 transition-all">
             <Square size={16} fill="white" />
           </button>
         ) : (
-          <button type="button" onClick={handleSend} disabled={!text.trim()}
+          <button type="button" aria-label="Envoyer" onClick={handleSend} disabled={!text.trim()}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30 active:scale-90 transition-all"
             style={{ background: '#D92D4A' }}>
             <Send size={16} />

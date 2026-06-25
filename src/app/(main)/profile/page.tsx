@@ -17,20 +17,22 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(0)
   const [profileTraits, setProfileTraits] = useState<string[]>([])
   const [streak, setStreak] = useState(0)
   const videoRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   useEffect(() => {
+    const timer = setTimeout(() => setNow(Date.now()), 0)
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(console.error); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(console.error) }
+      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       setLoading(false)
     })()
+    return () => clearTimeout(timer)
   }, [])
   const loadProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -141,7 +143,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              <button onClick={handlePhoto} disabled={uploading}
+              <button onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#141414]"
                 style={{ background: '#D92D4A' }}>
                 {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
@@ -172,12 +174,12 @@ export default function ProfilePage() {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
                       <button onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white" title="Photo principale">
+                        className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
                         <Star size={14} className="text-amber-500" />
                       </button>
                     )}
                     <button onClick={async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
-                      className="p-2 bg-white/90 rounded-full hover:bg-white" title="Supprimer">
+                      className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
                       <Trash2 size={14} className="text-red-500" />
                     </button>
                   </div>
@@ -192,7 +194,7 @@ export default function ProfilePage() {
               {profile?.video_url ? (
                 <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1C1C1E]">
                   <video src={profile.video_url} controls className="w-full h-full object-cover" />
-                  <button onClick={handleDeleteVideo}
+                  <button onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                     <Trash2 size={14} />
                   </button>

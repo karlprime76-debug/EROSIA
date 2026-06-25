@@ -30,7 +30,7 @@ function DustParticles() {
     geom.userData = { speeds, phases }
     return geom
   })
-  useEffect(() => () => { geometry.dispose() }, [])
+  useEffect(() => () => { geometry.dispose() }, [geometry])
 
   useFrame(({ clock }) => {
     if (!ref.current) return

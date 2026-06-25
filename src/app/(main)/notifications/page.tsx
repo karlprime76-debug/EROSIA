@@ -38,7 +38,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     getNotifications().then(({ data }) => {
       if (data) setNotifications(data as Notification[])
-    })
+    }).catch(() => {})
   }, [])
 
   const handleClick = async (n: Notification) => {
@@ -53,7 +53,7 @@ export default function NotificationsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Notifications</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">

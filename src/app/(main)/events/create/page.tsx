@@ -1,12 +1,11 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { createEvent, checkPremium } from '@/lib/api'
 
-const types = [
+const types: { value: 'date_night' | 'meetup' | 'party' | 'other'; label: string }[] = [
   { value: 'date_night', label: 'Date night' },
   { value: 'meetup', label: 'Meetup' },
   { value: 'party', label: 'Soirée' },
@@ -19,29 +18,32 @@ export default function CreateEventPage() {
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [eventDate, setEventDate] = useState('')
-  const [type, setType] = useState<string>('other')
+  const [type, setType] = useState<'date_night' | 'meetup' | 'party' | 'other'>('other')
   const [maxParticipants, setMaxParticipants] = useState('')
   const [saving, setSaving] = useState(false)
   const [isPremium, setIsPremium] = useState<boolean | null>(null)
 
-  useState(() => { checkPremium().then(setIsPremium) })
+  useEffect(() => { checkPremium().then(setIsPremium) }, [])
 
   const handleSubmit = async () => {
     if (!title) return
     setSaving(true)
-    await createEvent({
-      title, description: description || undefined, location: location || undefined,
-      event_date: eventDate ? new Date(eventDate).toISOString() : undefined,
-      type: type as any, max_participants: maxParticipants ? parseInt(maxParticipants) : undefined,
-    })
-    setSaving(false)
-    router.push('/events')
+    try {
+      await createEvent({
+        title, description: description || undefined, location: location || undefined,
+        event_date: eventDate ? new Date(eventDate).toISOString() : undefined,
+        type, max_participants: maxParticipants ? parseInt(maxParticipants) : undefined,
+      })
+      router.push('/events')
+    } catch {
+      setSaving(false)
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Créer une antenne</h2>
       </header>
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">

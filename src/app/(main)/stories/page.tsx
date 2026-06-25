@@ -20,17 +20,18 @@ export default function StoriesPage() {
   const router = useRouter()
   const [stories, setStories] = useState<Story[]>([])
   const [uploading, setUploading] = useState(false)
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(0)
   const [isPremium, setIsPremium] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
-    })
-    checkPremium().then(setIsPremium)
+    }).catch(() => {})
+    checkPremium().then(setIsPremium).catch(() => {})
+    const initTimer = setTimeout(() => setNow(Date.now()), 0)
     const t = setInterval(() => setNow(Date.now()), 60000)
-    return () => clearInterval(t)
+    return () => { clearInterval(t); clearTimeout(initTimer) }
   }, [])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,7 +55,7 @@ export default function StoriesPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
         <div className="flex-1" />
         {isPremium ? (

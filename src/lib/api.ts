@@ -134,9 +134,9 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
 }
 
 export async function getSwipedIds() {
-  const { data, error } = await supabase.from('swipes').select('target_id').eq('direction', 'like')
+  const { data, error } = await supabase.from('swipes').select('swiped_id')
   if (error) return []
-  return (data ?? []).map(s => s.target_id)
+  return (data ?? []).map(s => s.swiped_id)
 }
 
 export async function getMatches() {
@@ -382,12 +382,9 @@ export async function getQuizQuestions() {
 export async function saveQuizAnswers(answers: { questionId: string; answerIndex: number }[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  let lastError: string | null = null
-  for (const a of answers) {
-    const { error } = await supabase.from('quiz_answers').upsert({ user_id: user.id, question_id: a.questionId, answer_index: a.answerIndex }, { onConflict: 'user_id,question_id' })
-    if (error) lastError = error.message
-  }
-  return { error: lastError }
+  const rows = answers.map(a => ({ user_id: user.id, question_id: a.questionId, answer_index: a.answerIndex }))
+  const { error } = await supabase.from('quiz_answers').upsert(rows, { onConflict: 'user_id,question_id' })
+  return { error: error?.message ?? null }
 }
 
 export async function getQuizAnswers() {
@@ -403,6 +400,19 @@ export async function getCompatibilityWith(otherUserId: string) {
   if (!user) return { score: 0 }
   const { data } = await supabase.rpc('get_compatibility', { user_a_id: user.id, user_b_id: otherUserId })
   return { score: (data as number) ?? 0 }
+}
+
+export async function getCompatibilityBatch(otherUserIds: string[]) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || otherUserIds.length === 0) return {}
+  const results = await Promise.all(otherUserIds.map(id =>
+    supabase.rpc('get_compatibility', { user_a_id: user.id, user_b_id: id })
+  ))
+  const scores: Record<string, number> = {}
+  results.forEach((r, i) => {
+    if (r.data !== undefined) scores[otherUserIds[i]] = (r.data as number) ?? 0
+  })
+  return scores
 }
 
 // 7. Blocked users management

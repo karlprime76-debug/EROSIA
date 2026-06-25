@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { ArrowLeft, Camera, CheckCircle, Clock } from 'lucide-react'
 import { submitVerification, getVerificationStatus } from '@/lib/api'
 
@@ -14,12 +15,15 @@ export default function VerifyPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    getVerificationStatus().then(s => setStatus(s.status))
+    getVerificationStatus().then(s => setStatus(s.status)).catch(() => {})
   }, [])
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (f) {
+      if (preview) URL.revokeObjectURL(preview)
       setFile(f)
       setPreview(URL.createObjectURL(f))
     }
@@ -36,7 +40,7 @@ export default function VerifyPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Vérification</h2>
       </header>
       <div className="flex-1 px-4 pb-8">
@@ -59,7 +63,7 @@ export default function VerifyPage() {
             </p>
             <div onClick={() => fileRef.current?.click()} className="aspect-[3/4] rounded-2xl border-2 border-dashed border-[#2A2826] flex items-center justify-center cursor-pointer bg-[#1C1C1E] overflow-hidden">
               {preview ? (
-                <img src={preview} alt="selfie" className="w-full h-full object-cover" />
+                <Image src={preview} alt="selfie" width={400} height={533} className="w-full h-full object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-[#6B6258]">
                   <Camera size={32} />

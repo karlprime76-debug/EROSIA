@@ -1,24 +1,34 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Heart } from 'lucide-react'
 import { getDateIdeas, getMyDateIdeas, saveDateIdea, removeDateIdea } from '@/lib/api'
 
+interface DateIdea {
+  id: string
+  idea: string
+  emoji?: string
+  category?: string
+}
+
+interface MyDateIdea {
+  idea_id: string
+}
+
 export default function DateIdeasPage() {
   const router = useRouter()
-  const [ideas, setIdeas] = useState<any[]>([])
+  const [ideas, setIdeas] = useState<DateIdea[]>([])
   const [myIdeaIds, setMyIdeaIds] = useState<Set<string>>(new Set())
   const [category, setCategory] = useState('')
 
   useEffect(() => {
-    ;(async () => {
-      const { data } = await getDateIdeas(category || undefined)
-      if (data) setIdeas(data)
-      const { data: myData } = await getMyDateIdeas()
-      if (myData) setMyIdeaIds(new Set(myData.map((m: any) => m.idea_id)))
-    })()
+    getDateIdeas(category || undefined).then(({ data }) => {
+      if (data) setIdeas(data as DateIdea[])
+    }).catch(() => {})
+    getMyDateIdeas().then(({ data }) => {
+      if (data) setMyIdeaIds(new Set((data as MyDateIdea[]).map(m => m.idea_id)))
+    }).catch(() => {})
   }, [category])
 
   const toggle = async (ideaId: string) => {
@@ -31,12 +41,12 @@ export default function DateIdeasPage() {
     }
   }
 
-  const categories = [...new Set(ideas.map(i => i.category).filter(Boolean))]
+  const categories = [...new Set(ideas.map(i => i.category).filter((c): c is string => !!c))]
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Idées de date</h2>
       </header>
       <div className="px-4 pb-2 overflow-x-auto">

@@ -23,14 +23,14 @@ export default function QuizPage() {
   useEffect(() => {
     getQuizQuestions().then(({ data }) => {
       if (data) setQuestions(data)
-    })
+    }).catch(() => {})
     getQuizAnswers().then(({ data }) => {
       if (data?.length) {
         const m: Record<string, number> = {}
         data.forEach((a: { question_id: string; answer_index: number }) => { m[a.question_id] = a.answer_index })
         setAnswers(m)
       }
-    })
+    }).catch(() => {})
   }, [])
 
   const handleAnswer = (index: number) => {
