@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -29,6 +29,7 @@ function EmberParticles() {
     g.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
     return [g]
   }, [])
+  useEffect(() => () => { geom.dispose() }, [geom])
 
   useFrame(({ clock }) => {
     if (!ref.current) return

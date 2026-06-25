@@ -2,55 +2,55 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from '@/lib/api'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase/client'
+import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
-    const result = await signIn(email, password)
-    if (result.error) { setError(result.error); setLoading(false); return }
+
+    if (!email.trim()) { setError('Email requis'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Email invalide'); return }
+    if (!password) { setError('Mot de passe requis'); return }
+    if (password.length < 8) { setError('8 caractères minimum'); return }
+
+    setLoading(true)
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+
+    if (authError) {
+      const msg = authError.message.includes('Invalid login credentials') ? 'Email ou mot de passe incorrect' : authError.message.includes('Email not confirmed') ? 'Email non confirmé' : 'Erreur de connexion'
+      setError(msg)
+      return
+    }
     router.push('/discover')
   }
 
   return (
-    <div className="bg-transparent flex-1 flex flex-col px-8 justify-center max-w-sm mx-auto w-full">
-      <h2 className="text-2xl font-bold mb-1">Content de te revoir</h2>
-      <p className="text-[#9E9488] mb-8">Connecte-toi pour continuer l&rsquo;aventure</p>
-
-      <form onSubmit={handleLogin} className="flex flex-col gap-4">
-        <div>
-          <label className="text-sm font-medium mb-1 block">Email</label>
-          <input type="email" placeholder="ton@email.com" value={email}
-            onChange={(e) => setEmail(e.target.value)} required
-            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-base outline-none focus:border-[#D92D4A]" />
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-1 block">Mot de passe</label>
-          <input type="password" placeholder="••••••••" value={password}
-            onChange={(e) => setPassword(e.target.value)} required
-            className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-base outline-none focus:border-[#D92D4A]" />
-          <a href="/forgot-password" className="text-xs text-[#6B6258] mt-1.5 block text-right hover:underline">Mot de passe oublié ?</a>
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent relative">
+      <FloatingHearts />
+      <form onSubmit={handleLogin} className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4 relative z-10">
+        <h2 className="text-2xl font-bold text-center">Connexion</h2>
+        {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
+        <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
+          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
+        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe" autoComplete="current-password"
+          className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
         <button type="submit" disabled={loading}
-          className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-50"
-          style={{ background: '#D92D4A' }}>
+          className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
           {loading ? 'Connexion...' : 'Se connecter'}
         </button>
+        <Link href="/forgot-password" className="block text-center text-sm text-[#9E9488] hover:text-white transition">Mot de passe oublié ?</Link>
+        <Link href="/register" className="block text-center text-sm text-[#D92D4A] hover:underline">Créer un compte</Link>
       </form>
-
-      <p className="text-center text-[#9E9488] mt-8 text-sm">
-        Pas encore de compte ?{' '}
-        <a href="/register" className="font-semibold" style={{ color: '#D92D4A' }}>S&rsquo;inscrire</a>
-      </p>
     </div>
   )
 }

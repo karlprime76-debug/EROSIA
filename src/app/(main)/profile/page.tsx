@@ -26,7 +26,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }) }
+      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(console.error); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(console.error) }
       setLoading(false)
     })()
   }, [])
@@ -86,8 +86,8 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    await signOut()
-    router.push('/')
+    const { error } = await signOut()
+    if (!error) router.push('/')
   }
 
   if (loading) return (
@@ -206,18 +206,18 @@ export default function ProfilePage() {
         {editing ? (
           <div className="space-y-4 mb-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">Bio</label>
-              <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4}
+              <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
+              <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} rows={4}
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] resize-none" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
-              <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
+              <label htmlFor="profile-interests" className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
+              <input id="profile-interests" value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Ce que je cherche</label>
-              <select value={lookingFor} onChange={e => setLookingFor(e.target.value as LookingFor)}
+              <label htmlFor="profile-looking-for" className="text-sm font-medium mb-1 block">Ce que je cherche</label>
+              <select id="profile-looking-for" value={lookingFor} onChange={e => setLookingFor(e.target.value as LookingFor)}
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] bg-[#141414]">
                 <option value="friendship">Amitié</option>
                 <option value="casual">Plan cul</option>

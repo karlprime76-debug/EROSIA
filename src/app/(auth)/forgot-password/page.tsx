@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { resetPassword } from '@/lib/api'
 
 export default function ForgotPasswordPage() {
@@ -13,7 +14,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await resetPassword(email)
-    if (error) { setError(error); setLoading(false); return }
+    if (error) { setError(error.message); setLoading(false); return }
     setSent(true); setLoading(false)
   }
 
@@ -24,9 +25,9 @@ export default function ForgotPasswordPage() {
         <h2 className="text-2xl font-bold mb-2">Email envoyé !</h2>
         <p className="text-[#9E9488] mb-2">Vérifie ta boîte de réception.</p>
         <p className="text-[#6B6258] text-sm mb-8">Un lien de réinitialisation t&rsquo;a été envoyé à {email}</p>
-        <a href="/login" className="py-3.5 px-8 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
+        <Link href="/login" className="py-3.5 px-8 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
           Retour à la connexion
-        </a>
+        </Link>
       </div>
     )
   }
@@ -52,7 +53,7 @@ export default function ForgotPasswordPage() {
       </form>
 
       <p className="text-center text-[#9E9488] mt-8 text-sm">
-        <a href="/login" className="font-semibold" style={{ color: '#D92D4A' }}>Retour</a>
+        <Link href="/login" className="font-semibold" style={{ color: '#D92D4A' }}>Retour</Link>
       </p>
     </div>
   )

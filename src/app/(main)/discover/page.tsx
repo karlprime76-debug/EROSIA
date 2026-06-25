@@ -54,31 +54,31 @@ export default function DiscoverPage() {
         return getProfiles([...swiped, ...blocked], { minAge: 18, maxAge: 99 })
       })
       .then(({ data }) => {
-        setTimeout(() => {
-          if (data) setProfiles(data)
-          setLoading(false)
-        })
+        if (data) setProfiles(data)
+        setLoading(false)
       })
-    getSentFlirtIds().then(ids => setFlirtedIds(ids))
+    getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(console.error)
   }, [])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
-    })
+    }).catch(console.error)
   }, [])
 
   useEffect(() => {
     if (!profiles.length) return
+    let cancelled = false
     const load = async () => {
-      const scores: Record<string, number> = {}
-      for (const p of profiles) {
-        const { score } = await getCompatibilityWith(p.id)
-        scores[p.id] = score
+      const results = await Promise.all(profiles.map(p => getCompatibilityWith(p.id)))
+      if (!cancelled) {
+        const scores: Record<string, number> = {}
+        results.forEach((r, i) => { if (r.score !== undefined) scores[profiles[i].id] = r.score })
+        setCompatScores(scores)
       }
-      setCompatScores(scores)
     }
     load()
+    return () => { cancelled = true }
   }, [profiles])
 
   const fetchProfiles = async (extraBlocked: string[] = []) => {
@@ -157,11 +157,11 @@ export default function DiscoverPage() {
             <label className="text-xs font-medium text-[#9E9488] mb-1 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
             <div className="flex gap-3 items-center">
               <input type="range" min={18} max={70} value={filters.minAge}
-                onChange={e => setFilters(f => ({ ...f, minAge: Number(e.target.value) }))}
+                onChange={e => setFilters(f => ({ ...f, minAge: Math.min(Number(e.target.value), f.maxAge) }))}
                 className="flex-1 accent-[#D92D4A]" />
               <span className="text-[#5A5248]">–</span>
               <input type="range" min={18} max={70} value={filters.maxAge}
-                onChange={e => setFilters(f => ({ ...f, maxAge: Number(e.target.value) }))}
+                onChange={e => setFilters(f => ({ ...f, maxAge: Math.max(Number(e.target.value), f.minAge) }))}
                 className="flex-1 accent-[#D92D4A]" />
             </div>
           </div>

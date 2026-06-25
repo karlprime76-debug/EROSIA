@@ -5,8 +5,8 @@
 -- Part 1: Profiles new columns
 -- ==============================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium'));
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_id TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS paydunya_invoice_token TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS travel_city TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS travel_active BOOLEAN DEFAULT false;
 

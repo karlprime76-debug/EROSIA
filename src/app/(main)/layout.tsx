@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Flame, Heart, Bell, User, Settings } from 'lucide-react'
 import { getNotificationUnreadCount } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
-import { SensualBackground } from '@/components/3d/SensualBackground'
+
 
 const tabs = [
   { href: '/discover', icon: Flame, label: 'Découvrir' },
@@ -21,23 +21,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | undefined
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       getNotificationUnreadCount().then(setUnreadCount)
-      const channel = supabase.channel('notif-count')
+      channel = supabase.channel('notif-count')
       channel.on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'notifications',
         filter: `user_id=eq.${user.id}`
       }, () => { getNotificationUnreadCount().then(setUnreadCount) })
       channel.subscribe()
-      return () => { supabase.removeChannel(channel) }
     })()
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
   return (
     <div className="flex-1 flex flex-col w-full min-h-screen relative">
-      <SensualBackground />
       <main className="flex-1 flex flex-col relative z-10 pb-20">{children}</main>
       <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-lg left-1/2 -translate-x-1/2
         flex border-t border-white/5 bg-black/40 backdrop-blur-2xl px-4 pb-3 pt-2

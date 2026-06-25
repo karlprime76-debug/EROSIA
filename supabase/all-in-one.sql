@@ -9,6 +9,8 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS longitude float8;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS super_likes_remaining int4 DEFAULT 1;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS super_likes_reset_at timestamptz DEFAULT now();
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS incognito boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS paydunya_invoice_token TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ;
 
 -- 2. Push subscriptions table
 CREATE TABLE IF NOT EXISTS push_subscriptions (

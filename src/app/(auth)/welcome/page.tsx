@@ -3,12 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
-import { SensualBackground } from '@/components/3d/SensualBackground'
 
 export default function WelcomePage() {
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden bg-transparent">
-      <SensualBackground />
       <FloatingHearts />
 
       <div className="flex flex-col min-h-dvh px-6 sm:px-12 lg:px-16 xl:px-24

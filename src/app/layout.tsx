@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
-import BackgroundWrapper from "@/components/3d/BackgroundWrapper"
+import { SensualBackground } from "@/components/3d/SensualBackground"
 import SwRegister from "@/components/SwRegister"
 
 export const metadata: Metadata = {
@@ -12,7 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-black text-[#F5F0EB]">
-        <BackgroundWrapper><SwRegister />{children}</BackgroundWrapper>
+        <SensualBackground />
+        <SwRegister />
+        <div className="relative z-10 flex-1 flex flex-col">{children}</div>
       </body>
     </html>
   )

@@ -44,7 +44,7 @@ export default function SettingsPage() {
   }
 
   const handleUpgrade = async () => {
-    const { url } = await createCheckoutSession('price_premium_monthly')
+    const { url } = await createCheckoutSession()
     if (url) window.location.href = url
   }
 

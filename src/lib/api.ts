@@ -1,4 +1,5 @@
 import { createClient } from './supabase/client'
+import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
 
 export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
 
@@ -25,8 +26,8 @@ export interface Profile {
   travel_city?: string
   travel_active?: boolean
   subscription_tier?: 'free' | 'premium'
-  stripe_customer_id?: string
-  subscription_id?: string
+  paydunya_invoice_token?: string
+  premium_expires_at?: string
   video_url?: string
 }
 
@@ -88,14 +89,13 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-  return supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  return { error: error?.message ?? null }
 }
 
 export async function resetPassword(email: string) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/reset-password`,
-  })
-  return { error: error?.message }
+  const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia-prod.vercel.app'
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/reset-password` })
 }
 
 export async function updatePassword(password: string) {
@@ -134,10 +134,9 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
 }
 
 export async function getSwipedIds() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
-  const { data } = await supabase.from('swipes').select('swiped_id').eq('swiper_id', user.id)
-  return (data ?? []).map((s) => s.swiped_id)
+  const { data, error } = await supabase.from('swipes').select('target_id').eq('direction', 'like')
+  if (error) return []
+  return (data ?? []).map(s => s.target_id)
 }
 
 export async function getMatches() {
@@ -149,14 +148,13 @@ export async function getMatches() {
   return { data: data as Match[] | null, error: error?.message }
 }
 
-export async function checkForMatch(swipedId: string) {
+export async function checkForMatch(targetId: string) {
+  const { data, error } = await supabase.from('matches').select('*').or(`user1_id.eq.${targetId},user2_id.eq.${targetId}`).maybeSingle() as PostgrestMaybeSingleResponse<Match>
+  if (error || !data) return { isMatch: false, match: null }
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { isMatch: false }
-  const { data } = await supabase
-    .from('matches').select('*')
-    .or(`and(user1_id.eq.${user.id},user2_id.eq.${swipedId}),and(user1_id.eq.${swipedId},user2_id.eq.${user.id})`)
-    .maybeSingle()
-  return { isMatch: !!data, match: data as Match | null }
+  if (!user) return { isMatch: false, match: null }
+  const otherId = data.user1_id === user.id ? data.user2_id : data.user1_id
+  return { isMatch: otherId === targetId, match: data }
 }
 
 export async function getMessages(matchId: string) {
@@ -184,7 +182,8 @@ export async function uploadPhoto(uri: File, userId: string, index: number) {
 }
 
 export async function deletePhoto(userId: string, photoUrl: string, currentPhotos: string[]) {
-  const fileName = photoUrl.split('/photos/').pop()
+  const segments = photoUrl.split('/')
+  const fileName = segments[segments.length - 1]
   if (fileName) await supabase.storage.from('photos').remove([fileName])
   const photos = currentPhotos.filter(p => p !== photoUrl)
   const { error } = await supabase.from('profiles').update({ photos }).eq('id', userId)
@@ -281,14 +280,8 @@ export async function unmatchUser(matchId: string) {
 }
 
 export async function getLastSwipe() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data } = await supabase
-    .from('swipes').select('*, swiped:profiles!swipes_swiped_id_fkey(*)')
-    .eq('swiper_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data, error } = await supabase.from('swipes').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle() as PostgrestMaybeSingleResponse<Swipe>
+  if (error || !data) return null
   return data
 }
 
@@ -333,19 +326,9 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
 
 // 2. Super like limit
 export async function getSuperLikesRemaining() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return 0
-  // Check if we need to reset
-  const { data } = await supabase.from('profiles').select('super_likes_remaining, super_likes_reset_at').eq('id', user.id).single()
-  if (!data) return 0
-  const now = new Date()
-  const resetDate = new Date(data.super_likes_reset_at)
-  if (now.getDate() !== resetDate.getDate() || now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
-    // Reset daily
-    await supabase.from('profiles').update({ super_likes_remaining: 1, super_likes_reset_at: now.toISOString() }).eq('id', user.id)
-    return 1
-  }
-  return data.super_likes_remaining
+  const { data, error } = await supabase.rpc('get_super_likes_remaining')
+  if (error) return 0
+  return (data as number) ?? 0
 }
 
 export async function useSuperLike() {
@@ -368,8 +351,9 @@ export async function setIncognito(incognito: boolean) {
 export async function getIncognito() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
-  const { data } = await supabase.from('profiles').select('incognito').eq('id', user.id).single()
-  return data?.incognito ?? false
+  const { data, error } = await supabase.from('profiles').select('incognito').eq('id', user.id).single()
+  if (error || !data) return false
+  return (data as { incognito: boolean }).incognito
 }
 
 // 4. Push subscriptions
@@ -395,16 +379,15 @@ export async function getQuizQuestions() {
   return { data: data as Array<{ id: string; question: string; options: Array<{ text: string; trait: string }>; category: string | null }> | null, error: error?.message }
 }
 
-export async function saveQuizAnswers(answers: Array<{ questionId: string; answerIndex: number }>) {
+export async function saveQuizAnswers(answers: { questionId: string; answerIndex: number }[]) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  // Upsert each answer
+  let lastError: string | null = null
   for (const a of answers) {
-    await supabase.from('quiz_answers').upsert({
-      user_id: user.id, question_id: a.questionId, answer_index: a.answerIndex,
-    }, { onConflict: 'user_id,question_id' })
+    const { error } = await supabase.from('quiz_answers').upsert({ user_id: user.id, question_id: a.questionId, answer_index: a.answerIndex }, { onConflict: 'user_id,question_id' })
+    if (error) lastError = error.message
   }
-  return { error: null }
+  return { error: lastError }
 }
 
 export async function getQuizAnswers() {
@@ -436,11 +419,10 @@ export async function getBlockedProfiles() {
 
 // 9. Typing indicator (no SQL, uses Realtime channels)
 
-// ---- FEATURE 1: Premium / Stripe ----
-export async function createCheckoutSession(priceId: string) {
-  const res = await fetch('/api/stripe/create-checkout', {
+// ---- FEATURE 1: Premium / PayDunya ----
+export async function createCheckoutSession() {
+  const res = await fetch('/api/paydunya/create-checkout', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ priceId }),
   })
   const data = await res.json()
   if (!res.ok) return { error: data.error }
@@ -664,9 +646,8 @@ export async function getModerationQueue() {
 }
 
 export async function reviewContent(id: string, approved: boolean) {
-  const { error } = await supabase.from('moderation_queue').update({ reviewed: true }).eq('id', id)
-  if (!approved) return { error: error?.message }
-  return { error: error?.message }
+  const { error } = await supabase.from('moderation_queue').update({ reviewed: true, status: approved ? 'approved' : 'rejected' }).eq('id', id)
+  return { error: error?.message ?? null }
 }
 
 // ---- FEATURE 12: Events ----
@@ -913,8 +894,9 @@ export async function setGhostMode(enabled: boolean) {
 export async function getGhostMode() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
-  const { data } = await supabase.from('profiles').select('ghost_mode').eq('id', user.id).single()
-  return data?.ghost_mode ?? false
+  const { data, error } = await supabase.from('profiles').select('ghost_mode').eq('id', user.id).single()
+  if (error || !data) return false
+  return (data as { ghost_mode: boolean }).ghost_mode
 }
 
 // ---- FEATURE 21: Icebreaker AI ----

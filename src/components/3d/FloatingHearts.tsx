@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -30,6 +30,7 @@ function DustParticles() {
     geom.userData = { speeds, phases }
     return geom
   })
+  useEffect(() => () => { geometry.dispose() }, [])
 
   useFrame(({ clock }) => {
     if (!ref.current) return

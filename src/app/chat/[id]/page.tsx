@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, getReactions, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff } from 'lucide-react'
 
@@ -54,7 +54,7 @@ function AudioPlayer({ src }: { src: string }) {
   return (
     <div className="flex items-center gap-2">
       <audio ref={audioRef} src={src} preload="metadata" />
-      <button onClick={toggle} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
+      <button type="button" onClick={toggle} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
         {playing ? <Square size={12} /> : <Play size={12} fill="currentColor" />}
       </button>
       <span className="text-xs text-[#9E9488] tabular-nums">
@@ -110,14 +110,18 @@ export default function ChatPage() {
     const { data } = await getMessages(id)
     if (data) {
       setMessages(data)
-      const r: Record<string, Reaction[]> = {}
-      for (const m of data) {
-        if (m.id) {
-          const { data: rd } = await getReactions(m.id)
-          if (rd) r[m.id] = rd
+      const msgIds = data.map(m => m.id).filter(Boolean)
+      if (msgIds.length > 0) {
+        const { data: allReactions } = await supabase.from('message_reactions').select('*').in('message_id', msgIds)
+        if (allReactions) {
+          const r: Record<string, Reaction[]> = {}
+          for (const react of allReactions as Reaction[]) {
+            if (!r[react.message_id]) r[react.message_id] = []
+            r[react.message_id].push(react)
+          }
+          setReactions(r)
         }
       }
-      setReactions(r)
     }
   }, [id])
 
@@ -157,17 +161,18 @@ export default function ChatPage() {
       const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
       peerConnectionRef.current = pc
       stream.getTracks().forEach(t => pc.addTrack(t, stream))
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'ice-candidate', payload: { candidate: e.candidate } })
-        }
-      }
       pc.ontrack = (e) => {
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
       }
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
-      supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'offer', payload: { offer } })
+      const signalCh = supabase.channel(`call:${id}`)
+      signalCh.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          signalCh.send({ type: 'broadcast', event: 'offer', payload: { offer } })
+          setTimeout(() => supabase.removeChannel(signalCh), 2000)
+        }
+      })
       setCallStatus('connected')
     } catch (e) {
       console.error('Call failed:', e)
@@ -230,8 +235,10 @@ export default function ChatPage() {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `match_id=eq.${id}`,
-      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) =>
-        setMessages((prev) => [...prev, payload.new as Message]))
+      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+        const newMsg = payload.new as Message
+        setMessages((prev) => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg])
+      })
       .subscribe()
 
     return () => {
@@ -247,16 +254,27 @@ export default function ChatPage() {
   }, [])
 
   useEffect(() => {
-    const channel = supabase.channel(`typing:match-${id}`)
-    channel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
+    let typingSentChannel: ReturnType<typeof supabase.channel> | undefined
+    ;(async () => {
+      typingSentChannel = supabase.channel(`typing:match-${id}`)
+      typingSentChannel.subscribe()
+    })()
+    
+    const typingRecvChannel = supabase.channel(`typing:match-${id}`)
+    typingRecvChannel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
       if (payload.payload.userId !== currentUser?.id) {
         setTypingUserId(payload.payload.userId)
         clearTimeout(typingTimeoutRef.current)
         typingTimeoutRef.current = setTimeout(() => setTypingUserId(null), 2000)
       }
     })
-    channel.subscribe()
-    return () => { supabase.removeChannel(channel); clearTimeout(typingTimeoutRef.current) }
+    typingRecvChannel.subscribe()
+
+    return () => {
+      if (typingSentChannel) supabase.removeChannel(typingSentChannel)
+      supabase.removeChannel(typingRecvChannel)
+      clearTimeout(typingTimeoutRef.current)
+    }
   }, [id, currentUser?.id])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
@@ -273,15 +291,31 @@ export default function ChatPage() {
         peerConnectionRef.current = pc
         stream.getTracks().forEach(t => pc.addTrack(t, stream))
         pc.ontrack = (e) => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0] }
+        pc.onicecandidate = (e) => {
+          if (e.candidate) {
+            channel.send({ type: 'broadcast', event: 'ice-candidate', payload: { candidate: e.candidate } })
+          }
+        }
         await pc.setRemoteDescription(new RTCSessionDescription(payload.payload.offer))
         const answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-        supabase.channel(`call:${id}`).send({ type: 'broadcast', event: 'answer', payload: { answer } })
+        channel.send({ type: 'broadcast', event: 'answer', payload: { answer } })
       }
       handleOffer()
     })
+    channel.on('broadcast', { event: 'ice-candidate' }, async (payload: { payload: { candidate: RTCIceCandidateInit } }) => {
+      try {
+        await peerConnectionRef.current?.addIceCandidate(new RTCIceCandidate(payload.payload.candidate))
+      } catch {}
+    })
     channel.subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    return () => {
+      supabase.removeChannel(channel)
+      peerConnectionRef.current?.close()
+      const stream = localVideoRef.current?.srcObject as MediaStream | null
+      stream?.getTracks().forEach(t => t.stop())
+    }
   }, [id])
 
   useEffect(() => {
@@ -295,7 +329,13 @@ export default function ChatPage() {
     const now = Date.now()
     if (now - lastTypingBroadcast.current > 300) {
       lastTypingBroadcast.current = now
-      supabase.channel(`typing:match-${id}`).send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
+      const ch = supabase.channel(`typing:match-${id}`)
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          ch.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
+          setTimeout(() => supabase.removeChannel(ch), 1000)
+        }
+      })
     }
   }, [id, currentUser?.id])
 
@@ -335,7 +375,11 @@ export default function ChatPage() {
       setRecording(true)
       setRecordingTime(0)
       recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(t => { if (t >= 60) stopRecording(); return t + 1 })
+        setRecordingTime(t => {
+          const next = t + 1
+          if (next >= 60) setTimeout(stopRecording, 0)
+          return next
+        })
       }, 1000)
     } catch {}
   }
@@ -387,19 +431,19 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
+          <button type="button" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258] hover:bg-white/5'}`}>
             <Music size={16} />
           </button>
-          <button onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
+          <button type="button" onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
             className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#6B6258] border border-transparent hover:border-white/10'}`}>
             {match?.ephemeral ? 'Éphémère' : 'Permanent'}
           </button>
-          <button onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
+          <button type="button" onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
             className="w-9 h-9 rounded-full flex items-center justify-center text-[#6B6258] hover:bg-white/5 disabled:opacity-30 transition-all">
             <Video size={16} />
           </button>
-          <button onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
+          <button type="button" onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
             <X size={16} className="text-[#6B6258]" />
           </button>
         </div>
@@ -415,7 +459,7 @@ export default function ChatPage() {
             <p className="text-sm text-white/60 absolute left-8">
               {callStatus === 'ringing' ? 'Appel en cours...' : callStatus === 'connected' ? 'En communication' : ''}
             </p>
-            <button onClick={handleEndCall}
+            <button type="button" onClick={handleEndCall}
               className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
               <PhoneOff size={24} fill="white" />
             </button>
@@ -427,11 +471,11 @@ export default function ChatPage() {
         <div className="px-4 py-2 bg-[#1C1C1E] border-b border-[#2A2826]">
           <p className="text-xs text-[#9E9488] mb-2">Messages éphémères</p>
           <div className="flex gap-2">
-            <button onClick={() => { toggleEphemeral(id, false); setShowEphemeralOpts(false) }}
+            <button type="button" onClick={() => { toggleEphemeral(id, false); setShowEphemeralOpts(false) }}
               className="text-xs px-3 py-1.5 rounded-lg bg-[#262628] text-white">
               Désactivé
             </button>
-            <button onClick={() => { toggleEphemeral(id, true); setShowEphemeralOpts(false) }}
+            <button type="button" onClick={() => { toggleEphemeral(id, true); setShowEphemeralOpts(false) }}
               className="text-xs px-3 py-1.5 rounded-lg bg-[#D92D4A]/20 text-[#D92D4A]">
               Activé (24h)
             </button>
@@ -451,7 +495,7 @@ export default function ChatPage() {
                 <p className="text-sm truncate">{item.title}</p>
                 {item.artist && <p className="text-[10px] text-[#6B6258]">{item.artist}</p>}
               </div>
-              <button onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
+              <button type="button" onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
                 <X size={14} />
               </button>
             </div>
@@ -461,7 +505,7 @@ export default function ChatPage() {
               className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
             <input value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} placeholder="URL..."
               className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
-            <button onClick={handleAddPlaylist}
+            <button type="button" onClick={handleAddPlaylist}
               className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ background: '#D92D4A' }}>
               +
             </button>
@@ -475,19 +519,19 @@ export default function ChatPage() {
             <p className="text-xs text-[#9E9488] mb-3 font-medium uppercase tracking-wider">Pour briser la glace</p>
             <div className="flex flex-wrap gap-2">
               {icebreakers.map((ib, i) => (
-                <button key={i} onClick={() => handleIcebreaker(ib.question)}
+                <button type="button" key={i} onClick={() => handleIcebreaker(ib.question)}
                   className="px-4 py-2.5 rounded-full text-sm glass-card border border-[#2A2826] text-[#E8E0D8] hover:border-[#D92D4A]/30 transition-all active:scale-95">
                   {ib.question}
                 </button>
               ))}
             </div>
-            <button onClick={handleAIIcebreaker}
+            <button type="button" onClick={handleAIIcebreaker}
               className="mt-2 text-xs px-3 py-1.5 rounded-full bg-[#D92D4A]/10 text-[#D92D4A] border border-[#D92D4A]/20 hover:bg-[#D92D4A]/20 transition">
               Générer une suggestion IA
             </button>
             {aiSuggestion && (
               <div className="mt-2">
-                <button onClick={() => { sendMessage(id, aiSuggestion); setAiSuggestion(null); }}
+                <button type="button" onClick={() => { sendMessage(id, aiSuggestion); setAiSuggestion(null); }}
                   className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
                   ✨ {aiSuggestion}
                 </button>
@@ -527,7 +571,7 @@ export default function ChatPage() {
                     ))}
                   </div>
                 )}
-                <button onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
+                <button type="button" onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
                   className="text-[#6B6258] hover:text-white text-xs ml-1 transition">
                   +
                 </button>
@@ -535,7 +579,7 @@ export default function ChatPage() {
               {reactingMessageId === m.id && (
                 <div className="flex gap-1.5 mt-1.5">
                   {['❤️', '😂', '😮', '😢', '🔥', '👍'].map(emoji => (
-                    <button key={emoji} onClick={() => handleReact(m.id, emoji)}
+                    <button type="button" key={emoji} onClick={() => handleReact(m.id, emoji)}
                       className="text-lg hover:scale-125 transition-all active:scale-150">
                       {emoji}
                     </button>
@@ -573,22 +617,22 @@ export default function ChatPage() {
 
       <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[#2A2826]/60 bg-[#141414]/80 backdrop-blur-md">
         <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <button onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
+        <button type="button" onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
           <Camera size={16} className="text-[#9E9488]" />
         </button>
         <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all" />
-        <button onClick={startRecording} disabled={recording}
+        <button type="button" onClick={startRecording} disabled={recording}
           className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6258] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
           <Mic size={18} />
         </button>
         {recording ? (
-          <button onClick={stopRecording}
+          <button type="button" onClick={stopRecording}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A] hover:shadow-[0_0_15px_rgba(217,45,74,0.3)] active:scale-90 transition-all">
             <Square size={16} fill="white" />
           </button>
         ) : (
-          <button onClick={handleSend} disabled={!text.trim()}
+          <button type="button" onClick={handleSend} disabled={!text.trim()}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30 active:scale-90 transition-all"
             style={{ background: '#D92D4A' }}>
             <Send size={16} />

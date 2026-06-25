@@ -36,10 +36,16 @@ export default function MatchesPage() {
 
       const list: Conversation[] = []
       if (matches) {
-        for (const m of matches) {
-          const otherId = m.user1_id === user.id ? m.user2_id : m.user1_id
-          const { data: p } = await supabase.from('profiles').select('*').eq('id', otherId).single()
-          if (p) list.push({ matchId: m.id, profile: p as Profile })
+        const otherIds = matches.map(m => m.user1_id === user.id ? m.user2_id : m.user1_id)
+        if (otherIds.length > 0) {
+          const { data: profiles } = await supabase.from('profiles').select('*').in('id', otherIds)
+          if (profiles) {
+            for (const m of matches) {
+              const otherId = m.user1_id === user.id ? m.user2_id : m.user1_id
+              const p = profiles.find((p: Record<string, unknown>) => p.id === otherId)
+              if (p) list.push({ matchId: m.id, profile: p as Profile })
+            }
+          }
         }
       }
       setConvs(list)
@@ -119,7 +125,6 @@ export default function MatchesPage() {
                 <div className="relative shrink-0">
                   <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
                     className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#10B981] border-2 border-[#141414]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{c.profile.name}</p>
