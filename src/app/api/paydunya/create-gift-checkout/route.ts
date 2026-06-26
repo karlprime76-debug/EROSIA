@@ -25,9 +25,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Prix du cadeau invalide' }, { status: 500 })
   }
 
+  const EUR_TO_XOF = 655.957
   const feePercent = 15
   const totalCents = Math.round(gift.price_cents * (1 + feePercent / 100))
-  const amountFCFA = Math.round(totalCents * 0.655957)
+  const amountFCFA = Math.round(totalCents * EUR_TO_XOF / 100)
 
   const origin = request.headers.get('origin') ?? 'http://localhost:3000'
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
