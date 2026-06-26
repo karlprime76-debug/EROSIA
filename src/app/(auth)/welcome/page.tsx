@@ -62,24 +62,42 @@ export default function WelcomePage() {
 
         <div className="flex flex-col items-center gap-8 pb-16 lg:flex-1 lg:items-start lg:gap-10">
           <div className="w-full max-w-sm lg:max-w-md space-y-3">
-            {features.map(({ icon: Icon, title, desc, color }, i) => (
-              <div key={title}
-                className="group glass-card rounded-2xl px-5 py-4 flex items-center gap-4 cursor-default transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(217,45,74,0.15)]"
-                style={{ animation: `fadeUp 0.6s ${(i + 1) * 100}ms both` }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
-                  style={{ background: `${color}15` }}>
-                  <Icon size={18} style={{ color }} />
+            {features.map(({ icon: Icon, title, desc, color }, i) => {
+              const isGift = title === 'Boutique cadeaux'
+              return (
+                <div key={title}
+                  className={`group rounded-2xl px-5 py-4 flex items-center gap-4 cursor-default transition-all duration-500 hover:scale-[1.02] ${isGift ? 'bg-gradient-to-r from-[#EAB308]/10 via-[#EAB308]/5 to-transparent border border-[#EAB308]/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]' : 'glass-card hover:shadow-[0_0_25px_rgba(217,45,74,0.15)]'}`}
+                  style={{ animation: `fadeUp 0.6s ${(i + 1) * 100}ms both` }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110 relative"
+                    style={{ background: `${color}15` }}>
+                    <Icon size={18} style={{ color }} />
+                    {isGift && <span className="absolute -top-1.5 -right-1.5 text-[8px]">🔥</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-white font-semibold text-sm">{title}</p>
+                      {isGift && <span className="text-[10px] text-[#EAB308] font-bold px-1.5 py-0.5 rounded-full bg-[#EAB308]/15">Populaire</span>}
+                    </div>
+                    <p className="text-white/40 text-xs mt-0.5 leading-relaxed">{desc}</p>
+                  </div>
+                  <ChevronRight size={14} className="text-white/10 group-hover:text-white/30 transition-all duration-300 group-hover:translate-x-0.5" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm">{title}</p>
-                  <p className="text-white/40 text-xs mt-0.5 leading-relaxed">{desc}</p>
-                </div>
-                <ChevronRight size={14} className="text-white/10 group-hover:text-white/30 transition-all duration-300 group-hover:translate-x-0.5" />
-              </div>
-            ))}
+              )
+            })}
           </div>
 
-          <div className="w-full max-w-sm flex flex-col gap-3 lg:max-w-md" style={{ animation: 'fadeUp 0.6s 700ms both' }}>
+          <div className="w-full max-w-sm lg:max-w-md glass-card rounded-2xl p-5 flex items-center gap-4 border border-[#EAB308]/10"
+            style={{ animation: 'fadeUp 0.6s 700ms both' }}>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#EAB308] to-[#D92D4A] flex items-center justify-center shrink-0 animate-pulse-soft">
+              <Gift size={22} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm">Offre-lui un cadeau</p>
+              <p className="text-white/50 text-xs mt-0.5">Attire son attention immédiatement avec un cadeau virtuel. Mobile Money ou carte.</p>
+            </div>
+          </div>
+
+          <div className="w-full max-w-sm flex flex-col gap-3 lg:max-w-md" style={{ animation: 'fadeUp 0.6s 800ms both' }}>
             <Link
               href="/register"
               className="group w-full py-4 rounded-full text-center font-semibold text-base sm:text-lg transition-all duration-300 active:scale-95 hover:shadow-[0_0_40px_rgba(217,45,74,0.4)] relative overflow-hidden"

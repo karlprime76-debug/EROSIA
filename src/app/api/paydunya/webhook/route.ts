@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   if (userId && giftId && receiverId && matchId) {
     const { data: gift } = await admin.from('gifts').select('*').eq('id', giftId).single()
     if (gift) {
-      await admin.from('sent_gifts').insert({
+      const { data: sentGift } = await admin.from('sent_gifts').insert({
         sender_id: userId,
         receiver_id: receiverId,
         gift_id: giftId,
@@ -54,7 +54,20 @@ export async function POST(request: NextRequest) {
         amount_paid: gift.price_cents,
         fee_cents: Math.round(gift.price_cents * 0.15),
         status: 'completed',
-      })
+      }).select().single()
+
+      if (sentGift) {
+        const fee = Math.round(gift.price_cents * 0.15)
+        const netAmount = gift.price_cents - fee
+        await admin.from('gift_transactions').insert({
+          user_id: receiverId,
+          type: 'gift_received',
+          amount_cents: netAmount,
+          sent_gift_id: sentGift.id,
+          status: 'completed',
+        })
+      }
+
       await admin.from('notifications').insert({
         user_id: receiverId,
         actor_id: userId,

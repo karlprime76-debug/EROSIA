@@ -851,6 +851,7 @@ export async function getGifts() {
 export async function sendGift(receiverId: string, giftId: string, matchId: string, message?: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  if (receiverId === user.id) return { error: 'Vous ne pouvez pas vous offrir un cadeau' }
   const { data, error } = await supabase.from('sent_gifts').insert({
     sender_id: user.id, receiver_id: receiverId, gift_id: giftId, match_id: matchId, message: message ?? null,
   }).select().single()
@@ -1156,4 +1157,88 @@ export async function createGiftCheckout(giftId: string, receiverId: string, mat
   const data = await res.json()
   if (!res.ok) return { error: data.error }
   return { url: data.url as string }
+}
+
+// ---- GIFT WALLET / BALANCE ----
+export async function getGiftBalance() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+
+  const { data: received } = await supabase
+    .from('sent_gifts')
+    .select('amount_paid, fee_cents')
+    .eq('receiver_id', user.id)
+    .eq('status', 'completed')
+
+  const totalReceived = (received ?? []).reduce((sum, g) =>
+    sum + (g.amount_paid ?? 0) - (g.fee_cents ?? 0), 0)
+
+  const { data: payouts } = await supabase
+    .from('gift_transactions')
+    .select('amount_cents')
+    .eq('user_id', user.id)
+    .eq('type', 'payout')
+    .eq('status', 'completed')
+
+  const totalPayouts = (payouts ?? []).reduce((sum, t) => sum + t.amount_cents, 0)
+
+  return totalReceived - totalPayouts
+}
+
+export async function requestPayout(amountCents: number) {
+  const res = await fetch('/api/paydunya/process-payout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amountCents }),
+  })
+  const data = await res.json()
+  if (!res.ok) return { error: data.error }
+  return { success: true, message: data.message }
+}
+
+export async function getGiftTransactions() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: [] }
+  const { data, error } = await supabase
+    .from('gift_transactions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error: error?.message }
+}
+
+export async function getAdminStats() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return null
+
+  const { count: totalGifts } = await supabase.from('sent_gifts').select('*', { count: 'exact', head: true }).eq('status', 'completed')
+  const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
+  const { count: pendingVerifs } = await supabase.from('verification_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+  const { count: pendingPayouts } = await supabase.from('gift_transactions').select('*', { count: 'exact', head: true }).eq('type', 'payout').eq('status', 'pending')
+  const { data: payouts } = await supabase.from('gift_transactions').select('*').eq('type', 'payout').eq('status', 'pending')
+
+  return { totalGifts: totalGifts ?? 0, totalUsers: totalUsers ?? 0, pendingVerifs: pendingVerifs ?? 0, pendingPayouts: pendingPayouts ?? 0, payouts: payouts ?? [] }
+}
+
+export async function adminUpdatePayoutStatus(txId: string, status: 'completed' | 'failed') {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return { error: 'Accès refusé' }
+  const { error } = await supabase.from('gift_transactions').update({ status }).eq('id', txId)
+  return { error: error?.message }
+}
+
+export interface GiftTransaction {
+  id: string
+  user_id: string
+  type: 'gift_received' | 'payout'
+  amount_cents: number
+  sent_gift_id: string | null
+  payment_details: string | null
+  status: 'completed' | 'pending' | 'failed' | 'cancelled'
+  created_at: string
+  updated_at: string
 }

@@ -2,14 +2,18 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Send, Smartphone, CreditCard, ChevronRight } from 'lucide-react'
-import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries } from '@/lib/api'
+import { ArrowLeft, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock } from 'lucide-react'
+import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
+import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
 interface MatchItem { id: string; user1_id: string; user2_id: string }
 
 const FEE_PERCENT = 15
+const EUR_TO_XOF = 655.957
+const toXof = (cents: number) => Math.round(cents * EUR_TO_XOF / 100)
+const fmt = (n: number) => n.toLocaleString('fr-FR')
 const countries = getCountries()
 
 function GiftsContent() {
@@ -32,6 +36,11 @@ function GiftsContent() {
   const [payCardLast4, setPayCardLast4] = useState('')
   const [payCardBrand, setPayCardBrand] = useState('')
   const [savedPayMethod, setSavedPayMethod] = useState<'mobile_money' | 'card' | null>(null)
+  const [balance, setBalance] = useState(0)
+  const [transactions, setTransactions] = useState<GiftTransaction[]>([])
+  const [showPayoutModal, setShowPayoutModal] = useState(false)
+  const [payoutAmount, setPayoutAmount] = useState('')
+  const [payoutProcessing, setPayoutProcessing] = useState(false)
   const [matchNames, setMatchNames] = useState<Record<string, string>>({})
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
@@ -73,7 +82,11 @@ function GiftsContent() {
         }
       }
     }).catch(() => {})
-  }, [])
+    if (myId) {
+      getGiftBalance().then(setBalance).catch(() => {})
+      getGiftTransactions().then(r => { if (r.data) setTransactions(r.data) }).catch(() => {})
+    }
+  }, [myId])
 
   const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
   const selectedGiftData = gifts.find(g => g.id === selectedGift)
@@ -87,6 +100,22 @@ function GiftsContent() {
     if (result.url) { window.location.href = result.url; return }
     alert(result.error ?? 'Erreur de paiement')
     setSending(false)
+  }
+
+  const handlePayout = async () => {
+    const amount = parseInt(payoutAmount)
+    if (!amount || amount <= 0 || amount > balance) return
+    setPayoutProcessing(true)
+    const { error, message } = await requestPayout(amount)
+    if (error) { alert(error); setPayoutProcessing(false); return }
+    alert(message ?? `Retrait de ${fmt(amount)} F effectué !`)
+    setShowPayoutModal(false)
+    setPayoutAmount('')
+    setPayoutProcessing(false)
+    const b = await getGiftBalance()
+    setBalance(b)
+    const t = await getGiftTransactions()
+    if (t.data) setTransactions(t.data)
   }
 
   const handleSavePayment = async () => {
@@ -113,6 +142,52 @@ function GiftsContent() {
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
+        <div className="glass-card rounded-2xl p-4 flex items-center gap-4 border border-[#EAB308]/10">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#EAB308] to-[#D92D4A] flex items-center justify-center shrink-0">
+            <Wallet size={20} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-[#9E9488] uppercase tracking-wider">Mon portefeuille</p>
+            <p className="text-2xl font-bold text-white">{fmt(balance)} F</p>
+          </div>
+          <button onClick={() => {
+            if (balance <= 0) return
+            if (!paySaved) { setShowPaymentConfig(true); return }
+            setShowPayoutModal(true)
+          }} disabled={balance <= 0}
+            className="px-4 py-2 rounded-full text-xs font-semibold text-white disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
+            <ArrowUpRight size={14} /> Retirer
+          </button>
+        </div>
+
+        {showPayoutModal && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}>
+            <div className="w-full max-w-sm bg-[#1C1C1E] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-white mb-1">Retirer ton solde</h3>
+              <p className="text-xs text-[#9E9488] mb-4">Solde disponible : <strong className="text-white">{fmt(balance)} F</strong></p>
+              <div className="mb-3">
+                <label className="text-xs text-[#9E9488] mb-1 block">Montant (F)</label>
+                <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance}
+                  className="w-full px-4 py-3 rounded-xl bg-[#262628] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+              </div>
+              <div className="mb-4">
+                <label className="text-xs text-[#9E9488] mb-1 block">Moyen de retrait</label>
+                <div className="px-4 py-3 rounded-xl bg-[#262628] text-white text-sm flex items-center gap-2">
+                  {savedPayMethod === 'card' ? <CreditCard size={16} /> : <Smartphone size={16} />}
+                  <span className="text-[#9E9488]">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[#2A2826] text-[#9E9488]">Annuler</button>
+                <button onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
+                  className="flex-1 py-3 rounded-full text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
+                  {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button onClick={() => setShowPaymentConfig(!showPaymentConfig)}
           className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
           {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[#6B6258]" /> : <Smartphone size={20} className="text-[#6B6258]" />}
@@ -179,7 +254,7 @@ function GiftsContent() {
               className={`bg-[#1C1C1E] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${selectedGift === g.id ? 'border-[#D92D4A] ring-1 ring-[#D92D4A]' : 'border-[#2A2826]'}`}>
               <span className="text-3xl block mb-1 transition-transform duration-200 group-hover:scale-110">{g.emoji || '🎁'}</span>
               <p className="text-[10px] font-medium truncate">{g.name}</p>
-              <p className="text-[10px] text-[#D92D4A] font-bold">{g.price_cents / 100}€</p>
+              <p className="text-[10px] text-[#D92D4A] font-bold">{fmt(toXof(g.price_cents))} F</p>
               <p className="text-[8px] text-[#6B6258]">+{FEE_PERCENT}% frais</p>
             </button>
           ))}
@@ -188,8 +263,8 @@ function GiftsContent() {
         {selectedGift && selectedGiftData && (
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
             <p className="text-sm text-center">
-              <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[#D92D4A]">{(selectedGiftData.price_cents * (1 + FEE_PERCENT/100)) / 100}€</strong>
-              <br /><span className="text-xs text-[#6B6258]">(dont {FEE_PERCENT}% de frais de service)</span>
+              <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[#D92D4A]">{fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F</strong>
+              <br /><span className="text-xs text-[#6B6258]">dont {FEE_PERCENT}% de frais</span>
             </p>
             <div>
               <label className="text-xs text-[#9E9488] mb-1 block">Destinataire</label>
@@ -208,8 +283,41 @@ function GiftsContent() {
             </div>
             <button onClick={handleSend} disabled={!selectedMatch || sending}
               className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
-              <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${(selectedGiftData.price_cents * (1 + FEE_PERCENT/100)) / 100}€`}
+              <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F`}
             </button>
+          </div>
+        )}
+
+        {transactions.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
+              <History size={14} /> Historique des transactions
+            </h3>
+            <div className="space-y-2">
+              {transactions.slice(0, 10).map(t => {
+                const isCredit = t.type === 'gift_received'
+                const isPendingPayout = t.type === 'payout' && t.status === 'pending'
+                return (
+                  <div key={t.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCredit ? 'bg-[#22C55E]/15' : isPendingPayout ? 'bg-[#EAB308]/15' : 'bg-[#D92D4A]/15'}`}>
+                      {isCredit ? <ArrowUpRight size={16} className="text-[#22C55E]" /> : isPendingPayout ? <Clock size={16} className="text-[#EAB308]" /> : <CheckCircle size={16} className="text-[#D92D4A]" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{isCredit ? 'Cadeau reçu' : 'Retrait demandé'}</p>
+                      <p className="text-[10px] text-[#9E9488]">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${isCredit ? 'text-[#22C55E]' : 'text-[#D92D4A]'}`}>
+                        {isCredit ? '+' : '-'}{fmt(t.amount_cents)} F
+                      </p>
+                      <p className={`text-[10px] ${t.status === 'completed' ? 'text-[#22C55E]' : t.status === 'pending' ? 'text-[#EAB308]' : 'text-[#9E9488]'}`}>
+                        {t.status === 'completed' ? 'Effectué' : t.status === 'pending' ? 'En attente' : t.status}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -224,6 +332,11 @@ function GiftsContent() {
                     <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
                     <p className="text-xs text-[#9E9488]">De {r.sender?.name || 'Inconnu'}</p>
                   </div>
+                  {r.gift?.price_cents && (
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-[#EAB308]">+{fmt(toXof(r.gift.price_cents - Math.round(r.gift.price_cents * 0.15)))} F</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

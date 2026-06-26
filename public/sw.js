@@ -1,6 +1,6 @@
-// erosia SW va95d1d2-1782433702522 — generated at build time
-const CACHE_NAME = 'erosia-va95d1d2-1782433702522'
-const ASSETS_CACHE = 'erosia-va95d1d2-1782433702522-assets'
+// erosia SW ve03d1c0-1782438635389 — generated at build time
+const CACHE_NAME = 'erosia-ve03d1c0-1782438635389'
+const ASSETS_CACHE = 'erosia-ve03d1c0-1782438635389-assets'
 
 // Pas de skipWaiting ici — on attend l'action utilisateur via le message SKIP_WAITING
 self.addEventListener('install', () => {})

@@ -2,26 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import Image from 'next/image'
 import { getModerationQueue, reviewContent } from '@/lib/api'
+import { Smartphone, Gift, Users, ShieldAlert, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 
 interface VerificationRequest {
-  id: string
-  user_id: string
-  photo_url: string
-  status: string
-  created_at: string
+  id: string; user_id: string; photo_url: string; status: string; created_at: string
   profile?: { name: string; photos: string[] }
 }
-
 interface ModerationItem {
-  id: string
-  content_type: string
-  content_id: string
-  content_text?: string
-  status?: string
-  reviewed: boolean
-  created_at: string
+  id: string; content_type: string; content_id: string; content_text?: string; status?: string; reviewed: boolean; created_at: string
 }
 
 export default function AdminPage() {
@@ -29,7 +18,10 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [verifications, setVerifications] = useState<VerificationRequest[]>([])
   const [modQueue, setModQueue] = useState<ModerationItem[]>([])
-  const [tab, setTab] = useState<'verifications' | 'moderation'>('verifications')
+  const [tab, setTab] = useState<'apercu' | 'verifications' | 'moderation' | 'retraits'>('apercu')
+  const [stats, setStats] = useState<{ totalGifts: number; totalUsers: number; pendingVerifs: number; pendingPayouts: number; totalPayoutsAll: number } | null>(null)
+  const [payouts, setPayouts] = useState<Array<{ id: string; user_id: string; user_name: string; amount_cents: number; payment_details: string; status: string; created_at: string }>>([])
+  const [loading, setLoading] = useState(true)
 
   const loadData = async () => {
     const { data: vData } = await supabase
@@ -38,9 +30,19 @@ export default function AdminPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
     if (vData) setVerifications(vData as unknown as VerificationRequest[])
-
     const { data: mData } = await getModerationQueue()
     if (mData) setModQueue(mData as ModerationItem[])
+  }
+
+  const loadAdminData = async () => {
+    setLoading(true)
+    const res = await fetch('/api/admin')
+    if (res.ok) {
+      const data = await res.json()
+      setStats(data.stats)
+      setPayouts(data.payouts ?? [])
+    }
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -51,27 +53,32 @@ export default function AdminPage() {
       if (data?.is_admin) {
         setIsAdmin(true)
         loadData()
+        loadAdminData()
       }
     })
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
     const { error: updateError } = await supabase
-      .from('verification_requests')
-      .update({ status: approved ? 'approved' : 'rejected' })
-      .eq('id', reqId)
+      .from('verification_requests').update({ status: approved ? 'approved' : 'rejected' }).eq('id', reqId)
     if (updateError) return alert(updateError.message)
-
-    if (approved) {
-      await supabase.from('profiles').update({ is_verified: true }).eq('id', userId)
-    }
-
+    if (approved) await supabase.from('profiles').update({ is_verified: true }).eq('id', userId)
     setVerifications(v => v.filter(r => r.id !== reqId))
   }
 
   const handleModeration = async (id: string, approved: boolean) => {
     await reviewContent(id, approved)
     setModQueue(m => m.filter(i => i.id !== id))
+  }
+
+  const handlePayoutAction = async (txId: string, status: 'completed' | 'failed') => {
+    const res = await fetch('/api/admin', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txId, status }),
+    })
+    if (!res.ok) { const d = await res.json(); alert(d.error); return }
+    setPayouts(p => p.filter(tx => tx.id !== txId))
   }
 
   if (!isAdmin) return (
@@ -83,28 +90,72 @@ export default function AdminPage() {
     </div>
   )
 
+  const tabs = [
+    { key: 'apercu', label: 'Aperçu' },
+    { key: 'verifications', label: `Vérifications (${verifications.length})` },
+    { key: 'moderation', label: `Modération (${modQueue.length})` },
+    { key: 'retraits', label: `Retraits (${stats?.pendingPayouts ?? 0})` },
+  ] as const
+
   return (
     <div className="min-h-dvh bg-transparent px-4 py-6 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Administration</h2>
-      <div className="flex gap-3 mb-6">
-        <button onClick={() => setTab('verifications')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === 'verifications' ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488]'}`}>
-          Vérifications ({verifications.length})
-        </button>
-        <button onClick={() => setTab('moderation')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === 'moderation' ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488]'}`}>
-          Modération ({modQueue.length})
-        </button>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Administration</h2>
+        <button onClick={() => { loadData(); loadAdminData() }} className="p-2 text-[#9E9488] hover:text-white transition"><RefreshCw size={18} /></button>
       </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${tab === t.key ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488]'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'apercu' && stats && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="glass-card rounded-2xl p-4">
+              <Users size={20} className="text-[#3B82F6] mb-2" />
+              <p className="text-2xl font-bold">{stats.totalUsers}</p>
+              <p className="text-[10px] text-[#9E9488]">Utilisateurs</p>
+            </div>
+            <div className="glass-card rounded-2xl p-4">
+              <Gift size={20} className="text-[#EAB308] mb-2" />
+              <p className="text-2xl font-bold">{stats.totalGifts}</p>
+              <p className="text-[10px] text-[#9E9488]">Cadeaux envoyés</p>
+            </div>
+            <div className="glass-card rounded-2xl p-4">
+              <ShieldAlert size={20} className="text-[#A855F7] mb-2" />
+              <p className="text-2xl font-bold">{stats.pendingVerifs}</p>
+              <p className="text-[10px] text-[#9E9488]">Vérifications en attente</p>
+            </div>
+            <div className="glass-card rounded-2xl p-4">
+              <Smartphone size={20} className="text-[#22C55E] mb-2" />
+              <p className="text-2xl font-bold">{stats.pendingPayouts}</p>
+              <p className="text-[10px] text-[#9E9488]">Retraits en attente</p>
+            </div>
+          </div>
+          <div className="glass-card rounded-2xl p-4">
+            <p className="text-sm text-[#9E9488] mb-1">Total retraits effectués</p>
+            <p className="text-xl font-bold">{stats.totalPayoutsAll}</p>
+          </div>
+        </div>
+      )}
 
       {tab === 'verifications' && (
         <div className="space-y-4">
           {verifications.length === 0 && <p className="text-[#9E9488] text-sm">Aucune demande en attente</p>}
-          {verifications.map((req) => (
+          {verifications.map(req => (
             <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
-              {req.photo_url && (
-                <Image src={req.photo_url} alt="Selfie" width={64} height={64} className="w-16 h-16 rounded-xl object-cover" />
-              )}
+              <div className="w-16 h-16 rounded-xl bg-[#1C1C1E] flex items-center justify-center shrink-0 overflow-hidden">
+                {req.photo_url ? (
+                  <img src={req.photo_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ShieldAlert size={20} className="text-[#6B6258]" />
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{req.profile?.name ?? 'Inconnu'}</p>
                 <p className="text-[10px] text-[#6B6258]">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
@@ -121,7 +172,7 @@ export default function AdminPage() {
       {tab === 'moderation' && (
         <div className="space-y-4">
           {modQueue.length === 0 && <p className="text-[#9E9488] text-sm">Aucun contenu à modérer</p>}
-          {modQueue.map((item) => (
+          {modQueue.map(item => (
             <div key={item.id} className="glass-card rounded-2xl p-4">
               <p className="text-xs font-medium text-[#D92D4A] uppercase">{item.content_type}</p>
               {item.content_text && <p className="text-sm mt-1">{item.content_text}</p>}
@@ -133,6 +184,41 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'retraits' && (
+        <div className="space-y-4">
+          {loading && <p className="text-[#9E9488] text-sm">Chargement...</p>}
+          {!loading && payouts.length === 0 && <p className="text-[#9E9488] text-sm">Aucun retrait en attente</p>}
+          {payouts.map(tx => {
+            let details = { type: '', identifier: '' }
+            try { details = JSON.parse(tx.payment_details ?? '{}') } catch {}
+            return (
+              <div key={tx.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-[#EAB308]" />
+                    <p className="font-medium text-sm">{tx.user_name}</p>
+                  </div>
+                  <p className="font-bold text-sm">{tx.amount_cents.toLocaleString('fr-FR')} F</p>
+                </div>
+                <p className="text-[10px] text-[#9E9488] mb-3">
+                  {details.identifier || 'Inconnu'} — {new Date(tx.created_at).toLocaleDateString('fr-FR')}
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => handlePayoutAction(tx.id, 'completed')}
+                    className="flex-1 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition flex items-center justify-center gap-1">
+                    <CheckCircle size={12} /> Marquer effectué
+                  </button>
+                  <button onClick={() => handlePayoutAction(tx.id, 'failed')}
+                    className="flex-1 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition flex items-center justify-center gap-1">
+                    <XCircle size={12} /> Marquer échoué
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
