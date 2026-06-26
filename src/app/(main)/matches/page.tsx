@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, MessageCircle, Eye, X } from 'lucide-react'
+import { Heart, MessageCircle, Eye, X, Flame, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getReceivedFlirts, unmatchUser, type Profile } from '@/lib/api'
+import { getReceivedFlirts, unmatchUser, getStreak, getDailySwipeCount, type Profile } from '@/lib/api'
 import { MatchesSkeleton } from '@/components/Skeleton'
 
 interface Conversation {
@@ -23,17 +23,23 @@ export default function MatchesPage() {
   const [convs, setConvs] = useState<Conversation[]>([])
   const [flirts, setFlirts] = useState<Flirt[]>([])
   const [loading, setLoading] = useState(true)
+  const [streak, setStreak] = useState(0)
+  const [swipesLeft, setSwipesLeft] = useState(0)
 
   useEffect(() => {
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
-      const [{ data: matches }, { data: flirtData }] = await Promise.all([
+      const [{ data: matches }, { data: flirtData }, { data: streakData }, { count, limit }] = await Promise.all([
         supabase.from('matches').select('*').or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`),
         getReceivedFlirts(),
+        getStreak(),
+        getDailySwipeCount(),
       ])
       if (flirtData) setFlirts(flirtData as Flirt[])
+      if (streakData) setStreak(streakData.current_streak ?? 0)
+      setSwipesLeft(Math.max(0, limit - count))
 
       const list: Conversation[] = []
       if (matches) {
@@ -73,6 +79,22 @@ export default function MatchesPage() {
           <span className="text-[#6B6258] text-lg ml-2 font-normal">{convs.length}</span>
         </h2>
         <p className="text-[#6B6258] text-sm mt-0.5">Conversations et œillades</p>
+        {(streak > 0 || swipesLeft > 0) && (
+          <div className="flex gap-3 mt-3">
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5 bg-gradient-to-r from-[#D92D4A]/10 to-transparent px-3 py-1.5 rounded-full border border-[#D92D4A]/10 animate-pulse-soft">
+                <Flame size={14} className="text-[#EAB308]" />
+                <span className="text-xs font-semibold text-[#EAB308]">{streak} jours</span>
+              </div>
+            )}
+            {swipesLeft > 0 && (
+              <div className="flex items-center gap-1.5 bg-[#1C1C1E] px-3 py-1.5 rounded-full border border-[#2A2826]">
+                <Sparkles size={14} className="text-[#9E9488]" />
+                <span className="text-xs text-[#9E9488]">{swipesLeft} swipes</span>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
@@ -115,10 +137,11 @@ export default function MatchesPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-2 animate-fade-up">
-            {convs.map((c) => (
+          <div className="space-y-2">
+            {convs.map((c, i) => (
               <Link key={c.matchId} href={`/chat/${c.matchId}`}
-                className="flex items-center gap-3 p-3 glass-card rounded-2xl transition-all duration-200 hover:border-[#D92D4A]/20 active:scale-[0.98] group">
+                className="flex items-center gap-3 p-3 glass-card rounded-2xl transition-all duration-200 hover:border-[#D92D4A]/20 active:scale-[0.98] group animate-slide-up"
+                style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="relative shrink-0">
                   <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
                     className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
@@ -127,7 +150,7 @@ export default function MatchesPage() {
                   <p className="font-semibold text-sm">{c.profile.name}</p>
                   <p className="text-xs text-[#6B6258] truncate mt-0.5">Dites bonjour 👋</p>
                 </div>
-                <MessageCircle size={18} className="text-[#5A5248]" />
+                  <MessageCircle size={18} className="text-[#5A5248] group-hover:text-[#D92D4A] transition-colors" />
                 <button onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={14} className="text-[#5A5248] hover:text-red-500 transition-colors" />
                 </button>

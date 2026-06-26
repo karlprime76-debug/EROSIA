@@ -1,6 +1,26 @@
-// erosia SW va95d1d2-1782433702522 — generated at build time
-const CACHE_NAME = 'erosia-va95d1d2-1782433702522'
-const ASSETS_CACHE = 'erosia-va95d1d2-1782433702522-assets'
+import { writeFileSync } from 'fs'
+import { execSync } from 'child_process'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const root = join(__dirname, '..')
+
+let buildId
+try {
+  buildId = execSync('git rev-parse --short HEAD', { cwd: root, encoding: 'utf-8' }).trim()
+} catch {
+  buildId = String(Date.now())
+}
+
+// Append timestamp to guarantee uniqueness even on same commit
+const VERSION = `${buildId}-${Date.now()}`
+const CACHE_NAME = `erosia-v${VERSION}`
+const ASSETS_CACHE = `${CACHE_NAME}-assets`
+
+const sw = `// erosia SW v${VERSION} — generated at build time
+const CACHE_NAME = '${CACHE_NAME}'
+const ASSETS_CACHE = '${ASSETS_CACHE}'
 
 // Pas de skipWaiting ici — on attend l'action utilisateur via le message SKIP_WAITING
 self.addEventListener('install', () => {})
@@ -92,3 +112,7 @@ self.addEventListener('message', (e) => {
     self.skipWaiting()
   }
 })
+`
+
+writeFileSync(join(root, 'public', 'sw.js'), sw, 'utf-8')
+console.log(`\u2713 sw.js generated with build v${VERSION}`)

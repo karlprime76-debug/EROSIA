@@ -48,7 +48,7 @@ export default function ProfilePage() {
       const file = input.files?.[0]
       if (!file || !profile) return
       setUploading(true)
-      const result = await uploadPhoto(file, profile.id, 0)
+      const result = await uploadPhoto(file, profile.id, profile.photos.length)
       if (result.error) { alert(result.error); setUploading(false); return }
       if (result.url) {
         const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
@@ -109,6 +109,7 @@ export default function ProfilePage() {
       const html = document.documentElement
       const isDark = html.classList.toggle('dark')
       localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
+      alert(isDark ? 'Mode sombre' : 'Mode clair')
     }},
     { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
     { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },

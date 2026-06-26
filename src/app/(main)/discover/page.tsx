@@ -32,12 +32,14 @@ export default function DiscoverPage() {
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [showReportModal, setShowReportModal] = useState(false)
   const [swipeAnim, setSwipeAnim] = useState<'idle' | 'left' | 'right'>('idle')
+  const [heartBurst, setHeartBurst] = useState(false)
   const [compatScores, setCompatScores] = useState<Record<string, number>>({})
   const [storiesUserIds, setStoriesUserIds] = useState<Set<string>>(new Set())
   const [swipeCount, setSwipeCount] = useState(0)
   const [swipeLimit, setSwipeLimit] = useState(20)
   const [isPremium, setIsPremium] = useState(false)
   const [myPhoto, setMyPhoto] = useState('')
+  const [myId, setMyId] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -45,9 +47,12 @@ export default function DiscoverPage() {
     getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) })
     checkPremium().then(setIsPremium)
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) supabase.from('profiles').select('photos').eq('id', user.id).single().then(({ data }) => {
-        if (data?.photos?.[0]) setMyPhoto(data.photos[0])
-      })
+      if (user) {
+        setMyId(user.id)
+        supabase.from('profiles').select('photos').eq('id', user.id).single().then(({ data }) => {
+          if (data?.photos?.[0]) setMyPhoto(data.photos[0])
+        })
+      }
     })
   }, [])
 
@@ -66,14 +71,14 @@ export default function DiscoverPage() {
     Promise.all([getSwipedIds(), getBlockedIds(), getLastSwipe()])
       .then(([swiped, blocked, last]) => {
         setHasSwiped(!!last)
-        return getProfiles([...swiped, ...blocked], { minAge: 18, maxAge: 99 })
+        return getProfiles([...swiped, ...blocked, myId].filter(Boolean), { minAge: 18, maxAge: 99 })
       })
       .then(({ data }) => {
         if (data) setProfiles(data)
         setLoading(false)
       })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => {})
-  }, [])
+  }, [myId])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
@@ -86,24 +91,44 @@ export default function DiscoverPage() {
     let cancelled = false
     const load = async () => {
       const scores = await getCompatibilityBatch(profiles.map(p => p.id))
-      if (!cancelled) setCompatScores(scores)
+      if (cancelled) return
+      setCompatScores(scores)
+      if (Object.keys(scores).length) {
+        const sorted = [...profiles].sort((a, b) => {
+          const sa = scores[a.id] ?? 0
+          const sb = scores[b.id] ?? 0
+          if (sa !== sb) return sb - sa
+          return Math.random() - 0.5
+        })
+        setProfiles(sorted)
+      }
     }
     load()
     return () => { cancelled = true }
-  }, [profiles])
+  }, [profiles.length])
 
   const fetchProfiles = async (extraBlocked: string[] = []) => {
     const swiped = await getSwipedIds()
     const blocked = await getBlockedIds()
     const exclude = [...swiped, ...blocked, ...extraBlocked]
     const opts = { ...filters, lookingFor: filters.lookingFor || undefined }
+    let result
     if (filters.city.trim()) {
-      return searchProfilesByCity(filters.city.trim(), exclude, opts)
+      result = await searchProfilesByCity(filters.city.trim(), exclude, opts)
+    } else if (distanceKm !== null && lat !== null && lng !== null) {
+      result = await getProfilesNearby(lat, lng, distanceKm, exclude, opts)
+    } else {
+      result = await getProfiles(exclude, opts)
     }
-    if (distanceKm !== null && lat !== null && lng !== null) {
-      return getProfilesNearby(lat, lng, distanceKm, exclude, opts)
+    if (result.data && Object.keys(compatScores).length) {
+      result.data.sort((a, b) => {
+        const sa = compatScores[a.id] ?? 0
+        const sb = compatScores[b.id] ?? 0
+        if (sa !== sb) return sb - sa
+        return Math.random() - 0.5
+      })
     }
-    return getProfiles(exclude, opts)
+    return result
   }
 
   const swipe = async (dir: 'like' | 'pass' | 'super_like') => {
@@ -124,6 +149,7 @@ export default function DiscoverPage() {
       setSuperLikesLeft((s) => s - 1)
     }
     setSwipeAnim(dir === 'like' ? 'right' : 'left')
+    if (dir === 'like') { setHeartBurst(true); setTimeout(() => setHeartBurst(false), 600) }
     await new Promise(r => setTimeout(r, 300))
     setSwipeAnim('idle')
     await createSwipe(p.id, dir)
@@ -243,9 +269,14 @@ export default function DiscoverPage() {
             swipeAnim === 'left' ? 'opacity-0 -translate-x-48 rotate-12 scale-90' : swipeAnim === 'right' ? 'opacity-0 translate-x-48 -rotate-12 scale-90' : ''
           }`}>
             <div className="relative w-full h-full">
+              {heartBurst && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <Heart size={80} className="text-white animate-heart-burst" fill="white" />
+                </div>
+              )}
               <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
               {storiesUserIds.has(current.id) && (
-                <div className="absolute inset-0 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#0A0A0A]" />
+                <div className="absolute top-3 left-3 w-10 h-10 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#0A0A0A] z-10" />
               )}
               {compatScores[current.id] !== undefined && (
                 <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-bold shadow-lg"

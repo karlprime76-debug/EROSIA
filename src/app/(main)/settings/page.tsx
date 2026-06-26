@@ -32,6 +32,16 @@ export default function SettingsPage() {
       setTravelCity(mode.city ?? '')
     })
     getGhostMode().then(setGhostMode)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('profiles').select('visibility, notif_push, notif_email').eq('id', user.id).single().then(({ data }) => {
+        if (data) {
+          if (data.visibility) setVisibility(data.visibility)
+          if (data.notif_push !== null) setNotifPush(data.notif_push)
+          if (data.notif_email !== null) setNotifEmail(data.notif_email)
+        }
+      })
+    })
   }, [router])
 
   useEffect(() => {
@@ -109,7 +119,11 @@ export default function SettingsPage() {
           render: () => (
             <div className="flex gap-2 mt-1">
               {visibilityOptions.map(o => (
-                <button key={o.value} onClick={() => setVisibility(o.value)}
+                <button key={o.value} onClick={async () => {
+                setVisibility(o.value)
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
+              }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
                   {o.label}
                 </button>
@@ -123,14 +137,24 @@ export default function SettingsPage() {
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Push</span>
-                <button onClick={() => setNotifPush(!notifPush)}
+                <button onClick={async () => {
+                  const v = !notifPush
+                  setNotifPush(v)
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (user) supabase.from('profiles').update({ notif_push: v }).eq('id', user.id)
+                }}
                   className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Email</span>
-                <button onClick={() => setNotifEmail(!notifEmail)}
+                <button onClick={async () => {
+                  const v = !notifEmail
+                  setNotifEmail(v)
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (user) supabase.from('profiles').update({ notif_email: v }).eq('id', user.id)
+                }}
                   className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>

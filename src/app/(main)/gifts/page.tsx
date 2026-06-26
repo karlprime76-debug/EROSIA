@@ -32,6 +32,7 @@ function GiftsContent() {
   const [payCardLast4, setPayCardLast4] = useState('')
   const [payCardBrand, setPayCardBrand] = useState('')
   const [savedPayMethod, setSavedPayMethod] = useState<'mobile_money' | 'card' | null>(null)
+  const [matchNames, setMatchNames] = useState<Record<string, string>>({})
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
 
@@ -45,7 +46,22 @@ function GiftsContent() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => { if (data.user) setMyId(data.user.id) }).catch(() => {})
     getGifts().then(({ data }) => { if (data) setGifts(data) }).catch(() => {})
-    getMatches().then(({ data }) => { if (data) setMatches(data) }).catch(() => {})
+    getMatches().then(async ({ data }) => {
+      if (data) {
+        setMatches(data)
+        const otherIds = data.map(m => m.user1_id === myId ? m.user2_id : m.user1_id).filter(Boolean)
+        if (otherIds.length > 0) {
+          try {
+            const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', otherIds)
+            if (profiles) {
+              const names: Record<string, string> = {}
+              for (const p of profiles) names[p.id] = p.name
+              setMatchNames(names)
+            }
+          } catch {}
+        }
+      }
+    }).catch(() => {})
     getReceivedGifts().then(({ data }) => { setReceived(data as typeof received) }).catch(() => {})
     getPaymentAccount().then(acc => {
       if (acc) {
@@ -181,7 +197,7 @@ function GiftsContent() {
                 className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
                 <option value="">Sélectionner un match...</option>
                 {matches.map(m => (
-                  <option key={m.id} value={m.id}>Match #{m.id.slice(0, 8)}</option>
+                  <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
                 ))}
               </select>
             </div>

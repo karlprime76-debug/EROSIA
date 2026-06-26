@@ -128,6 +128,7 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
 export async function createSwipe(swipedId: string, direction: Swipe['direction']) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  if (swipedId === user.id) return { error: 'Vous ne pouvez pas swiper sur vous-même' }
   const { tier } = await getSubscriptionStatus()
   if (tier !== 'premium') {
     const { count } = await supabase
