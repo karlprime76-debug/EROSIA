@@ -49,8 +49,10 @@ export async function PATCH(request: Request) {
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-  const { txId, status } = await request.json()
-  if (!txId || !['completed', 'failed'].includes(status)) {
+  let patchBody: Record<string, unknown>
+  try { patchBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+  const { txId, status } = patchBody as { txId?: string; status?: string }
+  if (!txId || !['completed', 'failed'].includes(status ?? '')) {
     return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
   }
 

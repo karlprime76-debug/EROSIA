@@ -13,6 +13,14 @@ export function getPayDunyaHeaders() {
   return headers()
 }
 
+async function safeJson<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`PayDunya HTTP ${res.status}: ${text.slice(0, 200)}`)
+  }
+  return res.json() as Promise<T>
+}
+
 export async function createInvoice(amount: string, description: string, customData: Record<string, string>, cancelUrl: string, returnUrl: string, callbackUrl?: string) {
   const res = await fetch(`${BASE}/checkout-invoice/create`, {
     method: 'POST',
@@ -27,14 +35,14 @@ export async function createInvoice(amount: string, description: string, customD
       },
     }),
   })
-  return res.json() as Promise<{ status: string; response_text?: string; token?: string }>
+  return safeJson<{ status: string; response_text?: string; token?: string }>(res)
 }
 
 export async function confirmInvoice(invoiceToken: string) {
   const res = await fetch(`${BASE}/checkout-invoice/confirm/${invoiceToken}`, {
     headers: headers(),
   })
-  return res.json() as Promise<{ status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }>
+  return safeJson<{ status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }>(res)
 }
 
 /**
@@ -57,5 +65,5 @@ export async function sendMobileMoneyPayment(
       operator,
     }),
   })
-  return res.json() as Promise<{ status: string; response_text?: string; token?: string }>
+  return safeJson<{ status: string; response_text?: string; token?: string }>(res)
 }

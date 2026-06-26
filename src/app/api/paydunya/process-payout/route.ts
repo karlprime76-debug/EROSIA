@@ -8,7 +8,9 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { amountCents } = await request.json()
+  let body: Record<string, unknown>
+  try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+  const { amountCents } = body as { amountCents?: number }
   if (!amountCents || amountCents <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
 
   const admin = createAdminClient()
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
     .select('amount_cents')
     .eq('user_id', user.id)
     .eq('type', 'payout')
-    .eq('status', 'completed')
+    .neq('status', 'failed')
 
   const totalPayouts = (payouts ?? []).reduce((sum, t) => sum + t.amount_cents, 0)
   const balance = totalReceived - totalPayouts
@@ -56,7 +58,13 @@ export async function POST(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
   const callbackUrl = `${siteUrl}/api/paydunya/payout-callback`
 
-  const invoice = await createDisburseInvoice(accountAlias, amountCents, withdrawMode, callbackUrl)
+  let invoice: { response_code?: string; response_text?: string; token?: string; status?: string }
+  try {
+    invoice = await createDisburseInvoice(accountAlias, amountCents, withdrawMode, callbackUrl)
+  } catch (err) {
+    console.error('createDisburseInvoice error:', err)
+    return NextResponse.json({ error: 'Erreur de communication avec PayDunya' }, { status: 502 })
+  }
 
   if (!invoice.token) {
     await admin.from('gift_transactions').insert({
@@ -81,7 +89,14 @@ export async function POST(request: Request) {
     status: 'pending',
   }).select().single()
 
-  const submit = await submitDisburseInvoice(invoice.token)
+  let submit: { response_code?: string; response_text?: string; status?: string }
+  try {
+    submit = await submitDisburseInvoice(invoice.token)
+  } catch (err) {
+    console.error('submitDisburseInvoice error:', err)
+    await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', tx?.id)
+    return NextResponse.json({ error: 'Erreur de soumission du retrait' }, { status: 502 })
+  }
 
   if (submit.status === 'success' || submit.response_code === '00') {
     await admin.from('gift_transactions').update({ status: 'completed' }).eq('id', tx?.id)

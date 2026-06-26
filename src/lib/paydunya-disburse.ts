@@ -27,6 +27,14 @@ export function extractPhoneAlias(phone: string): string {
   return phone.replace(/[^0-9]/g, '').replace(/^00?(?:221|225|223|226|228|229|237)?/, '')
 }
 
+async function safeJson<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`PayDunya HTTP ${res.status}: ${text.slice(0, 200)}`)
+  }
+  return res.json() as Promise<T>
+}
+
 export async function createDisburseInvoice(accountAlias: string, amountXof: number, withdrawMode: string, callbackUrl: string) {
   const res = await fetch(`${BASE}/disburse/create-invoice`, {
     method: 'POST',
@@ -38,7 +46,7 @@ export async function createDisburseInvoice(accountAlias: string, amountXof: num
       callback_url: callbackUrl,
     }),
   })
-  return res.json() as Promise<{ response_code?: string; response_text?: string; token?: string; status?: string }>
+  return safeJson<{ response_code?: string; response_text?: string; token?: string; status?: string }>(res)
 }
 
 export async function submitDisburseInvoice(disburseInvoice: string, disburseId?: string) {
@@ -49,12 +57,12 @@ export async function submitDisburseInvoice(disburseInvoice: string, disburseId?
     headers: headers(),
     body: JSON.stringify(body),
   })
-  return res.json() as Promise<{ response_code?: string; response_text?: string; status?: string }>
+  return safeJson<{ response_code?: string; response_text?: string; status?: string }>(res)
 }
 
 export async function checkDisburseStatus(token: string) {
   const res = await fetch(`${BASE}/disburse/check-status/${token}`, {
     headers: headers(),
   })
-  return res.json() as Promise<{ response_code?: string; status?: string; response_text?: string }>
+  return safeJson<{ response_code?: string; status?: string; response_text?: string }>(res)
 }

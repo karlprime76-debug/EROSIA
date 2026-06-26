@@ -26,7 +26,7 @@ export default function AdminPage() {
   const loadData = async () => {
     const { data: vData } = await supabase
       .from('verification_requests')
-      .select('*, profile:profiles!verification_requests_user_id_fkey(*)')
+      .select('*, profile:profiles!verification_requests_user_id_fkey(id, name, photos)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
     if (vData) setVerifications(vData as unknown as VerificationRequest[])
