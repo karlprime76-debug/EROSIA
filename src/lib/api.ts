@@ -209,6 +209,7 @@ export async function setPrimaryPhoto(userId: string, photoUrl: string, currentP
 export async function sendFlirt(receiverId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  if (receiverId === user.id) return { error: 'Vous ne pouvez pas vous envoyer un clin d\'œil' }
   const { error } = await supabase.from('flirts').insert({
     sender_id: user.id, receiver_id: receiverId,
   })

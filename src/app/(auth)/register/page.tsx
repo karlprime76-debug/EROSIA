@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase/client'
-
 export default function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -12,7 +10,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -41,17 +38,6 @@ export default function RegisterPage() {
     }
   }
 
-  const handleFacebook = async () => {
-    setOauthLoading(true)
-    setError('')
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    setOauthLoading(false)
-    if (oauthError) setError(oauthError.message)
-  }
-
   if (success) return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent">
       <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
@@ -67,17 +53,6 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4">
         <h2 className="text-2xl font-bold text-center">Inscription</h2>
         {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-
-        <button onClick={handleFacebook} disabled={oauthLoading}
-          className="w-full py-3 rounded-xl border border-[#2A2826] text-sm font-medium transition-all hover:border-white/20 active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2">
-          <span className="font-bold">f</span> S&rsquo;inscrire avec Facebook
-        </button>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-[#2A2826]" />
-          <span className="text-xs text-[#6B6258]">ou</span>
-          <div className="flex-1 h-px bg-[#2A2826]" />
-        </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>

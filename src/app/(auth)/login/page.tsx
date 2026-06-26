@@ -6,16 +6,11 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
 
-const OAUTH_PROVIDERS = [
-  { id: 'facebook' as const, label: 'Facebook', icon: 'f' },
-]
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,40 +34,12 @@ export default function LoginPage() {
     router.push('/discover')
   }
 
-  const handleOAuth = async (provider: 'facebook') => {
-    setOauthLoading(provider)
-    setError('')
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    setOauthLoading(null)
-    if (oauthError) setError(oauthError.message)
-  }
-
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent relative">
       <FloatingHearts />
       <div className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4 relative z-10">
         <h2 className="text-2xl font-bold text-center">Connexion</h2>
         {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-
-        <div className="flex gap-3">
-          {OAUTH_PROVIDERS.map((p) => (
-            <button key={p.id} onClick={() => handleOAuth(p.id)}
-              disabled={oauthLoading !== null}
-              className="flex-1 py-3 rounded-xl border border-[#2A2826] text-sm font-medium transition-all hover:border-white/20 active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2">
-              <span className="font-bold">{p.icon}</span>
-              <span className="hidden sm:inline">{p.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-[#2A2826]" />
-          <span className="text-xs text-[#6B6258]">ou</span>
-          <div className="flex-1 h-px bg-[#2A2826]" />
-        </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

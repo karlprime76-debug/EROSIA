@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart } from 'lucide-react'
+import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart, Gift, Check, Sun, Moon, Monitor } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [now, setNow] = useState(0)
   const [profileTraits, setProfileTraits] = useState<string[]>([])
   const [streak, setStreak] = useState(0)
+  const [themePicker, setThemePicker] = useState(false)
   const videoRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -104,13 +105,9 @@ export default function ProfilePage() {
 
   const menu = [
     { icon: BadgeCheck, label: 'Vérification', action: () => router.push('/verify') },
-    { icon: Shield, label: 'Confidentialité', action: () => router.push('/settings') },
-    { icon: Palette, label: 'Apparence', action: () => {
-      const html = document.documentElement
-      const isDark = html.classList.toggle('dark')
-      localStorage.setItem('erosia_theme', isDark ? 'dark' : 'light')
-      alert(isDark ? 'Mode sombre' : 'Mode clair')
-    }},
+    { icon: Shield, label: 'Paramètres', action: () => router.push('/settings') },
+    { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
+    { icon: Palette, label: 'Apparence', action: () => setThemePicker(true) },
     { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
     { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
     { icon: Star, label: 'Profil du jour', action: () => router.push('/daily-profile') },
@@ -293,6 +290,45 @@ export default function ProfilePage() {
 
       {lightboxIdx !== null && profile?.photos && (
         <Lightbox images={profile.photos} initialIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      )}
+
+      {themePicker && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}>
+          <div className="w-full max-w-lg bg-[#1C1C1E] rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-center mb-5">Apparence</h3>
+            <div className="space-y-2">
+              {[
+                { mode: 'light', icon: Sun, label: 'Clair' },
+                { mode: 'dark', icon: Moon, label: 'Nuit' },
+                { mode: 'system', icon: Monitor, label: 'Système' },
+              ].map(({ mode, icon: Icon, label }) => {
+                const current = localStorage.getItem('erosia_theme') || 'system'
+                const active = current === mode
+                return (
+                  <button key={mode} onClick={() => {
+                    const html = document.documentElement
+                    if (mode === 'system') {
+                      localStorage.removeItem('erosia_theme')
+                      html.classList.remove('dark')
+                      if (window.matchMedia('(prefers-color-scheme: dark)').matches) html.classList.add('dark')
+                    } else {
+                      localStorage.setItem('erosia_theme', mode)
+                      html.classList.toggle('dark', mode === 'dark')
+                    }
+                    setThemePicker(false)
+                  }}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-[#D92D4A]/10 border border-[#D92D4A]/20' : 'hover:bg-white/5'}`}>
+                    <div className="flex items-center gap-3">
+                      <Icon size={20} className={active ? 'text-[#D92D4A]' : 'text-[#9E9488]'} />
+                      <span className={active ? 'text-[#D92D4A] font-medium' : 'text-sm'}>{label}</span>
+                    </div>
+                    {active && <Check size={18} className="text-[#D92D4A]" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
