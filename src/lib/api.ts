@@ -104,8 +104,11 @@ export async function updatePassword(password: string) {
   return { error: error?.message }
 }
 
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
-  let q = supabase.from('profiles').select('*')
+  let q = supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS)
+  q = q.eq('onboarding_complete', true)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
@@ -316,13 +319,12 @@ export async function updateLocation(latitude: number, longitude: number) {
 }
 
 export async function getProfilesNearby(lat: number, lng: number, radiusKm: number, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
-  // Use PostGIS-like approach: approximate using lat/lng difference
-  // 1 degree lat ≈ 111km, 1 degree lng ≈ 111*cos(lat) km
   const latDelta = radiusKm / 111
   const lngDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180))
   let q = supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_FIELDS)
+    .eq('onboarding_complete', true)
     .gte('latitude', lat - latDelta)
     .lte('latitude', lat + latDelta)
     .gte('longitude', lng - lngDelta)
@@ -1068,7 +1070,7 @@ export async function getNotificationsPaginated(page: number) {
 export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
-  let q = supabase.from('profiles').select('*')
+  let q = supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('onboarding_complete', true)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
@@ -1103,7 +1105,8 @@ export async function undoSuperLike() {
 export async function searchProfilesByCity(city: string, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
   let q = supabase
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_FIELDS)
+    .eq('onboarding_complete', true)
     .ilike('location', `%${city}%`)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
@@ -1228,6 +1231,13 @@ export async function adminUpdatePayoutStatus(txId: string, status: 'completed' 
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return { error: 'Accès refusé' }
   const { error } = await supabase.from('gift_transactions').update({ status }).eq('id', txId)
+  return { error: error?.message }
+}
+
+export async function completeOnboarding() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+  const { error } = await supabase.from('profiles').update({ onboarding_complete: true }).eq('id', user.id)
   return { error: error?.message }
 }
 
