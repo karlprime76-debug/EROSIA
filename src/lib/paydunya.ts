@@ -36,3 +36,26 @@ export async function confirmInvoice(invoiceToken: string) {
   })
   return res.json() as Promise<{ status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }>
 }
+
+/**
+ * Send a payment request directly to a mobile money phone number (no redirect).
+ * Requires OPR (Operateur) access enabled on the PayDunya account.
+ */
+export async function sendMobileMoneyPayment(
+  invoiceToken: string,
+  phone: string,
+  operator: string,
+  customerName?: string,
+) {
+  const res = await fetch(`${BASE}/opr/create`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      invoice_token: invoiceToken,
+      customer_phone: phone,
+      customer_name: customerName ?? 'Client Erosia',
+      operator,
+    }),
+  })
+  return res.json() as Promise<{ status: string; response_text?: string; token?: string }>
+}

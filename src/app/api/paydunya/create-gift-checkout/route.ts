@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createInvoice } from '@/lib/paydunya'
+import { createInvoice, sendMobileMoneyPayment } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
@@ -14,7 +14,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
   }
 
-  const { giftId, receiverId, matchId, message } = body as { giftId?: string; receiverId?: string; matchId?: string; message?: string }
+  const { giftId, receiverId, matchId, message, phone, operator } = body as {
+    giftId?: string; receiverId?: string; matchId?: string; message?: string
+    phone?: string; operator?: string
+  }
   if (!giftId || !receiverId || !matchId) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
   }
@@ -50,6 +53,20 @@ export async function POST(request: Request) {
 
   if (result.status !== 'success' || !result.token) {
     return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
+  }
+
+  // Mobile Money direct push — no redirect to PayDunya checkout page
+  if (phone && operator) {
+    try {
+      const pushResult = await sendMobileMoneyPayment(result.token, phone, operator, user.email ?? user.id)
+      if (pushResult.status !== 'success') {
+        return NextResponse.json({ error: pushResult.response_text ?? 'Erreur d\'envoi du paiement mobile' }, { status: 502 })
+      }
+      return NextResponse.json({ sent: true })
+    } catch (err) {
+      console.error('PayDunya OPR error:', err)
+      return NextResponse.json({ error: 'Erreur de communication avec l\'opérateur mobile' }, { status: 502 })
+    }
   }
 
   const paymentUrl = result.response_text?.startsWith('http')

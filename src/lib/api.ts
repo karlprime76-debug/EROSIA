@@ -1151,14 +1151,15 @@ export async function getPaymentAccount() {
 }
 
 // ---- GIFT PAYMENT ----
-export async function createGiftCheckout(giftId: string, receiverId: string, matchId: string, message?: string) {
+export async function createGiftCheckout(giftId: string, receiverId: string, matchId: string, message?: string, phone?: string, operator?: string) {
   const res = await fetch('/api/paydunya/create-gift-checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ giftId, receiverId, matchId, message }),
+    body: JSON.stringify({ giftId, receiverId, matchId, message, phone, operator }),
   })
   const data = await res.json()
   if (!res.ok) return { error: data.error }
+  if (data.sent) return { sent: true as const }
   return { url: data.url as string }
 }
 
