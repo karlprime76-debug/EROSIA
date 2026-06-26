@@ -55,23 +55,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
   }
 
-  // Mobile Money direct push — no redirect to PayDunya checkout page
-  if (phone && operator) {
-    try {
-      const pushResult = await sendMobileMoneyPayment(result.token, phone, operator, user.email ?? user.id)
-      if (pushResult.status !== 'success') {
-        return NextResponse.json({ error: pushResult.response_text ?? 'Erreur d\'envoi du paiement mobile' }, { status: 502 })
-      }
-      return NextResponse.json({ sent: true })
-    } catch (err) {
-      console.error('PayDunya OPR error:', err)
-      return NextResponse.json({ error: 'Erreur de communication avec l\'opérateur mobile' }, { status: 502 })
-    }
-  }
-
   const paymentUrl = result.response_text?.startsWith('http')
     ? result.response_text
     : `https://payment.paydunya.com/payment/${result.token}`
+
+  // Mobile Money direct push — fallback to checkout URL if OPR fails
+  if (phone && operator) {
+    try {
+      const pushResult = await sendMobileMoneyPayment(result.token, phone, operator, user.email ?? user.id)
+      if (pushResult.status === 'success') return NextResponse.json({ sent: true })
+      console.warn('PayDunya OPR failed, falling back to checkout URL:', pushResult.response_text)
+    } catch (err) {
+      console.warn('PayDunya OPR error, falling back to checkout URL:', err)
+    }
+  }
 
   return NextResponse.json({ url: paymentUrl })
 }

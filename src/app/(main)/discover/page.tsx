@@ -148,25 +148,32 @@ export default function DiscoverPage() {
       }
       setSuperLikesLeft((s) => s - 1)
     }
-    setSwipeAnim(dir === 'like' ? 'right' : 'left')
-    if (dir === 'like') { setHeartBurst(true); setTimeout(() => setHeartBurst(false), 600) }
-    await new Promise(r => setTimeout(r, 300))
-    setSwipeAnim('idle')
-    await createSwipe(p.id, dir)
-    setHasSwiped(true)
-    if (dir === 'like' || dir === 'super_like') {
-      const { isMatch, match } = await checkForMatch(p.id)
-      if (isMatch && match) setMatchModal({ profile: p, matchId: match.id })
-    }
+
+    // Optimistic — advance immediately
     const next = idx + 1
     if (next >= profiles.length) {
       setProfiles([])
       setIdx(0)
-      const { data } = await fetchProfiles()
-      if (data) setProfiles(data)
     } else {
       setIdx(next)
     }
+    setSwipeAnim(dir === 'like' ? 'right' : 'left')
+
+    // Background API calls
+    if (dir === 'like') { setHeartBurst(true); setTimeout(() => setHeartBurst(false), 600) }
+    setTimeout(async () => {
+      setSwipeAnim('idle')
+      await createSwipe(p.id, dir).catch(() => {})
+      setHasSwiped(true)
+      if (dir === 'like' || dir === 'super_like') {
+        const { isMatch, match } = await checkForMatch(p.id).catch(() => ({ isMatch: false, match: null }))
+        if (isMatch && match) setMatchModal({ profile: p, matchId: match.id })
+      }
+      if (next >= profiles.length) {
+        const { data } = await fetchProfiles()
+        if (data) setProfiles(data)
+      }
+    }, 0)
   }
 
   const handleRewind = async () => {

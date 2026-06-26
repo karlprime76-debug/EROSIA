@@ -74,12 +74,16 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      await admin.from('notifications').insert({
-        user_id: receiverId,
-        actor_id: userId,
-        type: 'gift',
-        content: `Tu as reçu un cadeau !`,
-      })
+      try {
+        await admin.from('notifications').insert({
+          user_id: receiverId,
+          actor_id: userId,
+          type: 'gift',
+          content: `Tu as reçu un cadeau !`,
+        })
+      } catch (e) {
+        console.error('Notification insert failed (non-blocking):', e)
+      }
     }
   }
 
