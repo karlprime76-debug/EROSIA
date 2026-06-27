@@ -88,13 +88,13 @@ export default function DiscoverPage() {
         }
         setLoading(false)
       })
-    getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => {})
+    getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement des flirts', 'error') })
   }, [myId])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
-    }).catch(() => {})
+    }).catch(() => { toast('Erreur chargement des stories', 'error') })
   }, [])
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -239,7 +239,7 @@ export default function DiscoverPage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  })
+  }, [swipe, current])
 
   if (loading) return <DiscoverSkeleton />
 

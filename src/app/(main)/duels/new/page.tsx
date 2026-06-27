@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { createDuel, getProfiles, checkPremium } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface NewDuelProfile {
   id: string
@@ -18,13 +19,18 @@ export default function NewDuelPage() {
   const [selectedB, setSelectedB] = useState('')
   const [creating, setCreating] = useState(false)
   const [isPremium, setIsPremium] = useState<boolean | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await getProfiles([])
-      if (data) setProfiles(data as NewDuelProfile[])
-      const premium = await checkPremium()
-      setIsPremium(premium)
+      try {
+        const { data } = await getProfiles([])
+        if (data) setProfiles(data as NewDuelProfile[])
+      } catch { toast('Erreur chargement profils', 'error') }
+      try {
+        const premium = await checkPremium()
+        setIsPremium(premium)
+      } catch { toast('Erreur vérification premium', 'error') }
     }
     load()
   }, [])

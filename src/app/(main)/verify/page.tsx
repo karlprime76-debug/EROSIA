@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Camera, CheckCircle, Clock } from 'lucide-react'
 import { submitVerification, getVerificationStatus } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 export default function VerifyPage() {
   const router = useRouter()
@@ -12,11 +13,13 @@ export default function VerifyPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
-    getVerificationStatus().then(s => setStatus(s.status)).catch(() => {})
-  }, [])
+    getVerificationStatus().then(s => setStatus(s.status)).catch(() => { toast('Erreur chargement statut', 'error') }).finally(() => setLoading(false))
+  }, [toast])
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
@@ -36,6 +39,12 @@ export default function VerifyPage() {
     if (!error) setStatus('pending')
     setUploading(false)
   }
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+    </div>
+  )
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">

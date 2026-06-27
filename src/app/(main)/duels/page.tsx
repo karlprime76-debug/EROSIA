@@ -6,6 +6,7 @@ import { ArrowLeft, Swords } from 'lucide-react'
 import { getDuels, voteDuel } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { useToast } from '@/components/Toast'
 
 interface DuelItem {
   id: string
@@ -21,11 +22,12 @@ export default function DuelsPage() {
   const [duels, setDuels] = useState<DuelItem[]>([])
   const [myId, setMyId] = useState('')
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    }).catch(() => {})
+    }).catch(() => { toast('Erreur chargement des duels', 'error') })
     getDuels().then(({ data }) => {
       if (data) setDuels(data as DuelItem[])
       setLoading(false)
@@ -67,7 +69,7 @@ export default function DuelsPage() {
               <div className="flex-1 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full bg-zinc-700 overflow-hidden mb-1">
                   {d.profile_a?.photos?.[0] ? (
-                    <Image src={d.profile_a.photos[0]} alt="A" width={64} height={64} className="object-cover w-full h-full" />
+                    <Image src={d.profile_a.photos[0]} alt={d.profile_a?.name ?? 'Profil A'} width={64} height={64} className="object-cover w-full h-full" />
                   ) : <div className="w-full h-full flex items-center justify-center text-[#6B6258]">?</div>}
                 </div>
                 <p className="text-xs font-medium">{d.profile_a?.name}</p>
@@ -81,7 +83,7 @@ export default function DuelsPage() {
               <div className="flex-1 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full bg-zinc-700 overflow-hidden mb-1">
                   {d.profile_b?.photos?.[0] ? (
-                    <Image src={d.profile_b.photos[0]} alt="B" width={64} height={64} className="object-cover w-full h-full" />
+                    <Image src={d.profile_b.photos[0]} alt={d.profile_b?.name ?? 'Profil B'} width={64} height={64} className="object-cover w-full h-full" />
                   ) : <div className="w-full h-full flex items-center justify-center text-[#6B6258]">?</div>}
                 </div>
                 <p className="text-xs font-medium">{d.profile_b?.name}</p>

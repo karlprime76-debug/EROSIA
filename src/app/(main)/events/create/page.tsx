@@ -24,8 +24,9 @@ export default function CreateEventPage() {
   const [maxParticipants, setMaxParticipants] = useState('')
   const [saving, setSaving] = useState(false)
   const [isPremium, setIsPremium] = useState<boolean | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => { checkPremium().then(setIsPremium) }, [])
+  useEffect(() => { checkPremium().then(setIsPremium).finally(() => setLoading(false)) }, [])
 
   const handleSubmit = async () => {
     if (!title) { toast('Le titre est requis.', 'error'); return }
@@ -42,6 +43,12 @@ export default function CreateEventPage() {
       toast("Erreur lors de la création de l'antenne. Réessaie.", 'error')
     }
   }
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+    </div>
+  )
 
   return (
     <div className="flex-1 flex flex-col">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, MapPin, Calendar, Users, Plus } from 'lucide-react'
 import { getEvents, joinEvent, leaveEvent } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 interface EventItem {
   id: string
@@ -22,16 +23,17 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([])
   const [myId, setMyId] = useState('')
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    }).catch(() => {})
+    }).catch(() => { toast('Erreur chargement', 'error') })
     getEvents().then(({ data }) => {
       if (data) setEvents(data as EventItem[])
       setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
+    }).catch(() => { toast('Erreur chargement des événements', 'error'); setLoading(false) })
+  }, [toast])
 
   const isJoined = (e: EventItem) => e.participants?.some(p => p.user_id === myId && p.status === 'accepted')
   const participantCount = (e: EventItem) => e.participants?.filter(p => p.status === 'accepted').length ?? 0

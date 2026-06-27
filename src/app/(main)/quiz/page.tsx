@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Heart } from 'lucide-react'
 import { getQuizQuestions, saveQuizAnswers, getQuizAnswers } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface QuizQuestion {
   id: string
@@ -19,19 +20,20 @@ export default function QuizPage() {
   const [current, setCurrent] = useState(0)
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     getQuizQuestions().then(({ data }) => {
       if (data) setQuestions(data)
-    }).catch(() => {})
+    }).catch(() => { toast('Erreur chargement du quiz', 'error') })
     getQuizAnswers().then(({ data }) => {
       if (data?.length) {
         const m: Record<string, number> = {}
         data.forEach((a: { question_id: string; answer_index: number }) => { m[a.question_id] = a.answer_index })
         setAnswers(m)
       }
-    }).catch(() => {})
-  }, [])
+    }).catch(() => { toast('Erreur chargement des réponses', 'error') })
+  }, [toast])
 
   const handleAnswer = (index: number) => {
     const q = questions[current]
@@ -73,7 +75,7 @@ export default function QuizPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">Quiz de compatibilité</h2>
           <p className="text-xs text-[#9E9488]">Question {current + 1}/{questions.length}</p>

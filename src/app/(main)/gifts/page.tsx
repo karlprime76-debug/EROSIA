@@ -52,7 +52,7 @@ function GiftsContent() {
       toast('Paiement réussi ! Le cadeau a été envoyé.', 'success')
       router.replace('/gifts')
     }
-  }, [searchParams, router])
+  }, [searchParams, router, toast])
 
   const [initialLoad, setInitialLoad] = useState(false)
 
@@ -96,8 +96,8 @@ function GiftsContent() {
       setBalance(balance)
       if (txns.data) setTransactions(txns.data)
       setInitialLoad(true)
-    }).catch(() => {})
-  }, [])
+    }).catch(() => { toast('Erreur chargement des cadeaux', 'error') })
+  }, [toast])
 
   const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
   const selectedGiftData = gifts.find(g => g.id === selectedGift)

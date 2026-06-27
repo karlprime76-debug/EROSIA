@@ -1,33 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import crypto from 'crypto'
 
-export async function POST(request: NextRequest) {
-  const formData = await request.formData()
-  const dataRaw = formData.get('data') as string | null
-  if (!dataRaw) return NextResponse.json({ error: 'Missing data' }, { status: 400 })
+export async function POST(req: NextRequest) {
+  try {
+    const rawBody = await req.text()
+    const signature = req.headers.get('paydunya-signature')
+    if (!signature) return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
 
-  let data: { token?: string; status?: string; response_text?: string }
-  try { data = JSON.parse(dataRaw) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+    const expectedSig = crypto
+      .createHmac('sha512', process.env.PAYDUNYA_MASTER_KEY ?? '')
+      .update(rawBody)
+      .digest('hex')
 
-  if (!data.token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+    if (signature !== expectedSig) return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
 
-  const admin = createAdminClient()
+    const body = JSON.parse(rawBody)
+    const token = body?.data?.invoice?.invoice_token
+    if (!token) return NextResponse.json({ error: 'Missing invoice token' }, { status: 400 })
 
-  const escapedToken = data.token.replace(/[%_]/g, '\\$&')
-  const { data: transactions } = await admin
-    .from('gift_transactions')
-    .select('id, payment_details')
-    .eq('type', 'payout')
-    .ilike('payment_details', `%"paydunya_token":"${escapedToken}"%`)
+    const supabase = createAdminClient()
+    const { error } = await supabase
+      .from('gift_transactions')
+      .update({ status: 'completed' })
+      .eq('payment_details->>invoice_token', token)
 
-  if (!transactions || transactions.length === 0) {
-    return NextResponse.json({ received: true })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
-
-  for (const tx of transactions) {
-    const newStatus = data.status === 'success' ? 'completed' : 'failed'
-    await admin.from('gift_transactions').update({ status: newStatus }).eq('id', tx.id)
-  }
-
-  return NextResponse.json({ received: true })
 }

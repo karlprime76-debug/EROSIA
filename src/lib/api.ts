@@ -26,7 +26,6 @@ export interface Profile {
   travel_city?: string
   travel_active?: boolean
   subscription_tier?: 'free' | 'premium'
-  paydunya_invoice_token?: string
   premium_expires_at?: string
   video_url?: string
 }
@@ -123,11 +122,14 @@ export async function getProfiles(excludeIds: string[], filters?: { minAge?: num
 }
 
 export async function getProfile(id: string) {
-  const { data, error } = await supabase().from('profiles').select('*').eq('id', id).single()
+  const { data, error } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).single()
   return { data: data as Profile | null, error: error?.message }
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  if (user.id !== id) return { error: 'Non autorisé' }
   const { data, error } = await supabase().from('profiles').update(updates).eq('id', id)
   return { data, error: error?.message }
 }
@@ -190,6 +192,9 @@ export async function sendMessage(matchId: string, text: string) {
 }
 
 export async function uploadPhoto(uri: File, userId: string, index: number) {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  if (user.id !== userId) return { error: 'Non autorisé' }
   const ext = uri.name.split('.').pop() ?? 'jpg'
   const fileName = `${userId}/${index}.${ext}`
   const { error } = await supabase().storage.from('photos').upload(fileName, uri, { upsert: true })
@@ -199,6 +204,9 @@ export async function uploadPhoto(uri: File, userId: string, index: number) {
 }
 
 export async function deletePhoto(userId: string, photoUrl: string, currentPhotos: string[]) {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { photos: currentPhotos, error: 'Not authenticated' }
+  if (user.id !== userId) return { photos: currentPhotos, error: 'Non autorisé' }
   const segments = photoUrl.split('/')
   const fileName = segments[segments.length - 1]
   if (fileName) await supabase().storage.from('photos').remove([fileName])
@@ -208,6 +216,9 @@ export async function deletePhoto(userId: string, photoUrl: string, currentPhoto
 }
 
 export async function setPrimaryPhoto(userId: string, photoUrl: string, currentPhotos: string[]) {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { photos: currentPhotos, error: 'Not authenticated' }
+  if (user.id !== userId) return { photos: currentPhotos, error: 'Non autorisé' }
   const photos = [photoUrl, ...currentPhotos.filter(p => p !== photoUrl)]
   const { error } = await supabase().from('profiles').update({ photos }).eq('id', userId)
   return { photos, error: error?.message }
@@ -298,7 +309,9 @@ export async function unmatchUser(matchId: string) {
 }
 
 export async function getLastSwipe() {
-  const { data, error } = await supabase().from('swipes').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle() as PostgrestMaybeSingleResponse<Swipe>
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase().from('swipes').select('*').eq('swiper_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle() as PostgrestMaybeSingleResponse<Swipe>
   if (error || !data) return null
   return data
 }
@@ -565,6 +578,9 @@ export async function getActiveStories() {
 export async function deleteStory(storyId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const { data: story } = await supabase().from('stories').select('user_id').eq('id', storyId).single()
+  if (!story) return { error: 'Story introuvable' }
+  if (story.user_id !== user.id) return { error: 'Non autorisé' }
   const { error } = await supabase().from('stories').delete().eq('id', storyId)
   return { error: error?.message }
 }
@@ -697,11 +713,19 @@ export async function flagContent(type: string, id: string, text?: string, url?:
 }
 
 export async function getModerationQueue() {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { data: [], error: 'Not authenticated' }
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return { data: [], error: 'Accès refusé' }
   const { data, error } = await supabase().from('moderation_queue').select('*').order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
 }
 
 export async function reviewContent(id: string, approved: boolean) {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return { error: 'Accès refusé' }
   const { error } = await supabase().from('moderation_queue').update({ reviewed: true, status: approved ? 'approved' : 'rejected' }).eq('id', id)
   return { error: error?.message ?? null }
 }
@@ -1022,7 +1046,7 @@ export async function getDailyProfile() {
   if (!user) return { error: 'Not authenticated' }
   const { data: rpcData, error: rpcError } = await supabase().rpc('select_daily_profile')
   if (!rpcData || rpcError) return { data: null, error: rpcError?.message }
-  const { data: profile } = await supabase().from('profiles').select('*').eq('id', rpcData as string).single()
+  const { data: profile } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', rpcData as string).single()
   return { data: profile as Profile | null, error: null }
 }
 
@@ -1111,7 +1135,7 @@ export async function searchProfilesByCity(city: string, excludeIds: string[], f
     .from('profiles')
     .select(PUBLIC_PROFILE_FIELDS)
     .eq('onboarding_complete', true)
-    .ilike('location', `%${city}%`)
+    .ilike('location', `%${city.replace(/[%_]/g, '')}%`)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)

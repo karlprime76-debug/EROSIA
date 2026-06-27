@@ -35,7 +35,7 @@ export default function StoriesPage() {
     const initTimer = setTimeout(() => setNow(Date.now()), 0)
     const t = setInterval(() => setNow(Date.now()), 60000)
     return () => { clearInterval(t); clearTimeout(initTimer) }
-  }, [])
+  }, [toast])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
