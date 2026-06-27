@@ -33,10 +33,10 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 bg-[var(--bg)]">
-        <FloatingHearts />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
+    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
+      <FloatingHearts />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="glass-premium rounded-3xl p-8 max-w-sm w-full text-center relative z-10"
@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 bg-[var(--bg)]">
+    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
       <FloatingHearts />
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}

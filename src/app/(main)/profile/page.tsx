@@ -81,8 +81,9 @@ export default function ProfilePage() {
       const { error } = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
       if (error) { toast(error, 'error'); setSavingProfile(false); return }
       setProfile({ ...profile, name, bio, interests: interestsArr, looking_for: lookingFor })
+      toast('Profil mis à jour', 'success')
       setEditing(false)
-    } catch (e) {
+    } catch {
       toast('Erreur lors de la sauvegarde', 'error')
     }
     setSavingProfile(false)

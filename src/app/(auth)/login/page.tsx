@@ -39,9 +39,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 bg-[var(--bg)]">
+    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
       <FloatingHearts />
-
+      
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
