@@ -30,7 +30,7 @@ export default function StoriesPage() {
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => { toast('Erreur chargement stories', 'error') }).finally(() => setLoading(false))
     checkPremium().then(setIsPremium).catch(() => {})
     const initTimer = setTimeout(() => setNow(Date.now()), 0)
     const t = setInterval(() => setNow(Date.now()), 60000)
@@ -43,6 +43,7 @@ export default function StoriesPage() {
     setUploading(true)
     const result = await uploadStory(f)
     if (result.error) { toast(result.error, 'error'); setUploading(false); return }
+    toast('Story publiée', 'success')
     setUploading(false)
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
@@ -50,7 +51,9 @@ export default function StoriesPage() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteStory(id)
+    const { error } = await deleteStory(id)
+    if (error) { toast(error, 'error'); return }
+    toast('Story supprimée', 'success')
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
     })
@@ -59,7 +62,7 @@ export default function StoriesPage() {
   if (loading) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
       </header>
       <div className="flex-1 flex items-center justify-center">
@@ -71,16 +74,16 @@ export default function StoriesPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
         <div className="flex-1" />
         {isPremium ? (
-          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:shadow-[0_0_15px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
             <Plus size={18} />
           </button>
         ) : (
-          <button onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
+          <button type="button" onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
             className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628] hover:bg-[#2A2826] transition-all active:scale-90">
             <Lock size={16} className="text-[#6B6258]" />
           </button>
@@ -101,7 +104,7 @@ export default function StoriesPage() {
             {stories.map(s => (
               <div key={s.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E]">
                 {s.media_url && <Image src={s.media_url} alt="story" width={200} height={355} className="w-full h-full object-cover" />}
-                <button onClick={() => handleDelete(s.id)}
+                <button type="button" onClick={() => handleDelete(s.id)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                   <Trash2 size={14} />
                 </button>
