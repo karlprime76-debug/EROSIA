@@ -1,4 +1,4 @@
-import { createClient } from './supabase/client'
+import { supabase as sbClient } from './supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
 import type { BehaviorAction } from './engine/types'
 
@@ -69,15 +69,11 @@ export interface BlockedProfile {
   blocked: { name: string; photos: string[] } | null
 }
 
-let _sClient: ReturnType<typeof createClient> | null = null
 function supabase() {
-  if (!_sClient) _sClient = createClient()
-  return _sClient
+  return sbClient
 }
 
-export function resetApiClient() {
-  _sClient = null
-}
+export function resetApiClient() {} // kept for compat, no-op
 
 export async function signUp(email: string, password: string, name: string, age: number) {
   const { data: authData, error: authError } = await supabase().auth.signUp({ email, password })
@@ -142,8 +138,9 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
   if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.replace(/<[^>]*>/g, '').slice(0, 80)
   if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitized.occupation.replace(/<[^>]*>/g, '').slice(0, 100)
   if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
-  const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id)
-  return { data, error: error?.message }
+  const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id).select().maybeSingle()
+  if (error) return { error: error.message }
+  return { data }
 }
 
 export async function createSwipe(swipedId: string, direction: Swipe['direction']) {

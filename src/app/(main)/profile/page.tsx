@@ -75,11 +75,17 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!profile) return
     setSavingProfile(true)
-    const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-    const { error } = await updateProfile(profile.id, { name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
-    if (error) { toast(error, 'error'); setSavingProfile(false); return }
-    setProfile({ ...profile, name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
-    setEditing(false); setSavingProfile(false)
+    try {
+      const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
+      const name = nameValue.trim() || profile.name
+      const { error } = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
+      if (error) { toast(error, 'error'); setSavingProfile(false); return }
+      setProfile({ ...profile, name, bio, interests: interestsArr, looking_for: lookingFor })
+      setEditing(false)
+    } catch (e) {
+      toast('Erreur lors de la sauvegarde', 'error')
+    }
+    setSavingProfile(false)
   }
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
