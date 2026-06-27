@@ -70,7 +70,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ url: paymentUrl })
-  } catch {
+  } catch (err) {
+    logger.error('create-gift-checkout unexpected error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

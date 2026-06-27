@@ -3,11 +3,17 @@ const BASE = process.env.PAYDUNYA_MODE === 'live'
   : 'https://app.paydunya-sandbox.com/api/v1'
 
 function headers() {
+  const masterKey = process.env.PAYDUNYA_MASTER_KEY
+  const privateKey = process.env.PAYDUNYA_PRIVATE_KEY
+  const token = process.env.PAYDUNYA_TOKEN
+  if (!masterKey || !privateKey || !token) {
+    throw new Error('PayDunya : clés API manquantes dans les variables d\'environnement')
+  }
   return {
     'Content-Type': 'application/json',
-    'PAYDUNYA-MASTER-KEY': process.env.PAYDUNYA_MASTER_KEY!,
-    'PAYDUNYA-PRIVATE-KEY': process.env.PAYDUNYA_PRIVATE_KEY!,
-    'PAYDUNYA-TOKEN': process.env.PAYDUNYA_TOKEN!,
+    'PAYDUNYA-MASTER-KEY': masterKey,
+    'PAYDUNYA-PRIVATE-KEY': privateKey,
+    'PAYDUNYA-TOKEN': token,
   }
 }
 
