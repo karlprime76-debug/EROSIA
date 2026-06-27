@@ -35,8 +35,7 @@ export async function POST(request: Request) {
     const totalCents = Math.round(gift.price_cents * (1 + feePercent / 100))
     const amountFCFA = Math.round(totalCents * EUR_TO_XOF / 100)
 
-    const origin = request.headers.get('origin') ?? 'http://localhost:3000'
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'https://erosia-jet.vercel.app'
 
     let result: { status: string; response_text?: string; token?: string }
     try {
@@ -44,8 +43,8 @@ export async function POST(request: Request) {
         amountFCFA.toString(),
         `Cadeau Erosia : ${gift.name}`,
         { user_id: user.id, gift_id: giftId, receiver_id: receiverId, match_id: matchId, message: message ?? '' },
-        `${origin}/gifts`,
-        `${origin}/gifts?success=1`,
+        `${siteUrl}/gifts`,
+        `${siteUrl}/gifts?success=1`,
         `${siteUrl}/api/paydunya/webhook`,
       )
     } catch (err) {
@@ -57,9 +56,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
     }
 
-    const paymentUrl = result.response_text?.startsWith('http')
-      ? result.response_text
-      : `https://payment.paydunya.com/payment/${result.token}`
+    const paymentUrl = `https://payment.paydunya.com/payment/${result.token}`
 
     // Mobile Money direct push — fallback to checkout URL if OPR fails
     if (phone && operator) {

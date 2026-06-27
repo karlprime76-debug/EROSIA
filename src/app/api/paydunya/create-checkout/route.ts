@@ -9,16 +9,15 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const origin = request.headers.get('origin') ?? 'http://localhost:3000'
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'https://erosia-jet.vercel.app'
     let result: { status: string; response_text?: string; token?: string }
     try {
       result = await createInvoice(
         '5000',
         'Abonnement Premium Erosia - 1 mois',
         { user_id: user.id },
-        `${origin}/settings`,
-        `${origin}/settings?premium=success`,
+        `${siteUrl}/settings`,
+        `${siteUrl}/settings?premium=success`,
         `${siteUrl}/api/paydunya/webhook`,
       )
     } catch (err) {
@@ -30,9 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.response_text ?? 'Échec de la création du paiement' }, { status: 500 })
     }
 
-    const paymentUrl = result.response_text?.startsWith('http')
-      ? result.response_text
-      : `https://payment.paydunya.com/payment/${result.token}`
+    const paymentUrl = `https://payment.paydunya.com/payment/${result.token}`
 
     return NextResponse.json({ url: paymentUrl })
   } catch {

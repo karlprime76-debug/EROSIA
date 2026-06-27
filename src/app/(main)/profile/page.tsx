@@ -167,7 +167,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="flex items-center gap-1 flex-wrap">
-                <p className="text-xl font-bold">{profile?.name || 'Utilisateur'}{profile?.age ? `, ${profile.age}` : ''}</p>
+                <p className="text-xl font-bold">{profile?.name?.trim() || (profile?.age ? `Inconnu·e, ${profile.age}` : 'Inconnu·e')}</p>
                 {streak > 0 && (
                   <div className="flex items-center gap-1 text-sm ml-2">
                     <span>🔥</span>

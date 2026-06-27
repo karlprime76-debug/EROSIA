@@ -1,6 +1,6 @@
-// erosia SW v22008cb-1782557158989 — generated at build time
-const CACHE_NAME = 'erosia-v22008cb-1782557158989'
-const ASSETS_CACHE = 'erosia-v22008cb-1782557158989-assets'
+// erosia SW vc593bc0-1782558427741 — generated at build time
+const CACHE_NAME = 'erosia-vc593bc0-1782558427741'
+const ASSETS_CACHE = 'erosia-vc593bc0-1782558427741-assets'
 const STATIC_ASSETS = ['/', '/offline', '/logo.png', '/icone.png', '/manifest.json', '/login', '/register', '/welcome', '/privacy', '/cgu']
 
 self.addEventListener('install', (e) => {

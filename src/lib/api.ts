@@ -220,9 +220,8 @@ export async function deletePhoto(userId: string, photoUrl: string, currentPhoto
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { photos: currentPhotos, error: 'Not authenticated' }
   if (user.id !== userId) return { photos: currentPhotos, error: 'Non autorisé' }
-  const segments = photoUrl.split('/')
-  const fileName = segments[segments.length - 1]
-  if (fileName) await supabase().storage.from('photos').remove([fileName])
+  const objectPath = photoUrl.split('/storage/v1/object/public/photos/')[1] ?? photoUrl.split('/').pop()
+  if (objectPath) await supabase().storage.from('photos').remove([objectPath])
   const photos = currentPhotos.filter(p => p !== photoUrl)
   const { error } = await supabase().from('profiles').update({ photos }).eq('id', userId)
   return { photos, error: error?.message }
