@@ -11,7 +11,7 @@ export default async function Home() {
       .from('profiles')
       .select('onboarding_complete')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile?.onboarding_complete) redirect('/onboarding')
     redirect('/discover')
   }

@@ -1,74 +1,79 @@
 import { NextResponse } from 'next/server'
 import { createInvoice, sendMobileMoneyPayment } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
-  let body: Record<string, unknown>
   try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
-  }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { giftId, receiverId, matchId, message, phone, operator } = body as {
-    giftId?: string; receiverId?: string; matchId?: string; message?: string
-    phone?: string; operator?: string
-  }
-  if (!giftId || !receiverId || !matchId) {
-    return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
-  }
-
-  const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).single()
-  if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })
-  if (typeof gift.price_cents !== 'number') {
-    return NextResponse.json({ error: 'Prix du cadeau invalide' }, { status: 500 })
-  }
-
-  const EUR_TO_XOF = 655.957
-  const feePercent = 15
-  const totalCents = Math.round(gift.price_cents * (1 + feePercent / 100))
-  const amountFCFA = Math.round(totalCents * EUR_TO_XOF / 100)
-
-  const origin = request.headers.get('origin') ?? 'http://localhost:3000'
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
-
-  let result: { status: string; response_text?: string; token?: string }
-  try {
-    result = await createInvoice(
-      amountFCFA.toString(),
-      `Cadeau Erosia : ${gift.name}`,
-      { user_id: user.id, gift_id: giftId, receiver_id: receiverId, match_id: matchId, message: message ?? '' },
-      `${origin}/gifts`,
-      `${origin}/gifts?success=1`,
-      `${siteUrl}/api/paydunya/webhook`,
-    )
-  } catch (err) {
-    console.error('PayDunya createInvoice error:', err)
-    return NextResponse.json({ error: 'Erreur de communication avec PayDunya' }, { status: 502 })
-  }
-
-  if (result.status !== 'success' || !result.token) {
-    return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
-  }
-
-  const paymentUrl = result.response_text?.startsWith('http')
-    ? result.response_text
-    : `https://payment.paydunya.com/payment/${result.token}`
-
-  // Mobile Money direct push — fallback to checkout URL if OPR fails
-  if (phone && operator) {
+    let body: Record<string, unknown>
     try {
-      const pushResult = await sendMobileMoneyPayment(result.token, phone, operator, user.email ?? user.id)
-      if (pushResult.status === 'success') return NextResponse.json({ sent: true })
-      console.warn('PayDunya OPR failed, falling back to checkout URL:', pushResult.response_text)
-    } catch (err) {
-      console.warn('PayDunya OPR error, falling back to checkout URL:', err)
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
-  }
 
-  return NextResponse.json({ url: paymentUrl })
+    const { giftId, receiverId, matchId, message, phone, operator } = body as {
+      giftId?: string; receiverId?: string; matchId?: string; message?: string
+      phone?: string; operator?: string
+    }
+    if (!giftId || !receiverId || !matchId) {
+      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
+    }
+
+    const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).single()
+    if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })
+    if (typeof gift.price_cents !== 'number') {
+      return NextResponse.json({ error: 'Prix du cadeau invalide' }, { status: 500 })
+    }
+
+    const EUR_TO_XOF = 655.957
+    const feePercent = 15
+    const totalCents = Math.round(gift.price_cents * (1 + feePercent / 100))
+    const amountFCFA = Math.round(totalCents * EUR_TO_XOF / 100)
+
+    const origin = request.headers.get('origin') ?? 'http://localhost:3000'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
+
+    let result: { status: string; response_text?: string; token?: string }
+    try {
+      result = await createInvoice(
+        amountFCFA.toString(),
+        `Cadeau Erosia : ${gift.name}`,
+        { user_id: user.id, gift_id: giftId, receiver_id: receiverId, match_id: matchId, message: message ?? '' },
+        `${origin}/gifts`,
+        `${origin}/gifts?success=1`,
+        `${siteUrl}/api/paydunya/webhook`,
+      )
+    } catch (err) {
+      logger.error('PayDunya createInvoice error', { error: String(err) })
+      return NextResponse.json({ error: 'Erreur de communication avec PayDunya' }, { status: 502 })
+    }
+
+    if (result.status !== 'success' || !result.token) {
+      return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
+    }
+
+    const paymentUrl = result.response_text?.startsWith('http')
+      ? result.response_text
+      : `https://payment.paydunya.com/payment/${result.token}`
+
+    // Mobile Money direct push — fallback to checkout URL if OPR fails
+    if (phone && operator) {
+      try {
+        const pushResult = await sendMobileMoneyPayment(result.token, phone, operator, user.email ?? user.id)
+        if (pushResult.status === 'success') return NextResponse.json({ sent: true })
+        logger.warn('PayDunya OPR failed, falling back to checkout URL', { response: pushResult.response_text })
+      } catch (err) {
+        logger.warn('PayDunya OPR error, falling back to checkout URL', { error: String(err) })
+      }
+    }
+
+    return NextResponse.json({ url: paymentUrl })
+  } catch {
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
 }

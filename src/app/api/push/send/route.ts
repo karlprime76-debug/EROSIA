@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
+import { logger } from '@/lib/logger'
 
 function ensureVapidConfigured() {
   if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         }, payload)
         sent++
-      } catch {
+      } catch (err) {
+        logger.error('Push notification failed, removing subscription', { endpoint: sub.endpoint, error: String(err) })
         await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
       }
     }))
