@@ -91,9 +91,13 @@ export default function SettingsPage() {
 
   const handleUpgrade = async () => {
     setUpgradeError('')
-    const result = await createCheckoutSession()
-    if (result.url) { window.location.href = result.url; return }
-    setUpgradeError(result.error ?? 'Erreur de paiement. Vérifie les clés PayDunya.')
+    try {
+      const result = await createCheckoutSession()
+      if (result.url) { window.location.href = result.url; return }
+      setUpgradeError(result.error ?? 'Erreur de paiement.')
+    } catch {
+      setUpgradeError('Erreur réseau. Vérifie ta connexion.')
+    }
   }
 
   const handleTravelToggle2 = async (v: boolean) => {
@@ -185,7 +189,7 @@ export default function SettingsPage() {
       items: [
         {
           icon: User, label: 'Mon pseudo',
-          desc: profileName || '—',
+          desc: profileName || 'Non défini',
           render: () => editingName ? (
             <div className="flex items-center gap-1 mt-2">
               <div className="flex-1">

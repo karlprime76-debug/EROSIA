@@ -167,7 +167,13 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="flex items-center gap-1 flex-wrap">
-                <p className="text-xl font-bold">{profile?.name?.trim() || (profile?.age ? `Inconnu·e, ${profile.age}` : 'Inconnu·e')}</p>
+                {profile?.name?.trim() ? (
+                  <p className="text-xl font-bold">{profile.name.trim()}</p>
+                ) : (
+                  <button type="button" onClick={() => setEditing(true)} className="text-xl font-bold text-[#D92D4A] hover:underline">
+                    + Ajouter mon pseudo
+                  </button>
+                )}
                 {streak > 0 && (
                   <div className="flex items-center gap-1 text-sm ml-2">
                     <span>🔥</span>

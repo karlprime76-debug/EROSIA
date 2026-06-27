@@ -1,4 +1,6 @@
-const BASE = 'https://app.paydunya.com/api/v1'
+const BASE = process.env.PAYDUNYA_MODE === 'live'
+  ? 'https://app.paydunya.com/api/v1'
+  : 'https://app.paydunya-sandbox.com/api/v1'
 
 function headers() {
   return {
@@ -26,7 +28,10 @@ export async function createInvoice(amount: string, description: string, customD
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
-      invoice: { total_amount: amount, description, custom_data: customData },
+      invoice: {
+        items: [{ name: description, quantity: 1, unit_price: amount, total_price: amount }],
+        total_amount: amount, description, custom_data: customData,
+      },
       store: { name: 'Erosia' },
       actions: {
         cancel_url: cancelUrl,
