@@ -1,9 +1,13 @@
-// erosia SW v5f33362-1782439979686 — generated at build time
-const CACHE_NAME = 'erosia-v5f33362-1782439979686'
-const ASSETS_CACHE = 'erosia-v5f33362-1782439979686-assets'
+// erosia SW v8da8b19-1782560074003 — generated at build time
+const CACHE_NAME = 'erosia-v8da8b19-1782560074003'
+const ASSETS_CACHE = 'erosia-v8da8b19-1782560074003-assets'
+const STATIC_ASSETS = ['/', '/offline', '/logo.png', '/icone.png', '/manifest.json']
 
-// Pas de skipWaiting ici — on attend l'action utilisateur via le message SKIP_WAITING
-self.addEventListener('install', () => {})
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(ASSETS_CACHE).then((c) => c.addAll(STATIC_ASSETS.map((u) => new Request(u, { cache: 'reload' })))).catch(() => {})
+  )
+})
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
@@ -23,24 +27,20 @@ self.addEventListener('fetch', (e) => {
   if (req.url.includes('supabase.co')) return
 
   if (req.destination === 'document') {
-    e.respondWith(networkFirst(req))
+    e.respondWith(staleWhileRevalidate(req))
   } else {
     e.respondWith(cacheFirst(req))
   }
 })
 
-async function networkFirst(req) {
-  try {
-    const res = await fetch(req)
-    if (res.ok) {
-      const cache = await caches.open(CACHE_NAME)
-      cache.put(req, res.clone())
-    }
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE_NAME)
+  const cached = await cache.match(req)
+  const fetchPromise = fetch(req).then((res) => {
+    if (res.ok) cache.put(req, res.clone())
     return res
-  } catch {
-    const cached = await caches.match(req)
-    return cached ?? new Response('Offline', { status: 503 })
-  }
+  }).catch(() => cached)
+  return cached ?? fetchPromise
 }
 
 async function cacheFirst(req) {
@@ -54,7 +54,8 @@ async function cacheFirst(req) {
     }
     return res
   } catch {
-    return new Response('Offline', { status: 503 })
+    const fallback = await caches.match('/offline')
+    return fallback ?? new Response('Hors ligne', { status: 503 })
   }
 }
 

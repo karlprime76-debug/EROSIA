@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-white: #F5F0EB;
+  --color-black: #0A0A0A;
+}
+
 :root {
   --bg: #0A0A0A;
   --bg-elevated: #141414;
@@ -21,6 +28,27 @@
   --glass-bg: rgba(20, 20, 22, 0.75);
   --glass-border: rgba(255, 255, 255, 0.06);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --radius: 16px;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 2px 12px rgba(217, 45, 74, 0.3);
+}
+
+.light, :root.light {
+  --bg: #FAF7F2;
+  --bg-elevated: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F0EDE8;
+  --text: #1A1A1A;
+  --text-secondary: #6B6258;
+  --text-light: #9E9488;
+  --border: #E5E0D8;
+  --surface: #FFFFFF;
+  --overlay: rgba(0, 0, 0, 0.4);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 2px 12px rgba(217, 45, 74, 0.15);
 }
 
 body {
@@ -28,6 +56,13 @@ body {
   color: var(--text);
   scrollbar-color: var(--border) transparent;
   scrollbar-width: thin;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(217, 45, 74, 0.3);
+  color: var(--text);
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -39,6 +74,14 @@ input, textarea, select {
   background: var(--bg-card);
   color: var(--text);
   border-color: var(--border);
+  border-radius: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 45, 74, 0.15);
+  outline: none;
 }
 
 input::placeholder, textarea::placeholder {
@@ -49,13 +92,11 @@ input::placeholder, textarea::placeholder {
   border-color: var(--border);
 }
 
+/* ── Keyframes ── */
+
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 8px rgba(217, 45, 74, 0.3); }
   50% { box-shadow: 0 0 20px rgba(217, 45, 74, 0.6); }
-}
-
-.animate-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 @keyframes sensual-drift {
@@ -68,42 +109,9 @@ input::placeholder, textarea::placeholder {
   50% { opacity: 0.3; }
 }
 
-.sensual-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(217, 45, 74, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 50%, rgba(200, 90, 23, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 0%, rgba(180, 60, 100, 0.05) 0%, transparent 40%);
-  animation: sensual-pulse 8s ease-in-out infinite;
-}
-
-.sensual-border {
-  position: relative;
-}
-
-.sensual-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(217, 45, 74, 0.3), rgba(200, 90, 23, 0.1), rgba(217, 45, 74, 0.2));
-  z-index: -1;
-}
-
 @keyframes sensual-shimmer {
   0% { background-position: 200% center; }
   100% { background-position: -200% center; }
-}
-
-.sensual-text {
-  background: linear-gradient(90deg, #D92D4A, #C85A17, #D4782B, #D92D4A);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: sensual-shimmer 4s linear infinite;
 }
 
 @keyframes glass-pulse {
@@ -136,27 +144,42 @@ input::placeholder, textarea::placeholder {
   50% { box-shadow: 0 0 16px rgba(217, 45, 74, 0.4), 0 0 40px rgba(217, 45, 74, 0.1); }
 }
 
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-.glass-light {
-  background: rgba(20, 20, 22, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+@keyframes heart-burst {
+  0% { transform: scale(0); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
-.glass-card {
-  background: linear-gradient(135deg, rgba(28, 28, 30, 0.9), rgba(20, 20, 22, 0.95));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes ring-expand {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* ── Utility classes ── */
+
+.animate-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .animate-fade-up {
@@ -183,41 +206,113 @@ input::placeholder, textarea::placeholder {
   animation: glass-pulse 3s ease-in-out infinite;
 }
 
-@keyframes heart-burst {
-  0% { transform: scale(0); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.8; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-
 .animate-heart-burst {
   animation: heart-burst 0.6s ease-out forwards;
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .animate-slide-up {
   animation: slide-up 0.4s ease-out both;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
 }
 
 .animate-shimmer {
   background: linear-gradient(90deg, transparent, rgba(217,45,74,0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* ── Glassmorphism ── */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-light {
+  background: rgba(20, 20, 22, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(28, 28, 30, 0.9), rgba(20, 20, 22, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-card-light {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 242, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Sensual overlay ── */
+
+.sensual-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(217, 45, 74, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(200, 90, 23, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, rgba(180, 60, 100, 0.05) 0%, transparent 40%);
+  animation: sensual-pulse 8s ease-in-out infinite;
+}
+
+.sensual-border {
+  position: relative;
+}
+
+.sensual-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(217, 45, 74, 0.3), rgba(200, 90, 23, 0.1), rgba(217, 45, 74, 0.2));
+  z-index: -1;
+}
+
+.sensual-text {
+  background: linear-gradient(90deg, #D92D4A, #C85A17, #D4782B, #D92D4A);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: sensual-shimmer 4s linear infinite;
+}
+
+/* ── Button base ── */
+
+.btn-base {
+  @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92D4A] focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* ── Focus ring ── */
+
+*:focus-visible {
+  outline: 2px solid rgba(217, 45, 74, 0.5);
+  outline-offset: 2px;
+}
+
+/* ── Ring for click feedback ── */
+
+.ring-expand {
+  animation: ring-expand 0.5s ease-out forwards;
 }
