@@ -1,67 +1,57 @@
 'use client'
 
-import { type HTMLAttributes, forwardRef } from 'react'
+import { forwardRef, type HTMLAttributes } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { motion, type HTMLMotionProps } from 'motion/react'
 import { cn } from '@/lib/utils'
 
-const cardVariants = cva(
+const cardVariants = cva([
   'rounded-2xl transition-all duration-300',
-  {
-    variants: {
-      variant: {
-        default: 'bg-[#18181A] border border-[#2C2A28]',
-        glass: 'glass',
-        elevated: 'card-elevated',
-        outline: 'bg-transparent border border-[#2C2A28]',
-        crimson: 'glass-crimson',
-        warm: 'glass-warm',
-      },
-      padding: {
-        none: '',
-        sm: 'p-4',
-        md: 'p-5',
-        lg: 'p-7',
-      },
-      hoverable: {
-        true: 'cursor-pointer',
-        false: '',
-      },
+], {
+  variants: {
+    variant: {
+      default: 'bg-[var(--bg-card)] border border-[var(--border)]',
+      glass: 'glass',
+      'glass-strong': 'glass-strong',
+      'glass-premium': 'glass-premium',
+      elevated: 'card-elevated',
+      premium: 'card-premium',
+      outline: 'border border-[var(--border)] bg-transparent',
+      crimson: 'glass-crimson',
+      warm: 'glass-warm',
+      cool: 'glass-cool',
+      success: 'glass-success',
+      deep: 'glass-deep',
     },
-    defaultVariants: {
-      variant: 'default',
-      padding: 'md',
-      hoverable: false,
+    padding: {
+      none: '',
+      sm: 'p-3',
+      md: 'p-4',
+      lg: 'p-5',
+      xl: 'p-6',
+      '2xl': 'p-8',
     },
-  }
-)
+    hoverable: {
+      true: 'cursor-pointer hover:scale-[1.008] hover:shadow-lg',
+      false: '',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    padding: 'md',
+    hoverable: false,
+  },
+})
 
-export interface CardProps
-  extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {
+interface CardProps extends HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {
   as?: 'div' | 'motion.div'
 }
 
-export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, hoverable, as = 'div', children, ...props }, ref) => {
-    if (as === 'motion.div') {
-      const MotionDiv = motion.div
-      return (
-        <MotionDiv
-          whileHover={hoverable ? { scale: 1.012, y: -2, transition: { type: 'spring', stiffness: 400, damping: 25 } } : undefined}
-          whileTap={hoverable ? { scale: 0.99 } : undefined}
-          className={cn(cardVariants({ variant, padding, hoverable, className }))}
-          ref={ref}
-          {...(props as unknown as HTMLMotionProps<'div'>)}
-        >
-          {children}
-        </MotionDiv>
-      )
-    }
+const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, padding, hoverable, children, ...props }, ref) => {
     return (
       <div
-        className={cn(cardVariants({ variant, padding, hoverable, className }))}
         ref={ref}
+        className={cn(cardVariants({ variant, padding, hoverable }), className)}
         {...props}
       >
         {children}
@@ -69,4 +59,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     )
   }
 )
+
 Card.displayName = 'Card'
+
+export { Card, cardVariants }
+export type { CardProps }

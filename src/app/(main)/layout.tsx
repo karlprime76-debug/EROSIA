@@ -19,6 +19,8 @@ const tabs = [
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [unreadCount, setUnreadCount] = useState(0)
+  const prevPath = useRef(pathname)
+  const [animKey, setAnimKey] = useState(0)
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | undefined
@@ -36,10 +38,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
-  const isActive = (href: string) => pathname.startsWith(href)
-
-  const prevPath = useRef(pathname)
-  const [animKey, setAnimKey] = useState(0)
   useEffect(() => {
     if (prevPath.current !== pathname) {
       prevPath.current = pathname
@@ -47,8 +45,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
   }, [pathname])
 
+  const isActive = (href: string) => pathname.startsWith(href)
+
   return (
-    <div className="flex-1 flex flex-col w-full min-h-screen relative">
+    <div className="flex-1 flex flex-col w-full min-h-screen relative bg-[var(--bg)]">
       <motion.main
         key={animKey}
         initial={{ opacity: 0, y: 16 }}
@@ -59,36 +59,59 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       >
         {children}
       </motion.main>
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-32px)] max-w-sm
-        flex items-center justify-around px-3 py-2 rounded-2xl
-        bg-[rgba(15,15,17,0.85)] backdrop-blur-2xl
-        border border-[rgba(255,255,255,0.06)]
-        shadow-[0_8px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)]"
-        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}>
+
+      {/* Premium glass bottom navigation */}
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-sm
+        flex items-center justify-around px-2 py-1.5 rounded-2xl
+        glass-nav
+        shadow-[0_8px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]
+        backdrop-blur-2xl"
+        style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom, 6px))' }}>
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = isActive(href)
           return (
             <Link key={href} href={href}
-              className="flex-1 flex flex-col items-center gap-0.5 py-2 relative">
+              className="flex-1 flex flex-col items-center gap-0.5 py-2 relative group">
               <div className="relative flex items-center justify-center h-6 w-10">
-                <Icon size={20} className={active ? 'text-[#D92D4A]' : 'text-[#6B6560]'} />
-                <AnimatePresence>
-                  {active && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[#D92D4A] shadow-[0_0_8px_rgba(217,45,74,0.6)]"
-                    />
-                  )}
-                </AnimatePresence>
+                <div className="relative">
+                  <Icon
+                    size={20}
+                    className={`transition-all duration-300 ${
+                      active
+                        ? 'text-[var(--primary)] drop-shadow-[0_0_6px_rgba(217,45,74,0.4)]'
+                        : 'text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'
+                    }`}
+                  />
+                  {/* Active indicator dot */}
+                  <AnimatePresence>
+                    {active && (
+                      <motion.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                        className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-[var(--primary)] shadow-[0_0_8px_rgba(217,45,74,0.6)]"
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+                {/* Notification badge */}
                 {href === '/notifications' && unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white px-1"
-                    style={{ background: '#D92D4A', boxShadow: '0 0 8px rgba(217,45,74,0.5)' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white px-1
+                      bg-[var(--primary)] shadow-[0_0_8px_rgba(217,45,74,0.5)]"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </motion.span>
                 )}
               </div>
-              <span className={`text-[9px] font-medium tracking-wider uppercase ${active ? 'text-[#D92D4A]' : 'text-[#6B6560]'}`}>{label}</span>
+              <span className={`text-[9px] font-medium tracking-wider uppercase transition-colors duration-300 ${
+                active ? 'text-[var(--primary)]' : 'text-[var(--text-muted)]'
+              }`}>
+                {label}
+              </span>
             </Link>
           )
         })}
