@@ -1,5 +1,6 @@
 import { createClient } from './supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
+import type { BehaviorAction } from './engine/types'
 
 export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
 
@@ -1157,6 +1158,28 @@ export async function searchProfilesByCity(city: string, excludeIds: string[], f
   q = q.eq('incognito', false)
   const { data, error } = await q
   return { data: data as Profile[] | null, error: error?.message }
+}
+
+// ---- EME: Behavior Tracking ----
+export async function logBehavior(action: BehaviorAction, targetId?: string, metadata?: Record<string, unknown>) {
+  const res = await fetch('/api/engine/behavior', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, targetId, metadata }),
+  })
+  return res.ok
+}
+
+// ---- DIDIT Identity Verification ----
+export async function createDiditSession(): Promise<{ url?: string; error?: string }> {
+  try {
+    const res = await fetch('/api/verify/didit', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error ?? 'Erreur lors de la création de la session' }
+    return { url: data.url }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
 }
 
 // ---- MOBILE MONEY ----

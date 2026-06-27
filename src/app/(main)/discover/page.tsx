@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, type Profile } from '@/lib/api'
+import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, logBehavior, type Profile } from '@/lib/api'
 import { useToast } from '@/components/Toast'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { supabase } from '@/lib/supabase/client'
@@ -190,6 +190,7 @@ export default function DiscoverPage() {
     }
 
     haptic(dir === 'like' ? 12 : 6)
+    logBehavior(dir === 'super_like' ? 'swipe_super_like' : dir === 'like' ? 'swipe_like' : 'swipe_pass', p.id)
 
     const next = idx + 1
     if (next >= profiles.length) {
@@ -234,6 +235,7 @@ export default function DiscoverPage() {
   }
 
   const current = profiles[idx]
+  useEffect(() => { if (current) logBehavior('view_profile', current.id) }, [current?.id])
 
   const swipeRef = useRef(swipe)
   useEffect(() => { swipeRef.current = swipe })
@@ -456,6 +458,7 @@ export default function DiscoverPage() {
                   <button type="button" onClick={async () => {
                     if (!current || flirtedIds.includes(current.id)) return
                     await sendFlirt(current.id)
+                    logBehavior('send_flirt', current.id)
                     setFlirtedIds(ids => [...ids, current.id])
                   }} aria-label="Clin d'oeil"
                     className="w-11 h-11 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-[#D92D4A]/30">
