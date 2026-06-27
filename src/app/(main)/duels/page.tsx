@@ -44,10 +44,10 @@ export default function DuelsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Duel</h2>
         <div className="flex-1" />
-        <button onClick={() => router.push('/duels/new')} aria-label="Nouveau duel"
+        <button type="button" onClick={() => router.push('/duels/new')} aria-label="Nouveau duel"
           className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
           <Swords size={18} />
         </button>
@@ -72,7 +72,7 @@ export default function DuelsPage() {
                 </div>
                 <p className="text-xs font-medium">{d.profile_a?.name}</p>
                 <p className="text-[10px] text-[#D92D4A]">{votesFor(d, d.profile_a_id)} votes</p>
-                <button onClick={() => handleVote(d.id, d.profile_a_id)} disabled={hasVoted(d)}
+                <button type="button" onClick={() => handleVote(d.id, d.profile_a_id)} disabled={hasVoted(d)}
                   className="mt-1 px-3 py-1 rounded text-[10px] font-medium bg-[#D92D4A]/10 text-[#D92D4A] disabled:opacity-30">
                   Voter
                 </button>
@@ -86,7 +86,7 @@ export default function DuelsPage() {
                 </div>
                 <p className="text-xs font-medium">{d.profile_b?.name}</p>
                 <p className="text-[10px] text-[#D92D4A]">{votesFor(d, d.profile_b_id)} votes</p>
-                <button onClick={() => handleVote(d.id, d.profile_b_id)} disabled={hasVoted(d)}
+                <button type="button" onClick={() => handleVote(d.id, d.profile_b_id)} disabled={hasVoted(d)}
                   className="mt-1 px-3 py-1 rounded text-[10px] font-medium bg-[#D92D4A]/10 text-[#D92D4A] disabled:opacity-30">
                   Voter
                 </button>

@@ -40,7 +40,7 @@ export default function NewDuelPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Nouveau duel</h2>
       </header>
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
@@ -66,12 +66,12 @@ export default function NewDuelPage() {
           </select>
         </div>
         {isPremium === false ? (
-          <button onClick={() => router.push('/settings')}
+          <button type="button" onClick={() => router.push('/settings')}
             className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
             <Lock size={16} /> Premium requis
           </button>
         ) : (
-          <button onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
+          <button type="button" onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
             className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
             {creating ? 'Création...' : 'Lancer le duel'}
           </button>

@@ -55,7 +55,7 @@ export default function NotificationsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Notifications</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
@@ -74,7 +74,7 @@ export default function NotificationsPage() {
             {notifications.map(n => {
               const Icon = iconMap[n.type] || Bell
               return (
-                <button key={n.id} onClick={() => handleClick(n)}
+                <button type="button" key={n.id} onClick={() => handleClick(n)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition ${
                     n.read ? 'bg-transparent' : 'bg-[#D92D4A]/5'
                   }`}>

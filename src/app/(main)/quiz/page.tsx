@@ -60,7 +60,7 @@ export default function QuizPage() {
       <Heart size={48} className="text-[#D92D4A] mb-4" fill="#D92D4A" />
       <h2 className="text-2xl font-bold mb-2">Quiz terminé !</h2>
       <p className="text-[#9E9488] mb-6">Tes réponses nous aident à trouver des personnes compatibles.</p>
-      <button onClick={() => router.push('/discover')}
+      <button type="button" onClick={() => router.push('/discover')}
         className="px-8 py-3 rounded-full font-semibold text-white" style={{ background: '#D92D4A' }}>
         Découvrir des profils
       </button>
@@ -73,7 +73,7 @@ export default function QuizPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} className="p-1"><ArrowLeft size={22} /></button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">Quiz de compatibilité</h2>
           <p className="text-xs text-[#9E9488]">Question {current + 1}/{questions.length}</p>
@@ -93,7 +93,7 @@ export default function QuizPage() {
         <h3 className="text-xl font-bold mb-6">{q.question}</h3>
         <div className="space-y-3">
           {q.options.map((opt, i) => (
-            <button key={i} onClick={() => handleAnswer(i)}
+            <button type="button" key={i} onClick={() => handleAnswer(i)}
               className={`w-full text-left px-5 py-4 rounded-xl border transition ${
                 answers[q.id] === i
                   ? 'border-[#D92D4A] bg-[#D92D4A]/10 text-white'
@@ -107,7 +107,7 @@ export default function QuizPage() {
 
       {current === questions.length - 1 && (
         <div className="px-5 pb-8">
-          <button onClick={handleSave} disabled={saving}
+          <button type="button" onClick={handleSave} disabled={saving}
             className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50"
             style={{ background: '#D92D4A' }}>
             {saving ? 'Enregistrement...' : 'Voir mes résultats'}

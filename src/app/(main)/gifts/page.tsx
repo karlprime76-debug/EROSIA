@@ -158,7 +158,7 @@ function GiftsContent() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
@@ -170,7 +170,7 @@ function GiftsContent() {
             <p className="text-[10px] text-[#9E9488] uppercase tracking-wider">Mon portefeuille</p>
             <p className="text-2xl font-bold text-white">{fmt(balance)} F</p>
           </div>
-          <button onClick={() => {
+          <button type="button" onClick={() => {
             if (balance <= 0) return
             if (!paySaved) { setShowPaymentConfig(true); return }
             setShowPayoutModal(true)
@@ -199,8 +199,8 @@ function GiftsContent() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[#2A2826] text-[#9E9488]">Annuler</button>
-                <button onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
+                <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[#2A2826] text-[#9E9488]">Annuler</button>
+                <button type="button" onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
                   className="flex-1 py-3 rounded-full text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
                   {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
                 </button>
@@ -209,7 +209,7 @@ function GiftsContent() {
           </div>
         )}
 
-        <button onClick={() => setShowPaymentConfig(!showPaymentConfig)}
+        <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
           className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
           {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[#6B6258]" /> : <Smartphone size={20} className="text-[#6B6258]" />}
           <div className="flex-1 min-w-0">
@@ -224,11 +224,11 @@ function GiftsContent() {
         {showPaymentConfig && (
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
             <div className="flex gap-2">
-              <button onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
+              <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
                 <Smartphone size={16} className="mx-auto mb-1" /> Mobile Money
               </button>
-              <button onClick={() => { setPayMethod('card'); setPaySaved(false) }}
+              <button type="button" onClick={() => { setPayMethod('card'); setPaySaved(false) }}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
                 <CreditCard size={16} className="mx-auto mb-1" /> Carte bancaire
               </button>
@@ -278,7 +278,7 @@ function GiftsContent() {
               </div>
             )}
 
-            <button onClick={handleSavePayment}
+            <button type="button" onClick={handleSavePayment}
               className="w-full py-2.5 rounded-full text-white text-sm font-semibold" style={{ background: '#D92D4A' }}>
               {paySaved ? 'Modifier' : 'Enregistrer'}
             </button>
@@ -295,7 +295,7 @@ function GiftsContent() {
         ) : (
         <div className="grid grid-cols-3 gap-3">
           {gifts.map(g => (
-            <button key={g.id} onClick={() => setSelectedGift(g.id)}
+            <button type="button" key={g.id} onClick={() => setSelectedGift(g.id)}
               className={`bg-[#1C1C1E] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${selectedGift === g.id ? 'border-[#D92D4A] ring-1 ring-[#D92D4A]' : 'border-[#2A2826]'}`}>
               <span className="text-3xl block mb-1 transition-transform duration-200 group-hover:scale-110">{g.emoji || '🎁'}</span>
               <p className="text-[10px] font-medium truncate">{g.name}</p>
@@ -328,7 +328,7 @@ function GiftsContent() {
                 rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
               <p className="text-[10px] text-right text-[#6B6258]">{message.length}/200</p>
             </div>
-            <button onClick={handleSend} disabled={!selectedMatch || sending}
+            <button type="button" onClick={handleSend} disabled={!selectedMatch || sending}
               className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
               <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F`}
             </button>

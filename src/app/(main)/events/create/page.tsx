@@ -46,7 +46,7 @@ export default function CreateEventPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Créer une antenne</h2>
       </header>
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
@@ -76,7 +76,7 @@ export default function CreateEventPage() {
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Type</label>
           <div className="flex gap-2">
             {types.map(t => (
-              <button key={t.value} onClick={() => setType(t.value)}
+              <button type="button" key={t.value} onClick={() => setType(t.value)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium ${type === t.value ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
                 {t.label}
               </button>
@@ -89,12 +89,12 @@ export default function CreateEventPage() {
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
         </div>
         {isPremium === false ? (
-          <button onClick={() => router.push('/settings')}
+          <button type="button" onClick={() => router.push('/settings')}
             className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
             <Lock size={16} /> Premium requis
           </button>
         ) : (
-          <button onClick={handleSubmit} disabled={!title || saving}
+          <button type="button" onClick={handleSubmit} disabled={!title || saving}
             className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
             {saving ? 'Création...' : 'Créer l\'antenne'}
           </button>

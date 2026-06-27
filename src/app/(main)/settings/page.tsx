@@ -127,7 +127,7 @@ export default function SettingsPage() {
           render: () => (
             <div className="flex gap-2 mt-1">
               {visibilityOptions.map(o => (
-                <button key={o.value} onClick={async () => {
+                <button type="button" key={o.value} onClick={async () => {
                 setVisibility(o.value)
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
@@ -145,7 +145,7 @@ export default function SettingsPage() {
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Push</span>
-                <button onClick={async () => {
+                <button type="button" onClick={async () => {
                   const v = !notifPush
                   setNotifPush(v)
                   const { data: { user } } = await supabase.auth.getUser()
@@ -157,7 +157,7 @@ export default function SettingsPage() {
               </label>
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Email</span>
-                <button onClick={async () => {
+                <button type="button" onClick={async () => {
                   const v = !notifEmail
                   setNotifEmail(v)
                   const { data: { user } } = await supabase.auth.getUser()
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                 />
                 <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{nameValue.length}/80</p>
               </div>
-              <button onClick={async () => {
+              <button type="button" onClick={async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
                 setSavingName(true)
                 const { data: { user } } = await supabase.auth.getUser()
@@ -213,11 +213,11 @@ export default function SettingsPage() {
                 setSavingName(false); setEditingName(false)
               }} disabled={savingName}
                 className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
-              <button onClick={() => { setNameValue(profileName); setEditingName(false) }}
+              <button type="button" onClick={() => { setNameValue(profileName); setEditingName(false) }}
                 className="rounded-full p-1.5 text-[#6B6258] hover:bg-[#262628]"><X size={16} /></button>
             </div>
           ) : (
-            <button onClick={() => setEditingName(true)}
+            <button type="button" onClick={() => setEditingName(true)}
               className="mt-1 text-xs text-[#D92D4A] font-medium">Modifier</button>
           ),
         },
@@ -252,7 +252,7 @@ export default function SettingsPage() {
                 <span className="text-xs text-[#9E9488]">{subscriptionTier === 'premium' ? 'Premium actif' : 'Compte gratuit'}</span>
               </div>
               {subscriptionTier !== 'premium' && (
-                <button onClick={handleUpgrade}
+                <button type="button" onClick={handleUpgrade}
                   className="px-4 py-2 rounded-lg text-xs font-medium text-white"
                   style={{ background: 'linear-gradient(135deg, #D92D4A, #C85A17)' }}>
                   Passer à Premium — 5 000 CFA/mois
@@ -293,7 +293,7 @@ export default function SettingsPage() {
   if (!settingsLoaded) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
@@ -322,7 +322,7 @@ export default function SettingsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
@@ -340,13 +340,13 @@ export default function SettingsPage() {
                       {desc && <p className="text-xs text-[#6B6258]">{desc}</p>}
                     </div>
                     {onClick && !danger && label !== 'Se déconnecter' && label !== 'Centre d\'aide' && (
-                      <button onClick={onClick}
+                      <button type="button" onClick={onClick}
                         className="text-xs text-[#D92D4A] font-medium shrink-0">Modifier</button>
                     )}
                   </div>
                   {render?.()}
                   {danger && (
-                    <button onClick={onClick} disabled={deleting}
+                    <button type="button" onClick={onClick} disabled={deleting}
                       className="mt-2 px-4 py-2 rounded-lg text-xs font-medium bg-[#D92D4A]/10 text-[#D92D4A]">
                       {deleting ? 'Suppression...' : 'Supprimer mon compte'}
                     </button>

@@ -253,10 +253,10 @@ export default function DiscoverPage() {
               {swipeLimit - swipeCount} swipes
             </span>
           )}
-          {hasSwiped && <button onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
-          <button onClick={async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } }} aria-label="Annuler super like" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-indigo-500/30 active:scale-90"><Star size={16} className="text-indigo-400" /></button>
-          <button onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
-          <button onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
+          {hasSwiped && <button type="button" onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
+          <button type="button" onClick={async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } }} aria-label="Annuler super like" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-indigo-500/30 active:scale-90"><Star size={16} className="text-indigo-400" /></button>
+          <button type="button" onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
+          <button type="button" onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
         </div>
       </header>
 
@@ -302,7 +302,7 @@ export default function DiscoverPage() {
             <input id="filter-city" value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value }))} placeholder="Nom de ville"
               className="w-full bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#D92D4A] transition-colors" />
           </div>
-          <button onClick={async () => {
+          <button type="button" onClick={async () => {
             setShowFilters(false); setLoading(true); setPage(1); setHasMore(true)
             const { data } = await fetchProfiles([], 1)
             if (data) {
@@ -374,7 +374,7 @@ export default function DiscoverPage() {
                   <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-2 py-0.5 rounded-full">{lookingForLabel(current.looking_for)}</span>
                 </div>
               )}
-              <button onClick={async () => {
+              <button type="button" onClick={async () => {
                 if (!current) return
                 if (await confirm('Bloquer ce profil ?')) {
                   await blockProfile(current.id)
@@ -389,18 +389,18 @@ export default function DiscoverPage() {
             </div>
 
             <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-4">
-              <button onClick={() => swipe('pass')} aria-label="Passer" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+              <button type="button" onClick={() => swipe('pass')} aria-label="Passer" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                 <X size={26} className="text-red-400" />
               </button>
               <div className="relative">
-                <button onClick={() => swipe('super_like')} aria-label="Super like" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-indigo-600/30 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-indigo-500/50">
+                <button type="button" onClick={() => swipe('super_like')} aria-label="Super like" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-indigo-600/30 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-indigo-500/50">
                   <Star size={22} className="text-indigo-400" />
                 </button>
                 <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-zinc-900 rounded-full px-1.5 border border-indigo-500/40">
                   {superLikesLeft}/{SUPER_LIKE_DAILY}
                 </span>
               </div>
-              <button onClick={async () => {
+              <button type="button" onClick={async () => {
                 if (!current || flirtedIds.includes(current.id)) return
                 await sendFlirt(current.id)
                 setFlirtedIds(ids => [...ids, current.id])
@@ -408,10 +408,10 @@ export default function DiscoverPage() {
                 className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-[#D92D4A]/30">
                 <Eye size={20} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6258]'} />
               </button>
-              <button onClick={() => swipe('like')} aria-label="Like" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-green-500/30 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]">
+              <button type="button" onClick={() => swipe('like')} aria-label="Like" className="w-14 h-14 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-green-500/30 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]">
                 <Heart size={26} className="text-green-400" />
               </button>
-              <button onClick={() => setShowReportModal(true)} aria-label="Signaler" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-zinc-500/50">
+              <button type="button" onClick={() => setShowReportModal(true)} aria-label="Signaler" className="w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-md border border-zinc-700/50 shadow-lg shadow-black/40 flex items-center justify-center transition-all active:scale-90 hover:border-zinc-500/50">
                 <Flag size={18} className="text-[#6B6258]" />
               </button>
             </div>
@@ -427,7 +427,7 @@ export default function DiscoverPage() {
             <p className="text-[#9E9488] text-sm mb-5">Pour quelle raison ?</p>
             <div className="space-y-2">
               {REPORT_REASONS.map((reason) => (
-                <button key={reason} onClick={async () => {
+                <button type="button" key={reason} onClick={async () => {
                   if (!current) return
                   const { error } = await reportProfile(current.id, reason)
                   setShowReportModal(false)
@@ -442,7 +442,7 @@ export default function DiscoverPage() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowReportModal(false)} className="w-full py-3 mt-3 text-[#9E9488] text-sm hover:text-white transition">
+            <button type="button" onClick={() => setShowReportModal(false)} className="w-full py-3 mt-3 text-[#9E9488] text-sm hover:text-white transition">
               Annuler
             </button>
           </div>
@@ -465,11 +465,11 @@ export default function DiscoverPage() {
               <Image src={matchModal.profile.photos?.[0] ?? ''} alt={matchModal.profile.name} width={80} height={80} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
             </div>
             <p className="font-semibold mb-6">{matchModal.profile.name}</p>
-            <button onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
+            <button type="button" onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
               className="w-full py-3.5 rounded-full text-white font-semibold transition-all active:scale-95 hover:shadow-[0_0_25px_rgba(217,45,74,0.4)]" style={{ background: '#D92D4A' }}>
               Envoyer un message
             </button>
-            <button onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-[#9E9488] text-sm hover:text-white transition">Continuer à swiper</button>
+            <button type="button" onClick={() => setMatchModal(null)} className="w-full py-3 mt-2 text-[#9E9488] text-sm hover:text-white transition">Continuer à swiper</button>
           </div>
         </div>
       )}

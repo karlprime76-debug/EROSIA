@@ -40,7 +40,7 @@ export default function VerifyPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Vérification</h2>
       </header>
       <div className="flex-1 px-4 pb-8">
@@ -72,7 +72,7 @@ export default function VerifyPage() {
               )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleFile} className="hidden" />
-            <button onClick={handleSubmit} disabled={!file || uploading}
+            <button type="button" onClick={handleSubmit} disabled={!file || uploading}
               className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50"
               style={{ background: '#D92D4A' }}>
               {uploading ? 'Envoi...' : 'Envoyer ma vérification'}

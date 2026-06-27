@@ -153,7 +153,7 @@ export default function MatchesPage() {
                   <p className="text-xs text-[#6B6258] truncate mt-0.5">Dites bonjour 👋</p>
                 </div>
                   <MessageCircle size={18} className="text-[#5A5248] group-hover:text-[#D92D4A] transition-colors" />
-                <button onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button type="button" onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={14} className="text-[#5A5248] hover:text-red-500 transition-colors" />
                 </button>
               </Link>

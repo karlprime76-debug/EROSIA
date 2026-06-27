@@ -303,7 +303,7 @@ export default function ProfilePage() {
 
         <div className="glass-card rounded-2xl overflow-hidden mb-8 divide-y divide-[#2A2826]/50">
           {menu.map(({ icon: Icon, label, danger, action }) => (
-            <button key={label} onClick={action} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+            <button type="button" key={label} onClick={action} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
               <div className="flex items-center gap-3">
                 <Icon size={20} className={danger ? 'text-red-500' : 'text-[#9E9488]'} />
                 <span className={danger ? 'text-red-500 text-sm font-medium' : 'text-sm'}>{label}</span>
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                 const current = localStorage.getItem('erosia_theme') || 'system'
                 const active = current === mode
                 return (
-                  <button key={mode} onClick={() => {
+                  <button type="button" key={mode} onClick={() => {
                     const html = document.documentElement
                     if (mode === 'system') {
                       localStorage.removeItem('erosia_theme')

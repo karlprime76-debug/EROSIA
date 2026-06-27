@@ -49,17 +49,17 @@ export default function DateIdeasPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Idées de date</h2>
       </header>
       <div className="px-4 pb-2 overflow-x-auto">
         <div className="flex gap-2">
-          <button onClick={() => setCategory('')}
+          <button type="button" onClick={() => setCategory('')}
             className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${!category ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
             Toutes
           </button>
           {categories.map(c => (
-            <button key={c} onClick={() => setCategory(c)}
+            <button type="button" key={c} onClick={() => setCategory(c)}
               className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${category === c ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
               {c}
             </button>
@@ -79,7 +79,7 @@ export default function DateIdeasPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {ideas.map(idea => (
-              <button key={idea.id} onClick={() => toggle(idea.id)}
+              <button type="button" key={idea.id} onClick={() => toggle(idea.id)}
                 className={`bg-[#1C1C1E] rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-[#D92D4A]' : 'border-[#2A2826]'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl">{idea.emoji || '💝'}</span>

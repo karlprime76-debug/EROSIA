@@ -51,10 +51,10 @@ export default function EventsPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Antennes</h2>
         <div className="flex-1" />
-        <button onClick={() => router.push('/events/create')} aria-label="Créer une antenne"
+        <button type="button" onClick={() => router.push('/events/create')} aria-label="Créer une antenne"
           className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
           <Plus size={18} />
         </button>
@@ -82,7 +82,7 @@ export default function EventsPage() {
                   <span className="text-[10px] text-[#6B6258] flex items-center gap-1"><Users size={10} />{participantCount(e)}{e.max_participants ? `/${e.max_participants}` : ''}</span>
                 </div>
               </div>
-              <button onClick={() => isJoined(e) ? handleLeave(e.id) : handleJoin(e.id)}
+              <button type="button" onClick={() => isJoined(e) ? handleLeave(e.id) : handleJoin(e.id)}
                 className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${isJoined(e) ? 'bg-[#262628] text-[#9E9488]' : 'bg-[#D92D4A] text-white'}`}>
                 {isJoined(e) ? 'Quitter' : 'Participer'}
               </button>
