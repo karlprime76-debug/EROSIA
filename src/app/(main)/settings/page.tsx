@@ -188,20 +188,23 @@ export default function SettingsPage() {
           desc: profileName || '—',
           render: () => editingName ? (
             <div className="flex items-center gap-1 mt-2">
-              <input value={nameValue} onChange={e => setNameValue(e.target.value)}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Enter') {
-                    if (!nameValue.trim() || nameValue.trim().length < 2) return
-                    setSavingName(true)
-                    const { data: { user } } = await supabase.auth.getUser()
-                    if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
-                    setSavingName(false); setEditingName(false)
-                  }
-                  if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
-                }}
-                className="flex-1 rounded-lg bg-[#262628] border border-[#2A2826] px-3 py-2 text-sm text-white outline-none focus:border-[#D92D4A]"
-                autoFocus maxLength={80}
-              />
+              <div className="flex-1">
+                <input value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))}
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      if (!nameValue.trim() || nameValue.trim().length < 2) return
+                      setSavingName(true)
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
+                      setSavingName(false); setEditingName(false)
+                    }
+                    if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
+                  }}
+                  className="w-full rounded-lg bg-[#262628] border border-[#2A2826] px-3 py-2 text-sm text-white outline-none focus:border-[#D92D4A]"
+                  autoFocus maxLength={80}
+                />
+                <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{nameValue.length}/80</p>
+              </div>
               <button onClick={async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
                 setSavingName(true)

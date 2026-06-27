@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { createEvent, checkPremium } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 const types: { value: 'date_night' | 'meetup' | 'party' | 'other'; label: string }[] = [
   { value: 'date_night', label: 'Date night' },
@@ -14,6 +15,7 @@ const types: { value: 'date_night' | 'meetup' | 'party' | 'other'; label: string
 
 export default function CreateEventPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
@@ -26,7 +28,7 @@ export default function CreateEventPage() {
   useEffect(() => { checkPremium().then(setIsPremium) }, [])
 
   const handleSubmit = async () => {
-    if (!title) return
+    if (!title) { toast('Le titre est requis.', 'error'); return }
     setSaving(true)
     try {
       await createEvent({
@@ -37,6 +39,7 @@ export default function CreateEventPage() {
       router.push('/events')
     } catch {
       setSaving(false)
+      toast("Erreur lors de la création de l'antenne. Réessaie.", 'error')
     }
   }
 
@@ -49,13 +52,15 @@ export default function CreateEventPage() {
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Titre *</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Soirée cinéma..."
+          <input value={title} onChange={e => setTitle(e.target.value.slice(0, 100))} placeholder="Soirée cinéma..." maxLength={100}
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
+          <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{title.length}/100</p>
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Quelques détails..."
-            rows={3} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
+          <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Quelques détails..."
+            rows={3} maxLength={500} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
+          <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{description.length}/500</p>
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Lieu</label>

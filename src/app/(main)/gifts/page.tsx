@@ -141,12 +141,9 @@ function GiftsContent() {
       const { error } = await savePaymentAccount({ type: 'mobile_money', phone: payPhone, operator: payOperator, country: payCountry })
       if (error) { toast(error, 'error'); return }
     } else {
-      const last4 = prompt('Les 4 derniers chiffres de ta carte :')
-      if (!last4 || last4.length < 4) return
-      const brand = prompt('Marque (Visa, Mastercard...) :') || 'Carte'
-      const { error } = await savePaymentAccount({ type: 'card', card_last4: last4, card_brand: brand })
+      if (!payCardLast4 || payCardLast4.length < 4) { toast('Les 4 derniers chiffres de la carte sont requis.', 'error'); return }
+      const { error } = await savePaymentAccount({ type: 'card', card_last4: payCardLast4, card_brand: payCardBrand })
       if (error) { toast(error, 'error'); return }
-      setPayCardLast4(last4); setPayCardBrand(brand)
     }
     setPaySaved(true)
     setShowPaymentConfig(false)
@@ -184,7 +181,8 @@ function GiftsContent() {
         </div>
 
         {showPayoutModal && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
             <div className="w-full max-w-sm bg-[#1C1C1E] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-white mb-1">Retirer ton solde</h3>
               <p className="text-xs text-[#9E9488] mb-4">Solde disponible : <strong className="text-white">{fmt(balance)} F</strong></p>
@@ -259,9 +257,25 @@ function GiftsContent() {
                 </div>
               </>
             ) : (
-              <p className="text-xs text-[#9E9488] text-center py-4">
-                Carte bancaire — les paiements sont sécurisés via PayDunya. Ajoute une carte pour recevoir et envoyer des cadeaux.
-              </p>
+              <div className="space-y-3">
+                <p className="text-xs text-[#9E9488] text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
+                <div>
+                  <label className="text-xs text-[#9E9488] mb-1 block">4 derniers chiffres</label>
+                  <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+                </div>
+                <div>
+                  <label className="text-xs text-[#9E9488] mb-1 block">Marque</label>
+                  <select value={payCardBrand} onChange={e => setPayCardBrand(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none">
+                    <option value="Visa">Visa</option>
+                    <option value="Mastercard">Mastercard</option>
+                    <option value="Orange Money">Orange Money</option>
+                    <option value="Wave">Wave</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </div>
+              </div>
             )}
 
             <button onClick={handleSavePayment}
@@ -271,6 +285,14 @@ function GiftsContent() {
           </div>
         )}
 
+        {gifts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-up">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+              <span className="text-2xl opacity-40">🎁</span>
+            </div>
+            <p className="text-sm text-[#6B6258]">Aucun cadeau disponible pour le moment.</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-3 gap-3">
           {gifts.map(g => (
             <button key={g.id} onClick={() => setSelectedGift(g.id)}
@@ -282,6 +304,7 @@ function GiftsContent() {
             </button>
           ))}
         </div>
+        )}
 
         {selectedGift && selectedGiftData && (
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
@@ -301,8 +324,9 @@ function GiftsContent() {
             </div>
             <div>
               <label className="text-xs text-[#9E9488] mb-1 block">Message (optionnel)</label>
-              <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Un petit mot..."
-                rows={2} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
+              <textarea value={message} onChange={e => setMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
+                rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
+              <p className="text-[10px] text-right text-[#6B6258]">{message.length}/200</p>
             </div>
             <button onClick={handleSend} disabled={!selectedMatch || sending}
               className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>

@@ -298,7 +298,8 @@ export default function ProfilePage() {
       )}
 
       {themePicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setThemePicker(false) }}>
           <div className="w-full max-w-lg bg-[#1C1C1E] rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-center mb-5">Apparence</h3>
             <div className="space-y-2">

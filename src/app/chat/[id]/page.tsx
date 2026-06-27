@@ -738,8 +738,11 @@ export default function ChatPage() {
           className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${viewOnce ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'glass-light text-[#6B6258] hover:border-white/20'}`}>
           <span className="text-xs font-bold">1x</span>
         </button>
-        <input value={text} onChange={(e) => { setText(e.target.value); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Écris un message..." className="flex-1 px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all" />
+        <div className="flex-1 relative">
+          <input value={text} onChange={(e) => { setText(e.target.value.slice(0, 1000)); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Écris un message..." maxLength={1000} className="w-full px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all pr-12" />
+          <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-[#6B6258] pointer-events-none">{text.length}/1000</p>
+        </div>
         <button type="button" aria-label="Message vocal" onClick={startRecording} disabled={recording}
           className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6258] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
           <Mic size={18} />

@@ -23,13 +23,14 @@ export default function StoriesPage() {
   const [uploading, setUploading] = useState(false)
   const [now, setNow] = useState(0)
   const [isPremium, setIsPremium] = useState(false)
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setLoading(false))
     checkPremium().then(setIsPremium).catch(() => {})
     const initTimer = setTimeout(() => setNow(Date.now()), 0)
     const t = setInterval(() => setNow(Date.now()), 60000)
@@ -54,6 +55,18 @@ export default function StoriesPage() {
       if (data) setStories(data as Story[])
     })
   }
+
+  if (loading) return (
+    <div className="bg-transparent flex-1 flex flex-col">
+      <header className="flex items-center gap-3 px-5 pt-4 pb-3">
+        <button onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <h2 className="text-2xl font-bold">Stories</h2>
+      </header>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      </div>
+    </div>
+  )
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">

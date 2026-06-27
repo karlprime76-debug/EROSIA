@@ -195,7 +195,7 @@ export default function DiscoverPage() {
     if (dir === 'like') { setHeartBurst(true); setTimeout(() => setHeartBurst(false), 600) }
     setTimeout(async () => {
       setSwipeAnim('idle')
-      await createSwipe(p.id, dir).catch(() => {})
+      await createSwipe(p.id, dir).catch(() => { toast('Erreur lors du swipe', 'error') })
       setHasSwiped(true)
       if (dir === 'like' || dir === 'super_like') {
         const { isMatch, match } = await checkForMatch(p.id).catch(() => ({ isMatch: false, match: null }))

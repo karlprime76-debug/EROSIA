@@ -69,6 +69,13 @@ export default function DateIdeasPage() {
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
+        ) : ideas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+              <span className="text-2xl opacity-40">💝</span>
+            </div>
+            <p className="text-sm text-[#6B6258]">Aucune idée de date dans cette catégorie.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {ideas.map(idea => (
