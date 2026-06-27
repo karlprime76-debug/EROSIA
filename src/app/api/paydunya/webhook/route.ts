@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { confirmInvoice } from '@/lib/paydunya'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     confirmed = await confirmInvoice(invoiceToken)
   } catch (err) {
-    console.error('confirmInvoice error:', err)
+    logger.error('confirmInvoice error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur de confirmation PayDunya' }, { status: 502 })
   }
   if (confirmed.status !== 'completed' && confirmed.status !== 'success') {
@@ -43,7 +44,6 @@ export async function POST(request: NextRequest) {
   if (userId && !giftId) {
     await admin.from('profiles').update({
       subscription_tier: 'premium',
-      paydunya_invoice_token: invoiceToken,
       premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     }).eq('id', userId)
   }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           content: `Tu as reçu un cadeau !`,
         })
       } catch (e) {
-        console.error('Notification insert failed (non-blocking):', e)
+        logger.error('Notification insert failed (non-blocking)', { error: String(e) })
       }
     }
   }

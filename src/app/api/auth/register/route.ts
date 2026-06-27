@@ -1,17 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
+import { registerSchema } from '@/lib/validations'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name, age } = await request.json()
+    const body = await request.json()
+    const parsed = registerSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
 
-    if (!email || !password || !name) {
-      return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
-    }
-    if (!age || typeof age !== 'number' || age < 18 || age > 120) {
-      return NextResponse.json({ error: 'Âge invalide. Tu dois avoir au moins 18 ans.' }, { status: 400 })
-    }
+    const { email, password, name, age } = parsed.data
 
     const supabase = await createClient()
 
@@ -29,11 +31,13 @@ export async function POST(request: Request) {
     })
 
     if (profileError) {
+      logger.error('Profile creation failed', { userId: authData.user.id, error: profileError.message })
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (err) {
+    logger.error('Register route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

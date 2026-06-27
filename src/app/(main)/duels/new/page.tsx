@@ -33,7 +33,7 @@ export default function NewDuelPage() {
       } catch { toast('Erreur vérification premium', 'error') }
     }
     load()
-  }, [])
+  }, [toast])
 
   const handleCreate = async () => {
     if (!selectedA || !selectedB || selectedA === selectedB) return

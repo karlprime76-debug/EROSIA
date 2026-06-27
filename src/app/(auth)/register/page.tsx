@@ -1,40 +1,35 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { registerSchema } from '@/lib/validations'
+import { Input } from '@/components/ui/form'
+import { useState } from 'react'
+
+type RegisterValues = { email: string; password: string; name: string; age: number }
+
 export default function RegisterPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [age, setAge] = useState('')
-  const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [serverError, setServerError] = useState('')
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
+  })
 
-    if (!name.trim() || name.trim().length > 50) { setError('Nom requis (50 car. max)'); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Email invalide'); return }
-    if (password.length < 8) { setError('8 caractères minimum'); return }
-    const ageNum = parseInt(age)
-    if (!ageNum || ageNum < 18 || ageNum > 120) { setError('Âge invalide (18-120)'); return }
-    if (!acceptedTerms) { setError('Tu dois accepter les conditions générales'); return }
-
-    setLoading(true)
+  const onSubmit = async (data: RegisterValues) => {
+    setServerError('')
     try {
       const res = await fetch('/api/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '' },
-        body: JSON.stringify({ email, password, name: name.trim(), age: ageNum }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '' },
+        body: JSON.stringify(data),
       })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Erreur lors de l\'inscription'); setLoading(false); return }
+      const json = await res.json()
+      if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
       setSuccess(true)
     } catch {
-      setError('Erreur réseau')
-      setLoading(false)
+      setServerError('Erreur réseau')
     }
   }
 
@@ -52,38 +47,24 @@ export default function RegisterPage() {
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent">
       <div className="w-full max-w-sm glass-card rounded-3xl p-8 space-y-4">
         <h2 className="text-2xl font-bold text-center">Inscription</h2>
-        {error && <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">{error}</p>}
-
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label htmlFor="reg-name" className="sr-only">Prénom</label>
-            <input id="reg-name" value={name} onChange={e => setName(e.target.value)} placeholder="Prénom" autoComplete="name"
-              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-          </div>
-          <div>
-            <label htmlFor="reg-email" className="sr-only">Email</label>
-            <input id="reg-email" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="email"
-              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-          </div>
-          <div>
-            <label htmlFor="reg-password" className="sr-only">Mot de passe</label>
-            <input id="reg-password" value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mot de passe (8+ car.)" autoComplete="new-password"
-              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-          </div>
-          <div>
-            <label htmlFor="reg-age" className="sr-only">Âge</label>
-            <input id="reg-age" value={age} onChange={e => setAge(e.target.value)} type="number" placeholder="Âge" min={18} max={120}
-              className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] transition-colors" />
-          </div>
+        {(serverError || Object.keys(errors).length > 0) && (
+          <p className="text-sm text-red-500 text-center bg-red-500/10 rounded-lg py-2">
+            {serverError ?? Object.values(errors)[0]?.message}
+          </p>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Input label="Prénom" autoComplete="name" error={errors.name?.message}
+            {...register('name')} placeholder="Prénom" />
+          <Input label="Email" type="email" autoComplete="email" error={errors.email?.message}
+            {...register('email')} placeholder="Email" />
+          <Input label="Mot de passe" type="password" autoComplete="new-password" error={errors.password?.message}
+            {...register('password')} placeholder="Mot de passe (8+ car.)" />
+          <Input label="Âge" type="number" error={errors.age?.message}
+            {...register('age', { valueAsNumber: true })} placeholder="Âge" min={18} max={120} />
           <p className="text-xs text-[#6B6258] text-center">En créant un compte, tu certifies avoir <strong className="text-[#9E9488]">18 ans ou plus</strong> et tu acceptes nos <a href="/cgu" target="_blank" className="underline text-[#D92D4A]">conditions générales</a>.</p>
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 accent-[#D92D4A]" />
-            <span className="text-xs text-[#9E9488]">J&rsquo;ai 18 ans ou plus et j&rsquo;accepte les conditions générales</span>
-          </label>
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={isSubmitting}
             className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
-            {loading ? 'Inscription...' : 'Créer mon compte'}
+            {isSubmitting ? 'Inscription...' : 'Créer mon compte'}
           </button>
         </form>
         <Link href="/login" className="block text-center text-sm text-[#9E9488] hover:text-white transition">Déjà un compte ?</Link>

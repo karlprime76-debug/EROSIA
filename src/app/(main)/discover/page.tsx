@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -47,6 +47,8 @@ export default function DiscoverPage() {
   const [myId, setMyId] = useState('')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const profilesRef = useRef(profiles)
+  useEffect(() => { profilesRef.current = profiles }, [profiles])
   const router = useRouter()
   const { toast } = useToast()
   const { confirm } = useConfirm()
@@ -89,13 +91,13 @@ export default function DiscoverPage() {
         setLoading(false)
       })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement des flirts', 'error') })
-  }, [myId])
+  }, [myId, toast])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
       if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
     }).catch(() => { toast('Erreur chargement des stories', 'error') })
-  }, [])
+  }, [toast])
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragStart(e.clientX)
@@ -117,14 +119,15 @@ export default function DiscoverPage() {
   const haptic = (ms = 10) => { try { navigator.vibrate(ms) } catch {} }
 
   useEffect(() => {
-    if (!profiles.length) return
+    const current = profilesRef.current
+    if (!current.length) return
     let cancelled = false
     const load = async () => {
-      const scores = await getCompatibilityBatch(profiles.map(p => p.id))
+      const scores = await getCompatibilityBatch(current.map(p => p.id))
       if (cancelled) return
       setCompatScores(scores)
       if (Object.keys(scores).length) {
-        const sorted = [...profiles].sort((a, b) => {
+        const sorted = [...current].sort((a, b) => {
           const sa = scores[a.id] ?? 0
           const sb = scores[b.id] ?? 0
           if (sa !== sb) return sb - sa
@@ -227,19 +230,20 @@ export default function DiscoverPage() {
 
   const current = profiles[idx]
 
-  // Keyboard arrows + Escape for modals
+  const swipeRef = useRef(swipe)
+  useEffect(() => { swipeRef.current = swipe })
+
   useEffect(() => {
-    const f = swipe
     const c = current
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && c) { e.preventDefault(); f('pass') }
-      if (e.key === 'ArrowRight' && c) { e.preventDefault(); f('like') }
-      if (e.key === 'ArrowUp' && c) { e.preventDefault(); f('super_like') }
+      if (e.key === 'ArrowLeft' && c) { e.preventDefault(); swipeRef.current('pass') }
+      if (e.key === 'ArrowRight' && c) { e.preventDefault(); swipeRef.current('like') }
+      if (e.key === 'ArrowUp' && c) { e.preventDefault(); swipeRef.current('super_like') }
       if (e.key === 'Escape') { setShowReportModal(false); setMatchModal(null) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [swipe, current])
+  }, [current])
 
   if (loading) return <DiscoverSkeleton />
 

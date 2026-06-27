@@ -32,7 +32,7 @@ export default function DuelsPage() {
       if (data) setDuels(data as DuelItem[])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [])
+  }, [toast])
 
   const hasVoted = (duel: DuelItem) => duel.votes?.some(v => v.voter_id === myId)
   const totalVotes = (duel: DuelItem) => duel.votes?.length ?? 0

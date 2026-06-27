@@ -68,10 +68,14 @@ export interface BlockedProfile {
   blocked: { name: string; photos: string[] } | null
 }
 
-let _sClient: ReturnType<typeof createClient>
+let _sClient: ReturnType<typeof createClient> | null = null
 function supabase() {
   if (!_sClient) _sClient = createClient()
   return _sClient
+}
+
+export function resetApiClient() {
+  _sClient = null
 }
 
 export async function signUp(email: string, password: string, name: string, age: number) {
@@ -94,6 +98,7 @@ export async function signIn(email: string, password: string) {
 
 export async function signOut() {
   const { error } = await supabase().auth.signOut()
+  resetApiClient()
   return { error: error?.message ?? null }
 }
 
@@ -130,7 +135,13 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
   if (user.id !== id) return { error: 'Non autorisé' }
-  const { data, error } = await supabase().from('profiles').update(updates).eq('id', id)
+  // Sanitize text fields
+  const sanitized = { ...updates }
+  if (typeof sanitized.bio === 'string') sanitized.bio = sanitized.bio.replace(/<[^>]*>/g, '').slice(0, 500)
+  if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.replace(/<[^>]*>/g, '').slice(0, 80)
+  if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitized.occupation.replace(/<[^>]*>/g, '').slice(0, 100)
+  if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
+  const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id)
   return { data, error: error?.message }
 }
 
@@ -185,8 +196,10 @@ export async function getMessages(matchId: string) {
 export async function sendMessage(matchId: string, text: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
+  if (!clean.trim()) return { error: 'Message vide' }
   const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, text,
+    match_id: matchId, sender_id: user.id, text: clean,
   }).select().single()
   return { data: data as Message | null, error: error?.message }
 }
@@ -865,9 +878,11 @@ export async function toggleEphemeral(matchId: string, enabled: boolean) {
 export async function sendEphemeralMessage(matchId: string, text: string, expiresInMinutes: number) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
+  if (!clean.trim()) return { error: 'Message vide' }
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString()
   const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, text, expires_at: expiresAt,
+    match_id: matchId, sender_id: user.id, text: clean, expires_at: expiresAt,
   }).select().single()
   return { data: data as Message | null, error: error?.message }
 }

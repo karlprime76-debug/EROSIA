@@ -21,17 +21,22 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  useEffect(() => {
+    if (!state) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        state.resolve(false)
+        setState(null)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [state])
+
   const handle = (value: boolean) => {
     state?.resolve(value)
     setState(null)
   }
-
-  useEffect(() => {
-    if (!state) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handle(false) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [state])
 
   return (
     <ConfirmContext.Provider value={{ confirm }}>
