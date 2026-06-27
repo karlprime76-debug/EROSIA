@@ -4,31 +4,32 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { motion, type HTMLMotionProps } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { buttonTap, buttonHover } from '@/lib/design'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92D4A] focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:pointer-events-none disabled:opacity-50 select-none',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92D4A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708] disabled:pointer-events-none disabled:opacity-40',
   {
     variants: {
       variant: {
         primary:
-          'bg-[#D92D4A] text-white shadow-[0_2px_12px_rgba(217,45,74,0.3)] hover:bg-[#FF2D55] hover:shadow-[0_4px_20px_rgba(217,45,74,0.5)] active:shadow-[0_1px_4px_rgba(217,45,74,0.2)]',
+          'bg-[#D92D4A] text-white rounded-full shadow-[0_4px_16px_rgba(217,45,74,0.25)] hover:bg-[#FF3B5C] hover:shadow-[0_6px_28px_rgba(217,45,74,0.4)] active:shadow-[0_2px_8px_rgba(217,45,74,0.15)]',
         secondary:
-          'bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] hover:bg-[#262628] hover:border-[#3A3836]',
+          'bg-[#18181A] text-[#F5F0EB] rounded-full border border-[#2C2A28] hover:bg-[#222225] hover:border-[#D92D4A]/30',
         ghost:
-          'text-[#9E9488] hover:text-[#F5F0EB] hover:bg-[#262628]',
+          'text-[#A09890] hover:text-[#F5F0EB] hover:bg-[#222225] rounded-lg',
         outline:
-          'border border-[#2A2826] text-[#F5F0EB] bg-transparent hover:bg-[#262628] hover:border-[#D92D4A]',
+          'rounded-full border border-[#2C2A28] text-[#F5F0EB] bg-transparent hover:bg-[#222225] hover:border-[#D92D4A]',
         gradient:
-          'bg-[linear-gradient(135deg,#D92D4A,#C85A17)] text-white shadow-[0_2px_16px_rgba(217,45,74,0.3)] hover:shadow-[0_4px_24px_rgba(217,45,74,0.5)]',
+          'rounded-full bg-[linear-gradient(135deg,#D92D4A,#E8A87C)] text-white shadow-[0_4px_20px_rgba(217,45,74,0.25)] hover:shadow-[0_6px_32px_rgba(217,45,74,0.4)]',
         sensual:
-          'bg-[linear-gradient(135deg,rgba(217,45,74,0.15),rgba(200,90,23,0.1))] text-[#D92D4A] border border-[rgba(217,45,74,0.2)] hover:bg-[linear-gradient(135deg,rgba(217,45,74,0.25),rgba(200,90,23,0.15))] hover:border-[rgba(217,45,74,0.3)] backdrop-blur-[8px]',
+          'rounded-full bg-[linear-gradient(135deg,rgba(217,45,74,0.1),rgba(232,168,124,0.06))] text-[#D92D4A] border border-[rgba(217,45,74,0.15)] hover:bg-[linear-gradient(135deg,rgba(217,45,74,0.18),rgba(232,168,124,0.1))] hover:border-[rgba(217,45,74,0.25)] backdrop-blur-[12px]',
       },
       size: {
-        sm: 'h-9 px-3 text-xs rounded-lg',
-        md: 'h-11 px-5',
-        lg: 'h-13 px-8 text-base rounded-xl',
-        icon: 'h-12 w-12 rounded-xl p-2.5',
+        sm: 'h-9 px-4 text-xs',
+        md: 'h-11 px-6',
+        lg: 'h-13 px-9 text-base',
+        xl: 'h-14 px-10 text-base',
+        icon: 'h-12 w-12 p-2.5',
+        'icon-sm': 'h-9 w-9 p-2',
       },
     },
     defaultVariants: {
@@ -48,8 +49,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, loading, disabled, children, ...props }, ref) => {
     return (
       <motion.button
-        whileTap={buttonTap}
-        whileHover={buttonHover}
+        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.02, transition: { type: 'spring', stiffness: 400, damping: 15 } }}
         className={cn(buttonVariants({ variant, size, className }))}
         disabled={disabled || loading}
         ref={ref}

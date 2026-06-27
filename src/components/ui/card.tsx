@@ -1,31 +1,30 @@
 'use client'
 
-import { forwardRef, type HTMLAttributes } from 'react'
+import { type HTMLAttributes, forwardRef } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { motion, type HTMLMotionProps } from 'motion/react'
 import { cn } from '@/lib/utils'
 
 const cardVariants = cva(
-  'rounded-2xl transition-all duration-200',
+  'rounded-2xl transition-all duration-300',
   {
     variants: {
       variant: {
-        default:
-          'bg-[#1C1C1E] border border-[#2A2826]',
-        glass:
-          'bg-[rgba(20,20,22,0.75)] backdrop-blur-[16px] border border-[rgba(255,255,255,0.06)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
-        elevated:
-          'bg-[linear-gradient(135deg,rgba(28,28,30,0.9),rgba(20,20,22,0.95))] backdrop-blur-[20px] border border-[rgba(255,255,255,0.06)] shadow-[0_4px_24px_rgba(0,0,0,0.3),0_1px_2px_rgba(0,0,0,0.2)]',
-        outline:
-          'bg-transparent border border-[#2A2826]',
+        default: 'bg-[#18181A] border border-[#2C2A28]',
+        glass: 'glass',
+        elevated: 'card-elevated',
+        outline: 'bg-transparent border border-[#2C2A28]',
+        crimson: 'glass-crimson',
+        warm: 'glass-warm',
       },
       padding: {
         none: '',
-        sm: 'p-3',
+        sm: 'p-4',
         md: 'p-5',
         lg: 'p-7',
       },
       hoverable: {
-        true: 'cursor-pointer hover:scale-[1.015] hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]',
+        true: 'cursor-pointer',
         false: '',
       },
     },
@@ -38,15 +37,31 @@ const cardVariants = cva(
 )
 
 export interface CardProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, 'hoverable'>,
-    VariantProps<typeof cardVariants> {}
+  extends HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {
+  as?: 'div' | 'motion.div'
+}
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, hoverable = false, children, ...props }, ref) => {
+  ({ className, variant, padding, hoverable, as = 'div', children, ...props }, ref) => {
+    if (as === 'motion.div') {
+      const MotionDiv = motion.div
+      return (
+        <MotionDiv
+          whileHover={hoverable ? { scale: 1.012, y: -2, transition: { type: 'spring', stiffness: 400, damping: 25 } } : undefined}
+          whileTap={hoverable ? { scale: 0.99 } : undefined}
+          className={cn(cardVariants({ variant, padding, hoverable, className }))}
+          ref={ref}
+          {...(props as unknown as HTMLMotionProps<'div'>)}
+        >
+          {children}
+        </MotionDiv>
+      )
+    }
     return (
       <div
-        ref={ref}
         className={cn(cardVariants({ variant, padding, hoverable, className }))}
+        ref={ref}
         {...props}
       >
         {children}

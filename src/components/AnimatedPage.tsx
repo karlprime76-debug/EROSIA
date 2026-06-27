@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react'
 import { useScrollAnimation } from '@/hooks/use-scroll-animation'
-import { fadeUp, fadeIn, scaleIn, springTransition } from '@/lib/design'
+import { fadeUp, fadeIn, scaleIn, springGentle } from '@/lib/design'
 import { cn } from '@/lib/utils'
 
 interface AnimatedPageProps {
@@ -23,7 +23,7 @@ export function AnimatedPage({ children, className, variant = 'fade-up' }: Anima
       initial="hidden"
       animate="visible"
       variants={variants[variant]}
-      transition={springTransition}
+      transition={springGentle}
       className={cn('flex-1 flex flex-col', className)}
     >
       {children}
@@ -40,7 +40,7 @@ export function AnimatedSection({ children, className }: { children: React.React
       initial="hidden"
       animate={isVisible ? 'visible' : 'hidden'}
       variants={fadeUp}
-      transition={springTransition}
+      transition={springGentle}
       className={className}
     >
       {children}
@@ -71,7 +71,7 @@ export function StaggerItem({ children, className }: { children: React.ReactNode
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 },
       }}
-      transition={springTransition}
+      transition={springGentle}
       className={cn(className)}
     >
       {children}
