@@ -54,24 +54,32 @@ export default function ProfilePage() {
       const file = input.files?.[0]
       if (!file || !profile) return
       setUploading(true)
-      const result = await uploadPhoto(file, profile.id, profile.photos.length)
-      if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-      if (result.url) {
-        const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
-        await updateProfile(profile.id, { photos })
-        setProfile({ ...profile, photos })
-      }
+      try {
+        const result = await uploadPhoto(file, profile.id, profile.photos.length)
+        if (result.error) { toast(result.error, 'error'); setUploading(false); return }
+        if (result.url) {
+          const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
+          const { error: updateErr } = await updateProfile(profile.id, { photos })
+          if (updateErr) { toast(updateErr, 'error'); setUploading(false); return }
+          setProfile({ ...profile, photos })
+          toast('Photo ajoutée', 'success')
+        }
+      } catch { toast('Erreur lors de l\'ajout de la photo', 'error') }
       setUploading(false)
     }
     input.click()
   }
 
+  const [savingProfile, setSavingProfile] = useState(false)
+
   const saveProfile = async () => {
     if (!profile) return
+    setSavingProfile(true)
     const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-    await updateProfile(profile.id, { name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
+    const { error } = await updateProfile(profile.id, { name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
+    if (error) { toast(error, 'error'); setSavingProfile(false); return }
     setProfile({ ...profile, name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
-    setEditing(false)
+    setEditing(false); setSavingProfile(false)
   }
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
@@ -85,15 +93,21 @@ export default function ProfilePage() {
     return `Vu il y a ${h} h`
   }
 
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
+    setUploadingVideo(true)
     const result = await uploadProfileVideo(f)
-    if (result.error) { toast(result.error, 'error'); return }
+    if (result.error) { toast(result.error, 'error'); setUploadingVideo(false); return }
+    toast('Vidéo ajoutée', 'success')
+    setUploadingVideo(false)
     loadProfile()
   }
   const handleDeleteVideo = async () => {
     await deleteProfileVideo()
+    toast('Vidéo supprimée', 'success')
     loadProfile()
   }
 
@@ -124,7 +138,7 @@ export default function ProfilePage() {
     <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
       <header className="flex items-center justify-between px-5 pt-6 pb-3">
         <h2 className="text-3xl font-bold">Mon Profil</h2>
-        <button onClick={() => setEditing(!editing)} className="px-5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 glass-light hover:bg-white/10"
+        <button type="button" onClick={() => setEditing(!editing)} className="px-5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 glass-light hover:bg-white/10"
           style={{ color: editing ? '#9E9488' : '#D92D4A' }}>
           {editing ? 'Annuler' : 'Modifier'}
         </button>
@@ -137,7 +151,7 @@ export default function ProfilePage() {
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
                   {profile?.photos?.[0] ? (
-                    <button onClick={() => setLightboxIdx(0)} className="w-full h-full">
+                    <button type="button" onClick={() => setLightboxIdx(0)} className="w-full h-full">
                       <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
                     </button>
                   ) : (
@@ -145,7 +159,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              <button onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
+              <button type="button" onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#141414]"
                 style={{ background: '#D92D4A' }}>
                 {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
@@ -170,17 +184,17 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-2.5">
               {profile.photos.map((photo, idx) => (
                 <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#262628]">
-                  <button onClick={() => setLightboxIdx(idx)} className="w-full h-full">
+                  <button type="button" onClick={() => setLightboxIdx(idx)} className="w-full h-full">
                     <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
-                      <button onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                      <button type="button" onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
                         <Star size={14} className="text-amber-500" />
                       </button>
                     )}
-                    <button onClick={async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                    <button type="button" onClick={async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
                       className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
                       <Trash2 size={14} className="text-red-500" />
                     </button>
@@ -196,15 +210,15 @@ export default function ProfilePage() {
               {profile?.video_url ? (
                 <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1C1C1E]">
                   <video src={profile.video_url} controls className="w-full h-full object-cover" />
-                  <button onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
+                  <button type="button" onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                     <Trash2 size={14} />
                   </button>
                 </div>
               ) : (
-                <button onClick={() => videoRef.current?.click()}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#6B6258]">
-                  <Camera size={24} />
+                <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo}
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#6B6258] disabled:opacity-40">
+                  {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[#D92D4A] border-t-transparent rounded-full" /> : <Camera size={24} />}
                 </button>
               )}
               <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
@@ -242,8 +256,8 @@ export default function ProfilePage() {
                 <option value="open">Relation libre</option>
               </select>
             </div>
-            <button onClick={saveProfile} className="w-full py-3.5 rounded-full text-white font-semibold" style={{ background: '#D92D4A' }}>
-              Enregistrer
+            <button type="button" onClick={saveProfile} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
+              {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
             </button>
           </div>
         ) : (
