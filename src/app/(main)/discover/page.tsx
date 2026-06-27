@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfiles, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, type Profile } from '@/lib/api'
+import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, type Profile } from '@/lib/api'
+import { useToast } from '@/components/Toast'
+import { useConfirm } from '@/components/ConfirmDialog'
 import { supabase } from '@/lib/supabase/client'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
 
 const SUPER_LIKE_DAILY = 1
+const DISCOVER_PAGE_SIZE = 20
 
 const REPORT_REASONS = ['Compte faux', 'Harcèlement', 'Spam', 'Contenu inapproprié', 'Autre'] as const
 
@@ -27,6 +30,8 @@ export default function DiscoverPage() {
   const [filters, setFilters] = useState({ minAge: 18, maxAge: 99, lookingFor: '', city: '' })
   const [flirtedIds, setFlirtedIds] = useState<string[]>([])
   const [hasSwiped, setHasSwiped] = useState(false)
+  const [dragX, setDragX] = useState(0)
+  const [dragStart, setDragStart] = useState<number | null>(null)
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
@@ -40,7 +45,11 @@ export default function DiscoverPage() {
   const [isPremium, setIsPremium] = useState(false)
   const [myPhoto, setMyPhoto] = useState('')
   const [myId, setMyId] = useState('')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const router = useRouter()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY))
@@ -69,12 +78,14 @@ export default function DiscoverPage() {
 
   useEffect(() => {
     Promise.all([getSwipedIds(), getBlockedIds(), getLastSwipe()])
-      .then(([swiped, blocked, last]) => {
+      .then(async ([swiped, blocked, last]) => {
         setHasSwiped(!!last)
-        return getProfiles([...swiped, ...blocked, myId].filter(Boolean), { minAge: 18, maxAge: 99 })
-      })
-      .then(({ data }) => {
-        if (data) setProfiles(data)
+        const exclude = [...swiped, ...blocked, myId].filter(Boolean)
+        const { data } = await getProfilesPaginated(exclude, 1, { minAge: 18, maxAge: 99 })
+        if (data) {
+          setProfiles(data)
+          setHasMore(data.length >= DISCOVER_PAGE_SIZE)
+        }
         setLoading(false)
       })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => {})
@@ -85,6 +96,25 @@ export default function DiscoverPage() {
       if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
     }).catch(() => {})
   }, [])
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setDragStart(e.clientX)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (dragStart === null) return
+    setDragX(e.clientX - dragStart)
+  }
+
+  const handlePointerUp = () => {
+    if (dragStart === null) return
+    if (dragX > 80) swipe('like')
+    else if (dragX < -80) swipe('pass')
+    setDragX(0)
+    setDragStart(null)
+  }
+
+  const haptic = (ms = 10) => { try { navigator.vibrate(ms) } catch {} }
 
   useEffect(() => {
     if (!profiles.length) return
@@ -107,7 +137,7 @@ export default function DiscoverPage() {
     return () => { cancelled = true }
   }, [profiles.length])
 
-  const fetchProfiles = async (extraBlocked: string[] = []) => {
+  const fetchProfiles = async (extraBlocked: string[] = [], pageNum = 1) => {
     const swiped = await getSwipedIds()
     const blocked = await getBlockedIds()
     const exclude = [...swiped, ...blocked, ...extraBlocked]
@@ -118,7 +148,7 @@ export default function DiscoverPage() {
     } else if (distanceKm !== null && lat !== null && lng !== null) {
       result = await getProfilesNearby(lat, lng, distanceKm, exclude, opts)
     } else {
-      result = await getProfiles(exclude, opts)
+      result = await getProfilesPaginated(exclude, pageNum, { ...opts, minAge: filters.minAge, maxAge: filters.maxAge })
     }
     if (result.data && Object.keys(compatScores).length) {
       result.data.sort((a, b) => {
@@ -135,7 +165,7 @@ export default function DiscoverPage() {
     const p = profiles[idx]
     if (!p) return
     if (!isPremium && swipeCount >= swipeLimit) {
-      alert('Tu as atteint ta limite de swipe du jour. Passe à Premium pour swiper sans limite !')
+      toast('Tu as atteint ta limite de swipe du jour. Passe à Premium pour swiper sans limite !', 'warning')
       router.push('/settings')
       return
     }
@@ -143,11 +173,13 @@ export default function DiscoverPage() {
       if (superLikesLeft <= 0) return
       const result = await consumeSuperLike()
       if (result?.error) {
-        alert("Plus de super like aujourd'hui")
+        toast("Plus de super like aujourd'hui", 'error')
         return
       }
       setSuperLikesLeft((s) => s - 1)
     }
+
+    haptic(dir === 'like' ? 12 : 6)
 
     // Optimistic — advance immediately
     const next = idx + 1
@@ -170,8 +202,14 @@ export default function DiscoverPage() {
         if (isMatch && match) setMatchModal({ profile: p, matchId: match.id })
       }
       if (next >= profiles.length) {
-        const { data } = await fetchProfiles()
-        if (data) setProfiles(data)
+        if (!hasMore) return
+        const nextPage = page + 1
+        setPage(nextPage)
+        const { data } = await fetchProfiles([], nextPage)
+        if (data) {
+          setProfiles(prev => [...prev, ...data])
+          setHasMore(data.length >= DISCOVER_PAGE_SIZE)
+        }
       }
     }, 0)
   }
@@ -189,6 +227,20 @@ export default function DiscoverPage() {
 
   const current = profiles[idx]
 
+  // Keyboard arrows + Escape for modals
+  useEffect(() => {
+    const f = swipe
+    const c = current
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && c) { e.preventDefault(); f('pass') }
+      if (e.key === 'ArrowRight' && c) { e.preventDefault(); f('like') }
+      if (e.key === 'ArrowUp' && c) { e.preventDefault(); f('super_like') }
+      if (e.key === 'Escape') { setShowReportModal(false); setMatchModal(null) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  })
+
   if (loading) return <DiscoverSkeleton />
 
   return (
@@ -202,7 +254,7 @@ export default function DiscoverPage() {
             </span>
           )}
           {hasSwiped && <button onClick={handleRewind} aria-label="Revoir" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><RotateCcw size={18} className="text-[#9E9488]" /></button>}
-          <button onClick={async () => { const r = await undoSuperLike(); if (r.error) alert(r.error); else { setSuperLikesLeft(s => s + 1); alert('Super like annulé') } }} aria-label="Annuler super like" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-indigo-500/30 active:scale-90"><Star size={16} className="text-indigo-400" /></button>
+          <button onClick={async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } }} aria-label="Annuler super like" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-indigo-500/30 active:scale-90"><Star size={16} className="text-indigo-400" /></button>
           <button onClick={() => setShowFilters(!showFilters)} aria-label="Filtres" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><SlidersHorizontal size={18} className="text-[#9E9488]" /></button>
           <button onClick={() => router.push('/matches')} aria-label="Matchs" className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all hover:border-white/20 active:scale-90"><MessageCircle size={18} className="text-[#9E9488]" /></button>
         </div>
@@ -251,9 +303,12 @@ export default function DiscoverPage() {
               className="w-full bg-[#1C1C1E] text-[#F5F0EB] border border-[#2A2826] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#D92D4A] transition-colors" />
           </div>
           <button onClick={async () => {
-            setShowFilters(false); setLoading(true)
-            const { data } = await fetchProfiles()
-            if (data) setProfiles(data)
+            setShowFilters(false); setLoading(true); setPage(1); setHasMore(true)
+            const { data } = await fetchProfiles([], 1)
+            if (data) {
+              setProfiles(data)
+              setHasMore(data.length >= DISCOVER_PAGE_SIZE)
+            }
             setLoading(false)
           }}
             className="w-full py-3 rounded-full text-white font-semibold text-sm transition-all active:scale-95 hover:shadow-[0_0_20px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
@@ -272,6 +327,12 @@ export default function DiscoverPage() {
             <p className="text-[#6B6258] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens plus tard ou modifie tes filtres</p>
           </div>
         ) : (
+          <div className="touch-none select-none w-full max-w-sm"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            style={dragStart !== null ? { transform: `translateX(${dragX}px) rotate(${dragX * 0.05}deg)`, transition: 'none' } : undefined}>
           <TiltCard className={`w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-xl shadow-black/50 bg-[#1C1C1E] sensual-border animate-scale-in transition-all duration-300 ${
             swipeAnim === 'left' ? 'opacity-0 -translate-x-48 rotate-12 scale-90' : swipeAnim === 'right' ? 'opacity-0 translate-x-48 -rotate-12 scale-90' : ''
           }`}>
@@ -315,7 +376,7 @@ export default function DiscoverPage() {
               )}
               <button onClick={async () => {
                 if (!current) return
-                if (confirm('Bloquer ce profil ?')) {
+                if (await confirm('Bloquer ce profil ?')) {
                   await blockProfile(current.id)
                   const { data } = await fetchProfiles([current.id])
                   if (data) setProfiles(data)
@@ -355,12 +416,13 @@ export default function DiscoverPage() {
               </button>
             </div>
           </TiltCard>
+          </div>
         )}
       </div>
 
       {showReportModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-          <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center animate-scale-in">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm" onClick={() => setShowReportModal(false)}>
+          <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center animate-scale-in" onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-2">Signaler ce profil</h2>
             <p className="text-[#9E9488] text-sm mb-5">Pour quelle raison ?</p>
             <div className="space-y-2">
@@ -370,9 +432,9 @@ export default function DiscoverPage() {
                   const { error } = await reportProfile(current.id, reason)
                   setShowReportModal(false)
                   if (error) {
-                    alert('Erreur lors du signalement')
+                    toast('Erreur lors du signalement', 'error')
                   } else {
-                    alert('Signalement envoyé')
+                    toast('Signalement envoyé', 'success')
                   }
                 }}
                   className="w-full py-3 rounded-lg text-sm font-medium bg-white/5 text-[#F5F0EB] hover:bg-white/10 transition-all border border-white/5">
@@ -388,7 +450,7 @@ export default function DiscoverPage() {
       )}
 
       {matchModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm" onClick={() => setMatchModal(null)}>
           <MatchBurst />
           <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center animate-scale-in relative z-10">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#A8102A] mx-auto mb-5 flex items-center justify-center shadow-[0_0_30px_rgba(217,45,74,0.3)]">

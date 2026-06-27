@@ -20,6 +20,7 @@ export default function DuelsPage() {
   const router = useRouter()
   const [duels, setDuels] = useState<DuelItem[]>([])
   const [myId, setMyId] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -27,7 +28,8 @@ export default function DuelsPage() {
     }).catch(() => {})
     getDuels().then(({ data }) => {
       if (data) setDuels(data as DuelItem[])
-    }).catch(() => {})
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
   const hasVoted = (duel: DuelItem) => duel.votes?.some(v => v.voter_id === myId)
@@ -51,7 +53,9 @@ export default function DuelsPage() {
         </button>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
-        {duels.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
+        ) : duels.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Swords size={40} className="text-[#6B6258] mb-3" />
             <p className="text-[#9E9488] text-sm">Aucun duel pour le moment</p>

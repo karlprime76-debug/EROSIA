@@ -6,7 +6,8 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
 import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
-import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff } from 'lucide-react'
+import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 interface Icebreaker {
   id: string
@@ -77,10 +78,13 @@ export default function ChatPage() {
   const [now, setNow] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const [isNearBottom, setIsNearBottom] = useState(true)
   const [typingUserId, setTypingUserId] = useState<string | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const lastTypingBroadcast = useRef(0)
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null)
+  const { confirm } = useConfirm()
   const [isSelfChat, setIsSelfChat] = useState(false)
   const [icebreakers, setIcebreakers] = useState<Icebreaker[]>([])
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
@@ -298,8 +302,17 @@ export default function ChatPage() {
     }
   }, [id, currentUser?.id])
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+  useEffect(() => {
+    if (isNearBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isNearBottom])
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000)
+    const el = bottomRef.current
+    if (!el) return () => clearInterval(t)
+    const obs = new IntersectionObserver(([entry]) => setIsNearBottom(entry.isIntersecting), { rootMargin: '100px' })
+    obs.observe(el)
+    return () => { clearInterval(t); obs.disconnect() }
+  }, [])
 
   useEffect(() => {
     const channel = supabase.channel(`call:${id}`)
@@ -366,6 +379,7 @@ export default function ChatPage() {
     if (!text.trim()) return
     const msg = text.trim()
     setText('')
+    try { navigator.vibrate(5) } catch {}
     await sendMessage(id, msg)
   }
 
@@ -428,7 +442,7 @@ export default function ChatPage() {
   }
 
   const handleUnmatch = async () => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
+    if (await confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
       await unmatchUser(id)
       router.push('/matches')
     }
@@ -566,7 +580,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && icebreakers.length > 0 && (
           <div className="px-4 py-4 animate-fade-up">
             <p className="text-xs text-[#9E9488] mb-3 font-medium uppercase tracking-wider">Pour briser la glace</p>
@@ -684,6 +698,13 @@ export default function ChatPage() {
         })}
         <div ref={bottomRef} />
       </div>
+
+      {!isNearBottom && (
+        <button type="button" onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
+          className="fixed bottom-24 right-6 w-10 h-10 rounded-full bg-[#D92D4A] shadow-lg shadow-black/40 flex items-center justify-center z-20 animate-scale-in active:scale-90 transition-all">
+          <ChevronDown size={20} />
+        </button>
+      )}
 
       {typingUserId && (
         <div className="text-xs text-[#9E9488] px-4 py-2 italic animate-pulse flex items-center gap-2">

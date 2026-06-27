@@ -9,6 +9,9 @@ export async function POST(request: Request) {
     if (!email || !password || !name) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
+    if (!age || typeof age !== 'number' || age < 18 || age > 120) {
+      return NextResponse.json({ error: 'Âge invalide. Tu dois avoir au moins 18 ans.' }, { status: 400 })
+    }
 
     const supabase = await createClient()
 

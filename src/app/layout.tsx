@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { SensualBackground } from "@/components/3d/SensualBackground"
 import SwRegister from "@/components/SwRegister"
+import { ToastProvider } from '@/components/Toast'
+import { ConfirmProvider } from '@/components/ConfirmDialog'
 
 export const metadata: Metadata = {
   title: "Erosia",
@@ -24,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-black text-[#F5F0EB]">
         <SensualBackground />
         <SwRegister />
-        <div className="relative z-10 flex-1 flex flex-col">{children}</div>
+        <div className="relative z-10 flex-1 flex flex-col"><ToastProvider><ConfirmProvider>{children}</ConfirmProvider></ToastProvider></div>
       </body>
     </html>
   )

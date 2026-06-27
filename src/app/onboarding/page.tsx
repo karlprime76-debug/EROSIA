@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Camera, Check, ChevronRight, Shield, Sparkles, Image as ImageIcon } from 'lucide-react'
 import { uploadPhoto, updateProfile, completeOnboarding, type LookingFor } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 const STEPS = ['Photos', 'Profil', 'Vérification', 'Terminé']
 
@@ -21,6 +23,7 @@ export default function OnboardingPage() {
   const [verifUploading, setVerifUploading] = useState(false)
   const [verifDone, setVerifDone] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function OnboardingPage() {
     if (!file || !userId) return
     setUploading(true)
     const result = await uploadPhoto(file, userId, photos.length)
-    if (result.error) { alert(result.error); setUploading(false); return }
+    if (result.error) { toast(result.error, 'error'); setUploading(false); return }
     if (result.url) {
       setPhotos(prev => [...prev, result.url!])
       await updateProfile(userId, { photos: [...photos, result.url] })
@@ -50,7 +53,7 @@ export default function OnboardingPage() {
     const ext = file.name.split('.').pop() ?? 'jpg'
     const fileName = `verification/${userId}/${Date.now()}.${ext}`
     const { error: uploadError } = await supabase.storage.from('verification_photos').upload(fileName, file)
-    if (uploadError) { alert(uploadError.message); setVerifUploading(false); return }
+    if (uploadError) { toast(uploadError.message, 'error'); setVerifUploading(false); return }
     const { data: urlData } = supabase.storage.from('verification_photos').getPublicUrl(fileName)
     setVerifPhoto(urlData.publicUrl)
     await supabase.from('verification_requests').insert({
@@ -104,7 +107,7 @@ export default function OnboardingPage() {
             <div className="flex gap-3 flex-wrap justify-center mb-6">
               {photos.map((photo, i) => (
                 <div key={i} className="w-24 h-32 rounded-xl overflow-hidden bg-[#1C1C1E] border border-[#2A2826]">
-                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                  <Image src={photo} alt="" width={96} height={128} className="w-full h-full object-cover" />
                 </div>
               ))}
               {photos.length < 6 && (
@@ -129,8 +132,9 @@ export default function OnboardingPage() {
             <div className="flex-1 space-y-4 pt-4">
               <div>
                 <label className="text-xs text-[#9E9488] font-medium mb-1.5 block">Bio</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Parle un peu de toi..."
+                <textarea value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={3} placeholder="Parle un peu de toi..."
                   className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
+                <p className="text-[10px] text-[#6B6258] text-right mt-1">{bio.length}/500</p>
               </div>
               <div>
                 <label className="text-xs text-[#9E9488] font-medium mb-1.5 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
@@ -171,7 +175,7 @@ export default function OnboardingPage() {
 
             {verifPhoto ? (
               <div className="w-48 h-48 rounded-2xl overflow-hidden bg-[#1C1C1E] border-2 border-[#22C55E] mb-4">
-                <img src={verifPhoto} alt="Selfie" className="w-full h-full object-cover" />
+                <Image src={verifPhoto} alt="Selfie" width={192} height={192} className="w-full h-full object-cover" />
               </div>
             ) : (
               <button onClick={() => document.getElementById('verif-input')?.click()} disabled={verifUploading}

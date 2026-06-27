@@ -7,6 +7,7 @@ import { Heart, MessageCircle, Eye, X, Flame, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getReceivedFlirts, unmatchUser, getStreak, getDailySwipeCount, type Profile } from '@/lib/api'
 import { MatchesSkeleton } from '@/components/Skeleton'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 interface Conversation {
   matchId: string
@@ -25,6 +26,7 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true)
   const [streak, setStreak] = useState(0)
   const [swipesLeft, setSwipesLeft] = useState(0)
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     ;(async () => {
@@ -63,7 +65,7 @@ export default function MatchesPage() {
   const handleUnmatch = async (matchId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (confirm('Supprimer ce match ?')) {
+    if (await confirm('Supprimer ce match ?')) {
       await unmatchUser(matchId)
       setConvs(prev => prev.filter(c => c.matchId !== matchId))
     }

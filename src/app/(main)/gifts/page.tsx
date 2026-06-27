@@ -6,6 +6,7 @@ import { ArrowLeft, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpR
 import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
 import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
 interface MatchItem { id: string; user1_id: string; user2_id: string }
@@ -19,6 +20,7 @@ const countries = getCountries()
 function GiftsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { toast } = useToast()
   const [gifts, setGifts] = useState<GiftItem[]>([])
   const [matches, setMatches] = useState<MatchItem[]>([])
   const [myId, setMyId] = useState('')
@@ -47,46 +49,55 @@ function GiftsContent() {
 
   useEffect(() => {
     if (searchParams.get('success') === '1') {
-      alert('Paiement réussi ! Le cadeau a été envoyé.')
+      toast('Paiement réussi ! Le cadeau a été envoyé.', 'success')
       router.replace('/gifts')
     }
   }, [searchParams, router])
 
+  const [initialLoad, setInitialLoad] = useState(false)
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => { if (data.user) setMyId(data.user.id) }).catch(() => {})
-    getGifts().then(({ data }) => { if (data) setGifts(data) }).catch(() => {})
-    getMatches().then(async ({ data }) => {
-      if (data) {
-        setMatches(data)
-        const otherIds = data.map(m => m.user1_id === myId ? m.user2_id : m.user1_id).filter(Boolean)
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      setMyId(data.user.id)
+      const uid = data.user.id
+      const [giftsData, receivedData, payAcc] = await Promise.all([
+        getGifts(),
+        getReceivedGifts(),
+        getPaymentAccount(),
+      ])
+      if (giftsData.data) setGifts(giftsData.data)
+      if (receivedData.data) setReceived(receivedData.data as typeof received)
+      if (payAcc) {
+        setSavedPayMethod(payAcc.type as 'mobile_money' | 'card')
+        if (payAcc.type === 'mobile_money') {
+          setPayPhone(payAcc.phone ?? ''); setPayOperator(payAcc.operator ?? 'Orange Money'); setPayCountry(payAcc.country ?? 'SN'); setPaySaved(true)
+        } else if (payAcc.type === 'card') {
+          setPayCardLast4(payAcc.card_last4 ?? ''); setPayCardBrand(payAcc.card_brand ?? ''); setPaySaved(true)
+        }
+      }
+      const [matchData, balance, txns] = await Promise.all([
+        getMatches(),
+        getGiftBalance(),
+        getGiftTransactions(),
+      ])
+      if (matchData.data) {
+        setMatches(matchData.data)
+        const otherIds = matchData.data.map(m => m.user1_id === uid ? m.user2_id : m.user1_id).filter(Boolean)
         if (otherIds.length > 0) {
-          try {
-            const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', otherIds)
-            if (profiles) {
-              const names: Record<string, string> = {}
-              for (const p of profiles) names[p.id] = p.name
-              setMatchNames(names)
-            }
-          } catch {}
+          const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', otherIds)
+          if (profiles) {
+            const names: Record<string, string> = {}
+            for (const p of profiles) names[p.id] = p.name
+            setMatchNames(names)
+          }
         }
       }
+      setBalance(balance)
+      if (txns.data) setTransactions(txns.data)
+      setInitialLoad(true)
     }).catch(() => {})
-    getReceivedGifts().then(({ data }) => { setReceived(data as typeof received) }).catch(() => {})
-    getPaymentAccount().then(acc => {
-      if (acc) {
-        setSavedPayMethod(acc.type as 'mobile_money' | 'card')
-        if (acc.type === 'mobile_money') {
-          setPayPhone(acc.phone ?? ''); setPayOperator(acc.operator ?? 'Orange Money'); setPayCountry(acc.country ?? 'SN'); setPaySaved(true)
-        } else if (acc.type === 'card') {
-          setPayCardLast4(acc.card_last4 ?? ''); setPayCardBrand(acc.card_brand ?? ''); setPaySaved(true)
-        }
-      }
-    }).catch(() => {})
-    if (myId) {
-      getGiftBalance().then(setBalance).catch(() => {})
-      getGiftTransactions().then(r => { if (r.data) setTransactions(r.data) }).catch(() => {})
-    }
-  }, [myId])
+  }, [])
 
   const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
   const selectedGiftData = gifts.find(g => g.id === selectedGift)
@@ -98,13 +109,13 @@ function GiftsContent() {
     if (!match) return
     const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
     if (result.sent) {
-      alert('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.')
+      toast('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.', 'success')
       setSelectedGift(null)
       setSending(false)
       return
     }
     if (result.url) { window.location.href = result.url; return }
-    alert(result.error ?? 'Erreur de paiement')
+    toast(result.error ?? 'Erreur de paiement', 'error')
     setSending(false)
   }
 
@@ -113,8 +124,8 @@ function GiftsContent() {
     if (!amount || amount <= 0 || amount > balance) return
     setPayoutProcessing(true)
     const { error, message } = await requestPayout(amount)
-    if (error) { alert(error); setPayoutProcessing(false); return }
-    alert(message ?? `Retrait de ${fmt(amount)} F effectué !`)
+    if (error) { toast(error, 'error'); setPayoutProcessing(false); return }
+    toast(message ?? `Retrait de ${fmt(amount)} F effectué !`, 'success')
     setShowPayoutModal(false)
     setPayoutAmount('')
     setPayoutProcessing(false)
@@ -128,18 +139,24 @@ function GiftsContent() {
     if (payMethod === 'mobile_money') {
       if (!payPhone || payPhone.length < 8) return
       const { error } = await savePaymentAccount({ type: 'mobile_money', phone: payPhone, operator: payOperator, country: payCountry })
-      if (error) { alert(error); return }
+      if (error) { toast(error, 'error'); return }
     } else {
       const last4 = prompt('Les 4 derniers chiffres de ta carte :')
       if (!last4 || last4.length < 4) return
       const brand = prompt('Marque (Visa, Mastercard...) :') || 'Carte'
       const { error } = await savePaymentAccount({ type: 'card', card_last4: last4, card_brand: brand })
-      if (error) { alert(error); return }
+      if (error) { toast(error, 'error'); return }
       setPayCardLast4(last4); setPayCardBrand(brand)
     }
     setPaySaved(true)
     setShowPaymentConfig(false)
   }
+
+  if (!initialLoad) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+    </div>
+  )
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">

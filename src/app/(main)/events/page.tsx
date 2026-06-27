@@ -21,6 +21,7 @@ export default function EventsPage() {
   const router = useRouter()
   const [events, setEvents] = useState<EventItem[]>([])
   const [myId, setMyId] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -28,7 +29,8 @@ export default function EventsPage() {
     }).catch(() => {})
     getEvents().then(({ data }) => {
       if (data) setEvents(data as EventItem[])
-    }).catch(() => {})
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
   const isJoined = (e: EventItem) => e.participants?.some(p => p.user_id === myId && p.status === 'accepted')
@@ -58,7 +60,9 @@ export default function EventsPage() {
         </button>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-3">
-        {events.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
+        ) : events.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-[#9E9488] text-sm">Aucun événement à venir</p>
             <p className="text-[#6B6258] text-xs mt-1">Sois le premier à créer une antenne</p>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Plus, Trash2, Lock } from 'lucide-react'
 import { getActiveStories, uploadStory, deleteStory, checkPremium } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface Story {
   id: string
@@ -22,6 +23,7 @@ export default function StoriesPage() {
   const [uploading, setUploading] = useState(false)
   const [now, setNow] = useState(0)
   const [isPremium, setIsPremium] = useState(false)
+  const { toast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function StoriesPage() {
     if (!f) return
     setUploading(true)
     const result = await uploadStory(f)
-    if (result.error) { alert(result.error); setUploading(false); return }
+    if (result.error) { toast(result.error, 'error'); setUploading(false); return }
     setUploading(false)
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
@@ -65,7 +67,7 @@ export default function StoriesPage() {
             <Plus size={18} />
           </button>
         ) : (
-          <button onClick={() => { alert('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.'); router.push('/settings') }} title="Premium requis"
+          <button onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
             className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628] hover:bg-[#2A2826] transition-all active:scale-90">
             <Lock size={16} className="text-[#6B6258]" />
           </button>

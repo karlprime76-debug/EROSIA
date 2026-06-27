@@ -7,6 +7,7 @@ import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
+import { useToast } from '@/components/Toast'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -22,6 +23,7 @@ export default function ProfilePage() {
   const [streak, setStreak] = useState(0)
   const [themePicker, setThemePicker] = useState(false)
   const videoRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function ProfilePage() {
       if (!file || !profile) return
       setUploading(true)
       const result = await uploadPhoto(file, profile.id, profile.photos.length)
-      if (result.error) { alert(result.error); setUploading(false); return }
+      if (result.error) { toast(result.error, 'error'); setUploading(false); return }
       if (result.url) {
         const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
         await updateProfile(profile.id, { photos })
@@ -86,7 +88,7 @@ export default function ProfilePage() {
     const f = e.target.files?.[0]
     if (!f) return
     const result = await uploadProfileVideo(f)
-    if (result.error) { alert(result.error); return }
+    if (result.error) { toast(result.error, 'error'); return }
     loadProfile()
   }
   const handleDeleteVideo = async () => {
@@ -213,8 +215,9 @@ export default function ProfilePage() {
           <div className="space-y-4 mb-4">
             <div>
               <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
-              <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} rows={4}
+              <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={4}
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] resize-none" />
+              <p className="text-[10px] text-[#6B6258] text-right mt-1">{bio.length}/500</p>
             </div>
             <div>
               <label htmlFor="profile-interests" className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>

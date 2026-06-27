@@ -21,14 +21,17 @@ export default function DateIdeasPage() {
   const [ideas, setIdeas] = useState<DateIdea[]>([])
   const [myIdeaIds, setMyIdeaIds] = useState<Set<string>>(new Set())
   const [category, setCategory] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getDateIdeas(category || undefined).then(({ data }) => {
-      if (data) setIdeas(data as DateIdea[])
-    }).catch(() => {})
-    getMyDateIdeas().then(({ data }) => {
-      if (data) setMyIdeaIds(new Set((data as MyDateIdea[]).map(m => m.idea_id)))
-    }).catch(() => {})
+    Promise.all([
+      getDateIdeas(category || undefined),
+      getMyDateIdeas(),
+    ]).then(([ideasData, myData]) => {
+      if (ideasData.data) setIdeas(ideasData.data as DateIdea[])
+      if (myData.data) setMyIdeaIds(new Set((myData.data as MyDateIdea[]).map(m => m.idea_id)))
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [category])
 
   const toggle = async (ideaId: string) => {
@@ -64,18 +67,22 @@ export default function DateIdeasPage() {
         </div>
       </div>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-3">
-          {ideas.map(idea => (
-            <button key={idea.id} onClick={() => toggle(idea.id)}
-              className={`bg-[#1C1C1E] rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-[#D92D4A]' : 'border-[#2A2826]'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-2xl">{idea.emoji || '💝'}</span>
-                <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-[#D92D4A] fill-[#D92D4A]' : 'text-[#6B6258]'} />
-              </div>
-              <p className="text-xs font-medium">{idea.idea}</p>
-            </button>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {ideas.map(idea => (
+              <button key={idea.id} onClick={() => toggle(idea.id)}
+                className={`bg-[#1C1C1E] rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-[#D92D4A]' : 'border-[#2A2826]'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">{idea.emoji || '💝'}</span>
+                  <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-[#D92D4A] fill-[#D92D4A]' : 'text-[#6B6258]'} />
+                </div>
+                <p className="text-xs font-medium">{idea.idea}</p>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

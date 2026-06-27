@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Flame, Heart, Bell, User, Film } from 'lucide-react'
@@ -36,10 +36,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, [])
 
   const isActive = (href: string) => pathname.startsWith(href)
+  const prevPath = useRef(pathname)
+  const [animKey, setAnimKey] = useState(0)
+  useEffect(() => {
+    if (prevPath.current !== pathname) {
+      prevPath.current = pathname
+      setAnimKey(k => k + 1)
+    }
+  }, [pathname])
 
   return (
     <div className="flex-1 flex flex-col w-full min-h-screen relative">
-      <main className="flex-1 flex flex-col relative z-10" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</main>
+      <main key={animKey} className="flex-1 flex flex-col relative z-10 animate-fade-up" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</main>
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-20 w-full max-w-lg
         flex items-center justify-around border-t border-white/5 bg-black/60 backdrop-blur-2xl px-2 pb-2 pt-2
         shadow-[0_-8px_32px_rgba(0,0,0,0.5)] rounded-t-3xl"

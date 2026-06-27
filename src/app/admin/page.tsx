@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import Image from 'next/image'
 import { getModerationQueue, reviewContent } from '@/lib/api'
 import { Smartphone, Gift, Users, ShieldAlert, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 
 interface VerificationRequest {
   id: string; user_id: string; photo_url: string; status: string; created_at: string
@@ -22,6 +24,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<{ totalGifts: number; totalUsers: number; pendingVerifs: number; pendingPayouts: number; totalPayoutsAll: number } | null>(null)
   const [payouts, setPayouts] = useState<Array<{ id: string; user_id: string; user_name: string; amount_cents: number; payment_details: string; status: string; created_at: string }>>([])
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   const loadData = async () => {
     const { data: vData } = await supabase
@@ -61,7 +64,7 @@ export default function AdminPage() {
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
     const { error: updateError } = await supabase
       .from('verification_requests').update({ status: approved ? 'approved' : 'rejected' }).eq('id', reqId)
-    if (updateError) return alert(updateError.message)
+    if (updateError) return toast(updateError.message, 'error')
     if (approved) await supabase.from('profiles').update({ is_verified: true }).eq('id', userId)
     setVerifications(v => v.filter(r => r.id !== reqId))
   }
@@ -77,7 +80,7 @@ export default function AdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ txId, status }),
     })
-    if (!res.ok) { const d = await res.json(); alert(d.error); return }
+    if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     setPayouts(p => p.filter(tx => tx.id !== txId))
   }
 
@@ -151,7 +154,7 @@ export default function AdminPage() {
             <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-[#1C1C1E] flex items-center justify-center shrink-0 overflow-hidden">
                 {req.photo_url ? (
-                  <img src={req.photo_url} alt="" className="w-full h-full object-cover" />
+                  <Image src={req.photo_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
                 ) : (
                   <ShieldAlert size={20} className="text-[#6B6258]" />
                 )}

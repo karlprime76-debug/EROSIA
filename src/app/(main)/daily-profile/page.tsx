@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Star } from 'lucide-react'
 import { getDailyProfile, checkForMatch, createSwipe } from '@/lib/api'
 import Image from 'next/image'
+import { useToast } from '@/components/Toast'
 
 function DailyProfileContent() {
   const router = useRouter()
+  const { toast } = useToast()
   const [liking, setLiking] = useState(false)
   const [profilePromise, setProfilePromise] = useState(() => getDailyProfile())
   const { data: profile } = use(profilePromise)
@@ -32,7 +34,7 @@ function DailyProfileContent() {
     setLiking(true)
     await createSwipe(profile.id, 'like')
     const { isMatch } = await checkForMatch(profile.id)
-    if (isMatch) alert('C\'est un match ! 🔥')
+    if (isMatch) toast('C\'est un match ! 🔥', 'success')
     setProfilePromise(getDailyProfile())
     setLiking(false)
   }
