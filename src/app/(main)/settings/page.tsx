@@ -2,7 +2,7 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut, User, Check, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, signOut } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
@@ -23,6 +23,10 @@ export default function SettingsPage() {
   const [upgradeError, setUpgradeError] = useState('')
   const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState('')
+  const [profileName, setProfileName] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
@@ -37,8 +41,9 @@ export default function SettingsPage() {
     getGhostMode().then(setGhostMode)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase.from('profiles').select('visibility, notif_push, notif_email').eq('id', user.id).single().then(({ data }) => {
+      supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).single().then(({ data }) => {
         if (data) {
+          if (data.name) { setProfileName(data.name); setNameValue(data.name) }
           if (data.visibility) setVisibility(data.visibility)
           if (data.notif_push !== null) setNotifPush(data.notif_push)
           if (data.notif_email !== null) setNotifEmail(data.notif_email)
@@ -178,6 +183,41 @@ export default function SettingsPage() {
     {
       title: 'Compte',
       items: [
+        {
+          icon: User, label: 'Mon pseudo',
+          desc: profileName || '—',
+          render: () => editingName ? (
+            <div className="flex items-center gap-1 mt-2">
+              <input value={nameValue} onChange={e => setNameValue(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    if (!nameValue.trim() || nameValue.trim().length < 2) return
+                    setSavingName(true)
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
+                    setSavingName(false); setEditingName(false)
+                  }
+                  if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
+                }}
+                className="flex-1 rounded-lg bg-[#262628] border border-[#2A2826] px-3 py-2 text-sm text-white outline-none focus:border-[#D92D4A]"
+                autoFocus maxLength={80}
+              />
+              <button onClick={async () => {
+                if (!nameValue.trim() || nameValue.trim().length < 2) return
+                setSavingName(true)
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
+                setSavingName(false); setEditingName(false)
+              }} disabled={savingName}
+                className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
+              <button onClick={() => { setNameValue(profileName); setEditingName(false) }}
+                className="rounded-full p-1.5 text-[#6B6258] hover:bg-[#262628]"><X size={16} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setEditingName(true)}
+              className="mt-1 text-xs text-[#D92D4A] font-medium">Modifier</button>
+          ),
+        },
         {
           icon: ShieldIcon, label: 'Centre d\'aide',
           onClick: () => window.open('mailto:support@erosia.app', '_blank'),

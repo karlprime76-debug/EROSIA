@@ -490,7 +490,7 @@ export default function ChatPage() {
             <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#4A4238]'}`} />
           </div>
           <div>
-            <p className="font-semibold text-sm">{otherProfile?.name ?? 'Utilisateur'}</p>
+            <p className="font-semibold text-sm">{otherProfile?.name || 'Utilisateur'}</p>
             {otherProfile?.last_seen && !isOnline && (
               <p className="text-[10px] text-[#6B6258]">{formatLastSeen(otherProfile.last_seen)}</p>
             )}
