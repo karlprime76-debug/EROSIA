@@ -349,11 +349,13 @@ export default function ProfilePage() {
                     const html = document.documentElement
                     if (mode === 'system') {
                       localStorage.removeItem('erosia_theme')
-                      html.classList.remove('dark')
+                      html.classList.remove('light', 'dark')
                       if (window.matchMedia('(prefers-color-scheme: dark)').matches) html.classList.add('dark')
+                      else html.classList.add('light')
                     } else {
                       localStorage.setItem('erosia_theme', mode)
-                      html.classList.toggle('dark', mode === 'dark')
+                      html.classList.remove('light', 'dark')
+                      html.classList.add(mode)
                     }
                     setThemePicker(false)
                   }}
