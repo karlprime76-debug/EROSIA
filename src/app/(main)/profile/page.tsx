@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [nameValue, setNameValue] = useState('')
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
@@ -33,7 +34,7 @@ export default function ProfilePage() {
       if (!user) { setLoading(false); return }
       const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
       const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).single()
-      if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+      if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       setLoading(false)
     })()
     return () => clearTimeout(timer)
@@ -43,7 +44,7 @@ export default function ProfilePage() {
     if (!user) return
     const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
     const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).single()
-    if (data) { setProfile(data as Profile); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+    if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
   }
   const handlePhoto = async () => {
     const input = document.createElement('input')
@@ -68,8 +69,8 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!profile) return
     const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-    await updateProfile(profile.id, { bio, interests: interestsArr, looking_for: lookingFor })
-    setProfile({ ...profile, bio, interests: interestsArr, looking_for: lookingFor })
+    await updateProfile(profile.id, { name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
+    setProfile({ ...profile, name: nameValue.trim() || profile.name, bio, interests: interestsArr, looking_for: lookingFor })
     setEditing(false)
   }
 
@@ -213,6 +214,12 @@ export default function ProfilePage() {
 
         {editing ? (
           <div className="space-y-4 mb-4">
+            <div>
+              <label htmlFor="profile-name" className="text-sm font-medium mb-1 block">Pseudo</label>
+              <input id="profile-name" value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))} placeholder="Ton pseudo"
+                maxLength={80} className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
+              <p className="text-[10px] text-[#6B6258] text-right mt-1">{nameValue.length}/80</p>
+            </div>
             <div>
               <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
               <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={4}
