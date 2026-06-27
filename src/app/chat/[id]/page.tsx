@@ -134,8 +134,8 @@ export default function ChatPage() {
   }, [id])
 
   const handleIcebreaker = async (text: string) => {
-    await sendMessage(id, text)
-    loadMessages()
+    const { data: sent } = await sendMessage(id, text)
+    if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
   }
 
   const handleAIIcebreaker = async () => {
@@ -380,7 +380,8 @@ export default function ChatPage() {
     const msg = text.trim()
     setText('')
     try { navigator.vibrate(5) } catch {}
-    await sendMessage(id, msg)
+    const { data: sent } = await sendMessage(id, msg)
+    if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
   }
 
   const handlePhoto = () => fileRef.current?.click()
@@ -490,7 +491,7 @@ export default function ChatPage() {
             <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#4A4238]'}`} />
           </div>
           <div>
-            <p className="font-semibold text-sm">{otherProfile?.name || 'Utilisateur'}</p>
+            <p className="font-semibold text-sm">{otherProfile?.name || 'Match'}</p>
             {otherProfile?.last_seen && !isOnline && (
               <p className="text-[10px] text-[#6B6258]">{formatLastSeen(otherProfile.last_seen)}</p>
             )}
@@ -598,7 +599,7 @@ export default function ChatPage() {
             </button>
             {aiSuggestion && (
               <div className="mt-2">
-                <button type="button" onClick={() => { sendMessage(id, aiSuggestion); setAiSuggestion(null); }}
+                <button type="button" onClick={async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); }}
                   className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
                   ✨ {aiSuggestion}
                 </button>
