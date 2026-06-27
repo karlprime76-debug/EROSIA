@@ -32,6 +32,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Stories → Premium** redirection
 - **Subscription type** strict dans settings
 
+## Session 4 (corrections robustesse)
+- **updateProfile** — ajout `.select().maybeSingle()` pour confirmer l'update ; retour `{ data }` / `{ error: message }`
+- **saveProfile** — encapsulé dans `try/catch` (profil page)
+- **Supabase client** — `{ isSingleton: true }` explicite via `createBrowserClient`
+- **api.ts** — `supabase()` ré-exporte directement le singleton `sbClient` de `client.ts`
+
 ## Session 3 (10 améliorations)
 - **Middleware** — `src/middleware.ts` avec `createServerClient`, protection routes privées, redirect `/login` si non auth
 - **Email confirmation** — register API utilise `auth.signUp()` au lieu de `admin.createUser()` (envoi email)
