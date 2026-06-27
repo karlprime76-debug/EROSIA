@@ -10,6 +10,7 @@ function makeChain() {
     order: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     update: vi.fn(() => chain),
+    count: 0,
   }
   return chain
 }
