@@ -197,10 +197,15 @@ export default function SettingsPage() {
                   onKeyDown={async (e) => {
                     if (e.key === 'Enter') {
                       if (!nameValue.trim() || nameValue.trim().length < 2) return
-                      setSavingName(true)
-                      const { data: { user } } = await supabase.auth.getUser()
-                      if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
-                      setSavingName(false); setEditingName(false)
+                      try {
+                        setSavingName(true)
+                        const { data: { user } } = await supabase.auth.getUser()
+                        if (!user) { setSavingName(false); return }
+                        const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
+                        if (error) { console.error(error); setSavingName(false); return }
+                        setProfileName(nameValue.trim())
+                        setSavingName(false); setEditingName(false)
+                      } catch (err) { console.error(err); setSavingName(false) }
                     }
                     if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
                   }}
@@ -211,10 +216,15 @@ export default function SettingsPage() {
               </div>
               <button type="button" aria-label="Enregistrer" onClick={() => { (async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
-                setSavingName(true)
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
-                setSavingName(false); setEditingName(false)
+                try {
+                  setSavingName(true)
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (!user) { setSavingName(false); return }
+                  const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
+                  if (error) { console.error(error); setSavingName(false); return }
+                  setProfileName(nameValue.trim())
+                  setSavingName(false); setEditingName(false)
+                } catch (err) { console.error(err); setSavingName(false) }
               })().catch(console.error) }} disabled={savingName}
                 className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
               <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}

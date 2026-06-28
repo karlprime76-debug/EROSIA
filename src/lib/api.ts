@@ -150,6 +150,7 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
   if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
   const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id).select().maybeSingle()
   if (error) return { error: error.message }
+  if (!data) return { error: 'Impossible de mettre à jour le profil. Réessaie.' }
   return { data }
 }
 
@@ -464,13 +465,18 @@ export async function getCompatibilityBatch(otherUserIds: string[]) {
 // 9. Typing indicator (no SQL, uses Realtime channels)
 
 // ---- FEATURE 1: Premium / PayDunya ----
-export async function createCheckoutSession() {
-  const res = await fetch('/api/paydunya/create-checkout', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-  })
-  const data = await res.json()
-  if (!res.ok) return { error: data.error }
-  return { url: data.url as string }
+export async function createCheckoutSession(): Promise<{ url?: string; error?: string }> {
+  try {
+    const res = await fetch('/api/paydunya/create-checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error || 'Erreur de paiement' }
+    if (!data.url) return { error: 'URL de paiement manquante' }
+    return { url: data.url as string }
+  } catch {
+    return { error: 'Erreur réseau. Vérifie ta connexion.' }
+  }
 }
 
 export async function getSubscriptionStatus() {
@@ -1075,15 +1081,20 @@ export async function getPaymentAccount() {
 
 // ---- GIFT PAYMENT ----
 export async function createGiftCheckout(giftId: string, receiverId: string, matchId: string, message?: string, phone?: string, operator?: string) {
-  const res = await fetch('/api/paydunya/create-gift-checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ giftId, receiverId, matchId, message, phone, operator }),
-  })
-  const data = await res.json()
-  if (!res.ok) return { error: data.error }
-  if (data.sent) return { data: { sent: true as const }, error: null }
-  return { data: { url: data.url as string }, error: null }
+  try {
+    const res = await fetch('/api/paydunya/create-gift-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ giftId, receiverId, matchId, message, phone, operator }),
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error || 'Erreur de paiement' }
+    if (data.sent) return { data: { sent: true as const }, error: null }
+    if (!data.url) return { error: 'URL de paiement manquante' }
+    return { data: { url: data.url as string }, error: null }
+  } catch {
+    return { error: 'Erreur réseau. Vérifie ta connexion.' }
+  }
 }
 
 // ---- GIFT WALLET / BALANCE ----

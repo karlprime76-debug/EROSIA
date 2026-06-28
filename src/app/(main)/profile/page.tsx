@@ -270,7 +270,7 @@ export default function ProfilePage() {
                 <option value="open">Relation libre</option>
               </select>
             </div>
-            <button type="button" onClick={saveProfile} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
+            <button type="button" onClick={() => { saveProfile().catch(console.error) }} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
               {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
             </button>
           </div>

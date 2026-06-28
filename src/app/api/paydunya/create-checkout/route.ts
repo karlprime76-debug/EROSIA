@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     if (result.status !== 'success' || !result.token) {
       logger.error('create-checkout: PayDunya non-success', { status: result.status, response_text: result.response_text })
-      return NextResponse.json({ error: result.response_text ?? 'Échec de la création du paiement', code: 'PAYDUNYA_FAILED' }, { status: 500 })
+      return NextResponse.json({ error: 'Échec de la création du paiement. Contacte le support si le problème persiste.', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
     const paydunyaHost = process.env.PAYDUNYA_MODE === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'

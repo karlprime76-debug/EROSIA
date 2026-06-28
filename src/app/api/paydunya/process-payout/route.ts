@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         payment_details: JSON.stringify({ type: account.type, identifier: `${account.operator} — ${account.phone}`, error: invoice.response_text }),
         status: 'failed',
       })
-      return NextResponse.json({ error: invoice.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur de création du paiement. Contacte le support.' }, { status: 500 })
     }
 
     const identifier = account.type === 'card'
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', tx?.id)
-    return NextResponse.json({ error: submit.response_text ?? 'Échec du paiement' }, { status: 500 })
+    return NextResponse.json({ error: 'Échec du paiement. Contacte le support.' }, { status: 500 })
   } catch {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
