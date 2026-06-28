@@ -29,8 +29,20 @@ async function safeJson<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>
 }
 
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}) {
+  const { timeout = 15000, ...fetchOptions } = options
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { ...fetchOptions, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 export async function createInvoice(amount: string, description: string, customData: Record<string, string>, cancelUrl: string, returnUrl: string, callbackUrl?: string) {
-  const res = await fetch(`${BASE}/checkout-invoice/create`, {
+  const res = await fetchWithTimeout(`${BASE}/checkout-invoice/create`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
@@ -50,7 +62,7 @@ export async function createInvoice(amount: string, description: string, customD
 }
 
 export async function confirmInvoice(invoiceToken: string) {
-  const res = await fetch(`${BASE}/checkout-invoice/confirm/${invoiceToken}`, {
+  const res = await fetchWithTimeout(`${BASE}/checkout-invoice/confirm/${invoiceToken}`, {
     headers: headers(),
   })
   return safeJson<{ status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }>(res)
@@ -66,7 +78,7 @@ export async function sendMobileMoneyPayment(
   operator: string,
   customerName?: string,
 ) {
-  const res = await fetch(`${BASE}/opr/create`, {
+  const res = await fetchWithTimeout(`${BASE}/opr/create`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({

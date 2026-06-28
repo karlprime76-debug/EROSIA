@@ -106,7 +106,7 @@
   --radius-full: 9999px;
 
   /* ── Typography scale ── */
-  --font-display: 'Playfair Display', serif;
+  --font-playfair: 'Playfair Display', serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -476,7 +476,9 @@ input::placeholder, textarea::placeholder {
 
 /* ── Premium glass system v2 ── */
 
-.glass {
+.glass,
+.glass-card,
+.glass-nav {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -652,7 +654,7 @@ input::placeholder, textarea::placeholder {
 /* ── Typography scale ── */
 
 .text-display {
-  font-family: var(--font-display);
+  font-family: var(--font-playfair);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: var(--leading-tight);

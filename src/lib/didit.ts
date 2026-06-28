@@ -54,15 +54,20 @@ async function diditFetch(path: string, options: RequestInit = {}) {
 export async function createVerificationSession(vendorData: string, callbackUrl: string): Promise<{ sessionId: string; url: string }> {
   const workflowId = process.env.DIDIT_WORKFLOW_ID
   if (!workflowId) throw new Error('DIDIT_WORKFLOW_ID not configured')
-  const data: DiditSessionResponse = await diditFetch('/session/', {
-    method: 'POST',
-    body: JSON.stringify({
-      workflow_id: workflowId,
-      vendor_data: vendorData,
-      callback: callbackUrl,
-      language: 'fr',
-    }),
-  })
+  let data: DiditSessionResponse
+  try {
+    data = await diditFetch('/session/', {
+      method: 'POST',
+      body: JSON.stringify({
+        workflow_id: workflowId,
+        vendor_data: vendorData,
+        callback: callbackUrl,
+        language: 'fr',
+      }),
+    })
+  } catch (err) {
+    throw new Error(`Didit session creation failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
   return { sessionId: data.session_id, url: data.url }
 }
 
@@ -73,7 +78,8 @@ export async function getSessionDecision(sessionId: string): Promise<{ status: s
 
 export async function verifyWebhookSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
   if (!WEBHOOK_SECRET) return false
-  if (Math.abs(Date.now() / 1000 - parseInt(timestamp, 10)) > 300) return false
+  const ts = parseInt(timestamp, 10)
+  if (isNaN(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false
   const encoder = new TextEncoder()
   const keyBuf = encoder.encode(WEBHOOK_SECRET).buffer as ArrayBuffer
   const key = await crypto.subtle.importKey('raw', keyBuf, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])

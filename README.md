@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Erosia — Dating App
 
-## Getting Started
+Application de rencontres construite avec **Next.js 16**, **Supabase**, et **PayDunya**.
 
-First, run the development server:
+## Stack
+
+- **Frontend** : Next.js 16 (App Router), React 19, Tailwind CSS v4, Three.js
+- **Backend** : Supabase (auth, base de données, storage, realtime)
+- **Paiements** : PayDunya (Mobile Money, carte bancaire)
+- **Vérification identité** : Didit
+- **Push notifications** : Web Push API + Service Worker
+- **3D** : React Three Fiber, Drei
+
+## Prérequis
+
+- Node.js >= 20
+- Compte Supabase
+- Compte PayDunya (optionnel)
+- Compte Didit (optionnel)
+
+## Installation
 
 ```bash
+npm install
+cp .env.example .env.local
+# Remplir les variables d'environnement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables d'environnement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase |
+| `SUPABASE_SERVICE_KEY` | Clé service_role (admin uniquement) |
+| `PAYDUNYA_MASTER_KEY` | Clé maître PayDunya |
+| `PAYDUNYA_PRIVATE_KEY` | Clé privée PayDunya |
+| `PAYDUNYA_TOKEN` | Token PayDunya |
+| `PAYDUNYA_MODE` | `live` ou `test` |
+| `DIDIT_API_KEY` | Clé API Didit |
+| `DIDIT_WORKFLOW_ID` | ID workflow Didit |
+| `DIDIT_WEBHOOK_SECRET` | Secret webhook Didit |
+| `NEXT_PUBLIC_VAPID_KEY` | Clé publique VAPID |
+| `VAPID_PRIVATE_KEY` | Clé privée VAPID |
+| `VAPID_SUBJECT` | Sujet VAPID (email) |
+| `PUSH_API_KEY` | Clé API push |
+| `NEXT_PUBLIC_SITE_URL` | URL du site |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+- `npm run dev` — Développement
+- `npm run build` — Production build
+- `npm run start` — Démarrer le serveur
+- `npm run lint` — Linting ESLint
+- `npm test` — Tests unitaires Vitest
 
-To learn more about Next.js, take a look at the following resources:
+## Base de données
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Les migrations SQL se trouvent dans `supabase/`. Exécuter dans l'ordre :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. `schema.sql`
+2. `schema_v3.sql` → `schema_v4.sql` → `schema_v5.sql`
+3. `schema_v6_push.sql`
+4. `schema_v7_payment_accounts.sql`
+5. `migration_*.sql` (par ordre alphabétique)
+6. `storage_complete.sql`
+7. `migration_audit_fixes.sql` (correctifs d'audit)
 
-## Deploy on Vercel
+## Licence
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Projet privé.

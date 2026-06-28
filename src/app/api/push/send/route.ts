@@ -3,10 +3,9 @@ import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { logger } from '@/lib/logger'
 
-function ensureVapidConfigured() {
-  if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    throw new Error('VAPID keys not configured')
-  }
+if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  console.warn('VAPID keys not configured — push notifications disabled')
+} else {
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
     process.env.NEXT_PUBLIC_VAPID_KEY,
@@ -21,11 +20,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    try { ensureVapidConfigured() } catch {
-      return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 })
-    }
-
-    const { userId, title, body, url } = await request.json()
+    let reqBody: Record<string, unknown>
+    try { reqBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    const { userId, title, body, url } = reqBody as { userId?: string; title?: string; body?: string; url?: string }
     if (!userId || !title) {
       return NextResponse.json({ error: 'userId and title required' }, { status: 400 })
     }

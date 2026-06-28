@@ -104,7 +104,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-[var(--error)] text-center bg-[var(--error-bg)] rounded-xl py-2.5 px-4 border border-[rgba(248,113,113,0.15)]"
             >
-              {serverError ?? Object.values(errors)[0]?.message}
+              {serverError || Object.values(errors)[0]?.message}
             </motion.p>
           )}
 

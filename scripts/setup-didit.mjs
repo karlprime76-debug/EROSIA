@@ -13,7 +13,6 @@
  *   4. Write to .env.local
  */
 
-import { execSync } from 'child_process'
 import { existsSync, readFileSync, appendFileSync } from 'fs'
 import { createInterface } from 'readline/promises'
 import { stdin as input, stdout as output } from 'process'

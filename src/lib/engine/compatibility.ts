@@ -44,7 +44,8 @@ async function computeCompat(userId: string, targetId: string): Promise<{ score:
   const userInterests: string[] = user.data.interests ?? []
   const targetInterests: string[] = target.data.interests ?? []
   if (userInterests.length > 0 && targetInterests.length > 0) {
-    const intersection = userInterests.filter(i => targetInterests.includes(i.toLowerCase()))
+    const targetLower = targetInterests.map(t => t.toLowerCase())
+    const intersection = userInterests.filter(i => targetLower.includes(i.toLowerCase()))
     const union = new Set([...userInterests, ...targetInterests])
     factors.interests = intersection.length / union.size
     weightedSum += factors.interests * 0.25; totalWeight += 0.25

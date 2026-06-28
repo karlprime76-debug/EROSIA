@@ -11,6 +11,9 @@
     "test:watch": "vitest",
     "prepare": "husky"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix"
   },
@@ -23,12 +26,15 @@
     "@supabase/supabase-js": "^2.108.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.11",
+    "isomorphic-dompurify": "^3.18.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.80.0",
+    "sharp": "^0.35.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0",

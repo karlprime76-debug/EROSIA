@@ -1,4 +1,6 @@
-const BASE = 'https://app.paydunya.com/api/v2'
+const BASE = process.env.PAYDUNYA_MODE === 'live'
+  ? 'https://app.paydunya.com/api/v2'
+  : 'https://app.paydunya-sandbox.com/api/v2'
 
 function headers() {
   return {
@@ -35,8 +37,20 @@ async function safeJson<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>
 }
 
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}) {
+  const { timeout = 15000, ...fetchOptions } = options
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { ...fetchOptions, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 export async function createDisburseInvoice(accountAlias: string, amountXof: number, withdrawMode: string, callbackUrl: string) {
-  const res = await fetch(`${BASE}/disburse/create-invoice`, {
+  const res = await fetchWithTimeout(`${BASE}/disburse/create-invoice`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
@@ -52,7 +66,7 @@ export async function createDisburseInvoice(accountAlias: string, amountXof: num
 export async function submitDisburseInvoice(disburseInvoice: string, disburseId?: string) {
   const body: Record<string, string> = { disburse_invoice: disburseInvoice }
   if (disburseId) body.disburse_id = disburseId
-  const res = await fetch(`${BASE}/disburse/submit-invoice`, {
+  const res = await fetchWithTimeout(`${BASE}/disburse/submit-invoice`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify(body),
@@ -61,7 +75,7 @@ export async function submitDisburseInvoice(disburseInvoice: string, disburseId?
 }
 
 export async function checkDisburseStatus(token: string) {
-  const res = await fetch(`${BASE}/disburse/check-status/${token}`, {
+  const res = await fetchWithTimeout(`${BASE}/disburse/check-status/${token}`, {
     headers: headers(),
   })
   return safeJson<{ response_code?: string; status?: string; response_text?: string }>(res)

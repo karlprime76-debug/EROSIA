@@ -1,13 +1,10 @@
-'use client'
-
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0EB] p-6">
       <Link href="/login" className="inline-flex items-center gap-2 text-[#9E9488] hover:text-white transition mb-6">
-        <ArrowLeft size={20} /> Retour
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Retour
       </Link>
       <h1 className="text-2xl font-bold mb-4">Politique de confidentialité</h1>
       <div className="space-y-4 text-sm text-[#9E9488] leading-relaxed">
