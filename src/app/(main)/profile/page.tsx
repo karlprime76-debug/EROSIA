@@ -30,21 +30,39 @@ export default function ProfilePage() {
   useEffect(() => {
     const timer = setTimeout(() => setNow(Date.now()), 0)
     ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-      const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-      const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-      if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+      try {
+        const { data: { user }, error: authErr } = await supabase.auth.getUser()
+        if (authErr || !user) { console.warn('loadProfile: auth failed', authErr); setLoading(false); return }
+        const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+        let { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+        if (!data) {
+          console.warn('loadProfile: no profile row for user, creating one', user.id)
+          const { error: insertErr } = await supabase.from('profiles').insert({ id: user.id, name: 'Utilisateur', photos: [], interests: [] })
+          if (insertErr) { console.error('loadProfile: failed to create profile', insertErr); setLoading(false); return }
+          const { data: newData } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+          if (newData) data = newData
+        }
+        if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+      } catch (err) { console.error('loadProfile: exception', err) }
       setLoading(false)
     })().catch(console.error)
     return () => clearTimeout(timer)
   }, [])
   const loadProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-    const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-    if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+    try {
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      if (authErr || !user) { console.warn('loadProfile: auth refetch failed', authErr); return }
+      const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+      let { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+      if (!data) {
+        const { error: insertErr } = await supabase.from('profiles').insert({ id: user.id, name: 'Utilisateur', photos: [], interests: [] })
+        if (!insertErr) {
+          const { data: newData } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+          if (newData) data = newData
+        }
+      }
+      if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+    } catch (err) { console.error('loadProfile: exception', err) }
   }
   const handlePhoto = async () => {
     const input = document.createElement('input')
@@ -75,19 +93,27 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     if (savingRef.current) { console.warn('saveProfile: déjà en cours'); return }
-    if (!profile) { console.warn('saveProfile: profile null'); toast('Profil non chargé. Recharge la page.', 'error'); return }
     savingRef.current = true
     setSavingProfile(true)
-    console.log('saveProfile: début', { id: profile.id, nameValue, bio, interests, lookingFor })
+    let p = profile
+    if (!p) {
+      console.log('saveProfile: profile null, tentative de rechargement')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, photos, location, video_url').eq('id', user.id).maybeSingle()
+      if (!fresh) { toast('Profil introuvable. Contacte le support.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      p = fresh as Profile
+    }
+    console.log('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
     try {
       const sanitized: Record<string, unknown> = {}
-      const n = (nameValue.trim() || profile.name || 'Utilisateur').replace(/<[^>]*>/g, '').slice(0, 80)
-      if (n !== profile.name) sanitized.name = n
+      const n = (nameValue.trim() || p.name || 'Utilisateur').replace(/<[^>]*>/g, '').slice(0, 80)
+      if (n !== p.name) sanitized.name = n
       const b = (bio || '').replace(/<[^>]*>/g, '').slice(0, 500)
-      if (b !== profile.bio) sanitized.bio = b
+      if (b !== p.bio) sanitized.bio = b
       const i = interests.split(',').map(x => x.trim()).filter(Boolean)
-      if (JSON.stringify(i) !== JSON.stringify(profile.interests)) sanitized.interests = i
-      if (lookingFor !== profile.looking_for) sanitized.looking_for = lookingFor
+      if (JSON.stringify(i) !== JSON.stringify(p.interests)) sanitized.interests = i
+      if (lookingFor !== p.looking_for) sanitized.looking_for = lookingFor
       if (Object.keys(sanitized).length === 0) {
         console.log('saveProfile: aucun changement')
         toast('Aucune modification détectée.', 'info')
@@ -97,13 +123,13 @@ export default function ProfilePage() {
       console.log('saveProfile: envoi vers Supabase', sanitized)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      if (user.id !== profile.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const { data, error } = await supabase.from('profiles').update(sanitized).eq('id', profile.id).select('id, name, bio, interests, looking_for, location, photos, video_url').maybeSingle()
+      if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      const { data, error } = await supabase.from('profiles').update(sanitized).eq('id', p.id).select('id, name, bio, interests, looking_for, location, photos, video_url').maybeSingle()
       console.log('saveProfile: réponse Supabase', { data, error })
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       console.log('saveProfile: succès', data)
-      setProfile({ ...profile, ...data } as Profile)
+      setProfile({ ...p, ...data } as Profile)
       loadProfile()
       toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
