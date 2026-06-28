@@ -27,35 +27,30 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const router = useRouter()
 
+  const fetchProfileFromApi = async () => {
+    const res = await fetch('/api/profile/me')
+    if (!res.ok) return null
+    const json = await res.json()
+    return json.profile as Profile | null
+  }
+
   useEffect(() => {
-    const timer = setTimeout(() => setNow(Date.now()), 0)
     let cancelled = false
     ;(async () => {
       try {
-        const { data: { user }, error: authErr } = await supabase.auth.getUser()
+        const profileData = await fetchProfileFromApi()
         if (cancelled) return
-        console.log('🆔 loadProfile auth user:', user?.id, user?.email)
-        if (authErr || !user) { console.warn('loadProfile: auth failed', authErr); if (!cancelled) setLoading(false); return }
-        const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-        const { data, error: selErr } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-        if (cancelled) return
-        console.log('📦 loadProfile select result:', data?.id, data?.name, selErr)
-        if (!data) {
-          console.warn('⚠️ loadProfile: no profile row for user', user.id, '- showing empty state')
-        }
-        if (data && !cancelled) { console.log('✅ loadProfile: profile loaded', data.id, data.name); setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+        console.log('📦 /api/profile/me result:', profileData?.id, profileData?.name)
+        if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       } catch (err) { console.error('loadProfile: exception', err) }
       if (!cancelled) setLoading(false)
-    })().catch(console.error)
-    return () => { cancelled = true; clearTimeout(timer) }
+    })()
+    return () => { cancelled = true }
   }, [])
   const loadProfile = async () => {
     try {
-      const { data: { user }, error: authErr } = await supabase.auth.getUser()
-      if (authErr || !user) { console.warn('loadProfile: auth refetch failed', authErr); return }
-      const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-      const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-      if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
+      const profileData = await fetchProfileFromApi()
+      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship') }
     } catch (err) { console.error('loadProfile: exception', err) }
   }
   const handlePhoto = async () => {
