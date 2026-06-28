@@ -53,6 +53,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur de communication avec PayDunya' }, { status: 502 })
     }
 
+    // PayDunya renvoie parfois l'URL dans response_text au lieu du champ token
+    if ((result.status !== 'success' || !result.token) && result.response_text?.startsWith('https://payment.')) {
+      return NextResponse.json({ url: result.response_text })
+    }
     if (result.status !== 'success' || !result.token) {
       logger.error('create-gift-checkout: PayDunya non-success', { status: result.status, response_text: result.response_text })
       return NextResponse.json({ error: 'Erreur de création du paiement. Contacte le support si le problème persiste.', code: 'PAYDUNYA_FAILED' }, { status: 500 })
