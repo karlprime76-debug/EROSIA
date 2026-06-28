@@ -74,31 +74,42 @@ export default function ProfilePage() {
   const savingRef = useRef(false)
 
   const saveProfile = async () => {
-    if (!profile) { console.warn('saveProfile: profile null, abandon'); return }
-    if (savingRef.current) { console.warn('saveProfile: déjà en cours, ignore double clic'); return }
+    if (savingRef.current) { console.warn('saveProfile: déjà en cours'); return }
+    if (!profile) { console.warn('saveProfile: profile null'); toast('Profil non chargé. Recharge la page.', 'error'); return }
     savingRef.current = true
     setSavingProfile(true)
-    console.log('saveProfile: début sauvegarde', { nameValue, bio, interests, lookingFor })
+    console.log('saveProfile: début', { id: profile.id, nameValue, bio, interests, lookingFor })
     try {
-      const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-      const name = (nameValue.trim() || profile.name || 'Utilisateur').slice(0, 80)
-      console.log('saveProfile: appel updateProfile', { id: profile.id, name, bio, interestsArr, lookingFor })
-      const result = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
-      console.log('saveProfile: résultat updateProfile', result)
-      if (result.error) {
-        console.error('saveProfile: updateProfile a retourné une erreur', result.error)
-        toast(result.error, 'error')
-        setSavingProfile(false)
-        savingRef.current = false
-        return
+      const sanitized: Record<string, unknown> = {}
+      const n = (nameValue.trim() || profile.name || 'Utilisateur').replace(/<[^>]*>/g, '').slice(0, 80)
+      if (n !== profile.name) sanitized.name = n
+      const b = (bio || '').replace(/<[^>]*>/g, '').slice(0, 500)
+      if (b !== profile.bio) sanitized.bio = b
+      const i = interests.split(',').map(x => x.trim()).filter(Boolean)
+      if (JSON.stringify(i) !== JSON.stringify(profile.interests)) sanitized.interests = i
+      if (lookingFor !== profile.looking_for) sanitized.looking_for = lookingFor
+      if (Object.keys(sanitized).length === 0) {
+        console.log('saveProfile: aucun changement')
+        toast('Aucune modification détectée.', 'info')
+        setSavingProfile(false); savingRef.current = false; return
       }
-      console.log('saveProfile: mise à jour réussie')
+      sanitized.updated_at = new Date().toISOString()
+      console.log('saveProfile: envoi vers Supabase', sanitized)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      if (user.id !== profile.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      const { data, error } = await supabase.from('profiles').update(sanitized).eq('id', profile.id).select('id, name, bio, interests, looking_for, location, photos, video_url').maybeSingle()
+      console.log('saveProfile: réponse Supabase', { data, error })
+      if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
+      if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
+      console.log('saveProfile: succès', data)
+      setProfile({ ...profile, ...data } as Profile)
       loadProfile()
       toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
     } catch (err) {
-      console.error('saveProfile: exception inattendue', err)
-      toast(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde', 'error')
+      console.error('saveProfile: exception', err)
+      toast(err instanceof Error ? err.message : 'Erreur réseau. Vérifie ta connexion.', 'error')
     } finally {
       setSavingProfile(false)
       savingRef.current = false
