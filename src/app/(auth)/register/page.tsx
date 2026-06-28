@@ -9,8 +9,6 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { FloatingHearts } from '@/components/3d/FloatingHearts'
-
 type RegisterValues = { email: string; password: string; name: string; age: number }
 
 export default function RegisterPage() {
@@ -38,14 +36,8 @@ export default function RegisterPage() {
   }
 
   if (success) return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
-      <FloatingHearts />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-premium rounded-3xl p-8 max-w-sm w-full text-center relative z-10"
-      >
+    <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt">
+      <div className="glass-premium rounded-3xl p-8 max-w-sm w-full text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -66,13 +58,12 @@ export default function RegisterPage() {
             Se connecter
           </Button>
         </Link>
-      </motion.div>
+      </div>
     </div>
   )
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
-      <FloatingHearts />
+    <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt">
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

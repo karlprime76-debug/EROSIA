@@ -31,7 +31,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (err) {
+    logger.error('Route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

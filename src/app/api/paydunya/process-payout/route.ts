@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (!account || !account.phone) {
-      return NextResponse.json({ error: 'Aucun moyen de paiement enregistré' }, { status: 400 })
+      return NextResponse.json({ error: 'Aucun moyen de paiement enregistré' }, { status: 404 })
     }
 
     const { data: received } = await admin

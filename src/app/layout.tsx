@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Playfair_Display } from 'next/font/google'
 import "./globals.css"
 import SwRegister from "@/components/SwRegister"
@@ -25,9 +25,15 @@ export const metadata: Metadata = {
   description: "Là où les cœurs se rencontrent",
   manifest: "/manifest.json",
   icons: {
+    icon: { url: "/favicon.svg", type: "image/svg+xml" },
     apple: { url: "/icone.png", sizes: "180x180", type: "image/png" },
   },
-  other: { 'theme-color': '#D92D4A' },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#D92D4A',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,6 +46,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text)] overflow-x-hidden"
         style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[var(--primary)] focus:text-white focus:rounded-lg">
+          Aller au contenu principal
+        </a>
         <DynamicBackground />
         <SwRegister />
         <div className="relative z-10 flex-1 flex flex-col">
@@ -47,7 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ToastProvider>
               <ConfirmProvider>
                 <ErrorBoundary>
-                  {children}
+                  <main id="main-content" className="flex-1 flex flex-col">
+                    {children}
+                  </main>
                 </ErrorBoundary>
               </ConfirmProvider>
             </ToastProvider>

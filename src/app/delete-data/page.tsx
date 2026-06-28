@@ -8,14 +8,18 @@ import { supabase } from '@/lib/supabase/client'
 export default function DeleteDataPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setError('')
+    setLoading(true)
     const { error: authError } = await supabase.auth.signInWithOtp({ email })
     if (authError) {
       setError(authError.message)
+      setLoading(false)
       return
     }
     setSent(true)
@@ -50,8 +54,8 @@ export default function DeleteDataPage() {
           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-[#F5F0EB] placeholder:text-[#9E9488] focus:outline-none focus:border-[#D92D4A] transition text-sm"
         />
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button type="submit" className="w-full py-3 rounded-full text-white font-semibold transition-all active:scale-95" style={{ background: '#D92D4A' }}>
-          Envoyer la demande
+        <button type="submit" disabled={loading} className="w-full py-3 rounded-full text-white font-semibold transition-all active:scale-95 disabled:opacity-50" style={{ background: '#D92D4A' }}>
+          {loading ? 'Envoi...' : 'Envoyer la demande'}
         </button>
       </form>
     </div>

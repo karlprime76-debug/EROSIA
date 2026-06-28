@@ -4,6 +4,19 @@ import { confirmInvoice } from '@/lib/paydunya'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 
+// TODO: Replace with DB-backed webhook_events table (id uuid PK, event_id text UNIQUE, source text, processed_at timestamptz)
+const processedEvents = new Set<string>()
+
+async function markProcessed(eventId: string) {
+  processedEvents.add(eventId)
+  try {
+    const admin = createAdminClient()
+    await admin.from('webhook_events').insert({ event_id: eventId, source: 'paydunya' })
+  } catch {
+    // table may not exist yet; Set is the fallback
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -17,7 +30,12 @@ export async function POST(request: NextRequest) {
     if (!invoiceToken) return NextResponse.json({ error: 'Missing invoice_token' }, { status: 400 })
 
     const expectedHash = crypto.createHash('sha512').update(process.env.PAYDUNYA_MASTER_KEY! + invoiceToken).digest('hex')
-    if (data.hash !== expectedHash) return NextResponse.json({ error: 'Invalid hash' }, { status: 401 })
+    if (data.hash !== expectedHash) return NextResponse.json({ error: 'Invalid hash' }, { status: 403 })
+
+    if (processedEvents.has(invoiceToken)) {
+      logger.info('Duplicate PayDunya webhook event (already processed)', { invoiceToken })
+      return NextResponse.json({ received: true })
+    }
 
     let confirmed: { status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }
     try {
@@ -89,8 +107,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await markProcessed(invoiceToken)
+
     return NextResponse.json({ received: true })
-  } catch {
+  } catch (err) {
+    logger.error('PayDunya webhook error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

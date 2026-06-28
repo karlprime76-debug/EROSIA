@@ -61,7 +61,7 @@ async function main() {
   console.log('\n→ Enregistrement du webhook...')
   const { destinationId, webhookSecret } = await createWebhook(apiKey, webhookUrl)
   console.log(`  ✔ Destination ID : ${destinationId}`)
-  console.log(`  ✔ Webhook Secret : ${webhookSecret.slice(0, 20)}...`)
+  console.log(`  ✔ Webhook Secret : ${webhookSecret.slice(0, 4)}...${webhookSecret.slice(-4)}`)
 
   // ── 5. Write .env.local ────────────────────────────
   console.log('\n→ Écriture dans .env.local...')
@@ -79,7 +79,7 @@ async function main() {
 
 async function registerProgrammatically() {
   const email = await rl.question('Email : ')
-  const password = await rl.question('Mot de passe (min 8 car.) : ')
+  const password = await rl.question('Mot de passe (min 8 car.) : ', { echo: '*' })
 
   console.log('\n→ Inscription...')
   const regRes = await fetch(`${DIDIT_AUTH}/register/`, {

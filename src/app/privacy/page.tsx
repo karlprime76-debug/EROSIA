@@ -1,5 +1,10 @@
 import Link from 'next/link'
 
+export const metadata = {
+  title: 'Politique de confidentialité | Erosia',
+  description: "Politique de confidentialité de l'application de rencontres Erosia — données collectées, utilisation, partage et suppression.",
+}
+
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0EB] p-6">

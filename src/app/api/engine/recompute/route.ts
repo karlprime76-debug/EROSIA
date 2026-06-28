@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEngine } from '@/lib/engine'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     if (engineName) {
       const engine = getEngine(engineName)
-      if (!engine) return NextResponse.json({ error: 'Engine inconnu' }, { status: 400 })
+      if (!engine) return NextResponse.json({ error: 'Engine inconnu' }, { status: 404 })
       const result = await engine.compute({ userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id })
       return NextResponse.json({ engine: engineName, result })
     }
@@ -37,7 +38,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(results)
-  } catch {
+  } catch (err) {
+    logger.error('Route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

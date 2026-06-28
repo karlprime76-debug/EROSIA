@@ -11,17 +11,48 @@ interface LightboxProps {
 }
 
 export default function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const safeIndex = Math.min(Math.max(0, initialIndex), Math.max(0, images.length - 1))
+  const [currentIndex, setCurrentIndex] = useState(safeIndex)
 
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
     document.body.style.overflow = 'hidden'
+
+    const closeBtn = document.querySelector<HTMLButtonElement>('[aria-label="Fermer"]')
+    closeBtn?.focus()
+
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowLeft') setCurrentIndex(i => Math.max(0, i - 1))
       if (e.key === 'ArrowRight') setCurrentIndex(i => Math.min(images.length - 1, i + 1))
+      if (e.key === 'Tab') {
+        const dialog = document.querySelector<HTMLElement>('[role="dialog"]')
+        if (!dialog) return
+        const focusable = dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
     }
     window.addEventListener('keydown', handler)
-    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', handler) }
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handler)
+      previousFocus?.focus()
+    }
   }, [onClose, images.length])
 
   const prev = () => setCurrentIndex(i => Math.max(0, i - 1))

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -23,7 +24,8 @@ export async function GET() {
       pendingVerifs: pendingVerifs ?? 0,
       payouts: payouts ?? [],
     })
-  } catch {
+  } catch (err) {
+    logger.error('Route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
@@ -46,8 +48,13 @@ export async function PATCH(request: Request) {
 
     const admin = createAdminClient()
     const { error } = await admin.from('gift_transactions').update({ status }).eq('id', txId)
-    return NextResponse.json({ error: error?.message ?? null })
-  } catch {
+    if (error) {
+      logger.error('Admin PATCH DB error', { error: error.message })
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    logger.error('Route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

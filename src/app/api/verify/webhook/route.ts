@@ -4,6 +4,19 @@ import { verifyWebhookSignature } from '@/lib/didit'
 import { logger } from '@/lib/logger'
 import type { DiditWebhookPayload } from '@/lib/didit'
 
+// TODO: Replace with DB-backed webhook_events table (id uuid PK, event_id text UNIQUE, source text, processed_at timestamptz)
+const processedEvents = new Set<string>()
+
+async function markProcessed(eventId: string) {
+  processedEvents.add(eventId)
+  try {
+    const admin = await createAdminClient()
+    await admin.from('webhook_events').insert({ event_id: eventId, source: 'didit' })
+  } catch {
+    // table may not exist yet; Set is the fallback
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text()
@@ -13,10 +26,15 @@ export async function POST(request: Request) {
     const isValid = await verifyWebhookSignature(rawBody, signature, timestamp)
     if (!isValid) {
       logger.warn('Didit webhook signature verification failed')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
     }
 
     const payload: DiditWebhookPayload = JSON.parse(rawBody)
+
+    if (processedEvents.has(payload.event_id)) {
+      logger.info('Duplicate Didit webhook event (already processed)', { eventId: payload.event_id })
+      return NextResponse.json({ received: true })
+    }
 
     if (payload.webhook_type !== 'status.updated') {
       return NextResponse.json({ received: true })
@@ -78,6 +96,8 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    await markProcessed(payload.event_id)
 
     return NextResponse.json({ received: true })
   } catch (err) {

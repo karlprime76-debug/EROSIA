@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
-import { FloatingHearts } from '@/components/3d/FloatingHearts'
 import { Flame, MessageCircle, Gift, MapPin, Shield, Star, Sparkles, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -24,10 +23,7 @@ const features = [
 export default function WelcomePage() {
   const router = useRouter()
   return (
-    <div className="relative min-h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
-      <FloatingHearts />
-
-      <div className="relative z-10 flex flex-col min-h-dvh px-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:max-w-6xl lg:mx-auto lg:w-full lg:px-10">
+    <div className="flex flex-col overflow-hidden flex-1 px-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:max-w-6xl lg:mx-auto lg:w-full lg:px-10">
         {/* Hero */}
         <div className="flex flex-col items-center pt-16 pb-6 lg:pt-0 lg:items-start lg:flex-1 lg:pb-0 lg:pr-12">
           <motion.div
@@ -139,7 +135,6 @@ export default function WelcomePage() {
             </Button>
           </motion.div>
         </div>
-      </div>
     </div>
   )
 }

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import { supabase } from '@/lib/supabase/client'
-import { FloatingHearts } from '@/components/3d/FloatingHearts'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -39,9 +38,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
-      <FloatingHearts />
-      
+    <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt">
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

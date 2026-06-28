@@ -1,5 +1,10 @@
 import Link from 'next/link'
 
+export const metadata = {
+  title: "Conditions générales d'utilisation | Erosia",
+  description: "Conditions générales d'utilisation de l'application de rencontres Erosia — acceptation, âge, comportement, données personnelles, abonnement Premium.",
+}
+
 export default function CguPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#F5F0EB] p-6">

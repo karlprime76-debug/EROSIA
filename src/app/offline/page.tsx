@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Hors connexion | Erosia',
+  description: 'Vous êtes hors connexion. Vérifiez votre connexion internet et réessayez.',
+}
+
 export default function OfflinePage() {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-black text-center">

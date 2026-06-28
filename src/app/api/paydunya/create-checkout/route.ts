@@ -34,7 +34,8 @@ export async function POST(request: Request) {
     const paymentUrl = `https://${paydunyaHost}/payment/${result.token}`
 
     return NextResponse.json({ url: paymentUrl })
-  } catch {
+  } catch (err) {
+    logger.error('Route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

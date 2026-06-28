@@ -24,14 +24,44 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!state) return
+    const previousFocus = document.activeElement as HTMLElement | null
+
+    const confirmBtn = document.querySelector<HTMLButtonElement>('[role="alertdialog"] button:last-of-type')
+    confirmBtn?.focus()
+
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         state.resolve(false)
         setState(null)
+        return
+      }
+      if (e.key === 'Tab') {
+        const dialog = document.querySelector<HTMLElement>('[role="alertdialog"]')
+        if (!dialog) return
+        const focusable = dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
       }
     }
     window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+      previousFocus?.focus()
+    }
   }, [state])
 
   const handle = (value: boolean) => {
