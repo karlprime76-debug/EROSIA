@@ -27,8 +27,10 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
   const prev = () => setCurrentIndex(i => Math.max(0, i - 1))
   const next = () => setCurrentIndex(i => Math.min(images.length - 1, i + 1))
 
+  if (images.length === 0) return null
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label="Visionneuse d'images" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg" onClick={onClose}>
       <button onClick={onClose} aria-label="Fermer" className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-black/40 text-white hover:bg-white/10 transition">
         <X size={24} />
       </button>

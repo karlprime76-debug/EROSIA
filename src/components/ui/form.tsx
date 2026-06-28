@@ -26,6 +26,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
             'w-full bg-[#18181A] text-[#F5F0EB] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200',
             error
@@ -37,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p className="text-[11px] text-[#F87171] mt-1.5 px-1">{error}</p>
+          <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[#F87171] mt-1.5 px-1">{error}</p>
         )}
       </div>
     )
@@ -62,6 +64,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
             'w-full bg-[#18181A] text-[#F5F0EB] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 appearance-none',
             error ? 'border-[#F87171]/50' : 'border-[#2C2A28] focus:border-[#D92D4A]',
@@ -73,7 +77,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        {error && <p className="text-[11px] text-[#F87171] mt-1 px-1">{error}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[#F87171] mt-1 px-1">{error}</p>}
       </div>
     )
   }

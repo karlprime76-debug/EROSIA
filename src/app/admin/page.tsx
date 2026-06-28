@@ -52,7 +52,7 @@ export default function AdminPage() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
       setUserEmail(user.email ?? '')
-      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
       if (data?.is_admin) {
         setIsAdmin(true)
         loadData()

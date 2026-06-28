@@ -23,24 +23,39 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient()
 
     const uid = user.id
-    await admin.from('messages').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-    await admin.from('matches').delete().or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
-    await admin.from('swipes').delete().eq('swiper_id', uid)
-    await admin.from('flirts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-    await admin.from('blocks').delete().or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`)
-    await admin.from('reports').delete().or(`reporter_id.eq.${uid},reported_id.eq.${uid}`)
-    await admin.from('notifications').delete().eq('user_id', uid)
-    await admin.from('gift_transactions').delete().eq('user_id', uid)
-    await admin.from('payment_accounts').delete().eq('user_id', uid)
-    await admin.from('verification_requests').delete().eq('user_id', uid)
-    await admin.from('push_subscriptions').delete().eq('user_id', uid)
-    await admin.from('sent_gifts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-    await admin.from('duel_votes').delete().eq('voter_id', uid)
-    await admin.from('event_participants').delete().eq('user_id', uid)
-    await admin.from('user_date_ideas').delete().eq('user_id', uid)
-    await admin.from('stories').delete().eq('user_id', uid)
-    await admin.from('profiles').delete().eq('id', uid)
-    await admin.auth.admin.deleteUser(uid)
+    const errors: string[] = []
+
+    const tables = [
+      ['messages',        () => admin.from('messages').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
+      ['matches',         () => admin.from('matches').delete().or(`user1_id.eq.${uid},user2_id.eq.${uid}`)],
+      ['swipes',          () => admin.from('swipes').delete().eq('swiper_id', uid)],
+      ['flirts',          () => admin.from('flirts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
+      ['blocks',          () => admin.from('blocks').delete().or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`)],
+      ['reports',         () => admin.from('reports').delete().or(`reporter_id.eq.${uid},reported_id.eq.${uid}`)],
+      ['notifications',   () => admin.from('notifications').delete().eq('user_id', uid)],
+      ['gift_transactions', () => admin.from('gift_transactions').delete().eq('user_id', uid)],
+      ['payment_accounts', () => admin.from('payment_accounts').delete().eq('user_id', uid)],
+      ['verification_requests', () => admin.from('verification_requests').delete().eq('user_id', uid)],
+      ['push_subscriptions', () => admin.from('push_subscriptions').delete().eq('user_id', uid)],
+      ['sent_gifts',      () => admin.from('sent_gifts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
+      ['duel_votes',      () => admin.from('duel_votes').delete().eq('voter_id', uid)],
+      ['event_participants', () => admin.from('event_participants').delete().eq('user_id', uid)],
+      ['user_date_ideas', () => admin.from('user_date_ideas').delete().eq('user_id', uid)],
+      ['stories',         () => admin.from('stories').delete().eq('user_id', uid)],
+      ['profiles',        () => admin.from('profiles').delete().eq('id', uid)],
+    ] as const
+
+    for (const [name, del] of tables) {
+      try { await del() } catch (e) { errors.push(`${name}: ${String(e)}`) }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
+    }
+
+    try { await admin.auth.admin.deleteUser(uid) } catch {
+      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch {

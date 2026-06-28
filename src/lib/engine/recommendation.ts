@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { getEngine } from './registry'
+import { getEngine, registerEngine } from './registry'
 import type { ScoringEngine, RecommendInput, RecommendOutput, SparkInput, SparkOutput } from './types'
 
 const PAGE_SIZE = 20
@@ -120,3 +120,4 @@ async function getRecommendations(input: RecommendInput): Promise<RecommendOutpu
 }
 
 export const recommendationEngine = new RecommendationEngine()
+registerEngine('recommendation', recommendationEngine)

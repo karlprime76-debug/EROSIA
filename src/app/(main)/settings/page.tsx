@@ -41,7 +41,7 @@ export default function SettingsPage() {
     getGhostMode().then(setGhostMode)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).single().then(({ data }) => {
+      supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).maybeSingle().then(({ data }) => {
         if (data) {
           if (data.name) { setProfileName(data.name); setNameValue(data.name) }
           if (data.visibility) setVisibility(data.visibility)

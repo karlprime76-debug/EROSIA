@@ -219,14 +219,14 @@ export default function ChatPage() {
       if (!user) { setLoading(false); return }
       setCurrentUser(user)
 
-      const { data: matchData } = await supabase.from('matches').select('*').eq('id', id).single()
+      const { data: matchData } = await supabase.from('matches').select('*').eq('id', id).maybeSingle()
       if (!matchData) { setLoading(false); return }
       setMatch(matchData)
       const otherId = matchData.user1_id === user.id ? matchData.user2_id : matchData.user1_id
 
       if (otherId === user.id) { setIsSelfChat(true); setLoading(false); return }
 
-      const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).single()
+      const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).maybeSingle()
       if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
 
       await loadMessages()

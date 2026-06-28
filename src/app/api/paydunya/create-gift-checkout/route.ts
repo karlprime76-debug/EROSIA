@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
-    const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).single()
+    const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).maybeSingle()
     if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })
     if (typeof gift.price_cents !== 'number') {
       logger.error('create-gift-checkout: price_cents invalide', { gift_id: giftId, price_cents: gift.price_cents })

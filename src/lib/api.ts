@@ -125,8 +125,9 @@ export async function getProfiles(excludeIds: string[], filters?: { minAge?: num
 }
 
 export async function getProfile(id: string) {
-  const { data, error } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).single()
-  return { data: data as Profile | null, error: error?.message }
+  const { data } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).maybeSingle()
+  if (!data) return { data: null, error: 'Profil introuvable' }
+  return { data: data as Profile, error: null }
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {
@@ -376,7 +377,7 @@ export async function getSuperLikesRemaining() {
     .from('profiles')
     .select('super_likes_remaining, super_likes_reset_at')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
   if (error || !data) return 0
   const resetDate = new Date(data.super_likes_reset_at)
   const today = new Date()
@@ -412,7 +413,7 @@ export async function setIncognito(incognito: boolean) {
 export async function getIncognito() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return false
-  const { data, error } = await supabase().from('profiles').select('incognito').eq('id', user.id).single()
+  const { data, error } = await supabase().from('profiles').select('incognito').eq('id', user.id).maybeSingle()
   if (error || !data) return false
   return (data as { incognito: boolean }).incognito
 }
@@ -503,7 +504,7 @@ export async function createCheckoutSession() {
 export async function getSubscriptionStatus() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { tier: 'free' as const }
-  const { data } = await supabase().from('profiles').select('subscription_tier, premium_expires_at').eq('id', user.id).single()
+  const { data } = await supabase().from('profiles').select('subscription_tier, premium_expires_at').eq('id', user.id).maybeSingle()
   const tier = ((data?.subscription_tier ?? 'free') as 'free' | 'premium')
   if (tier === 'premium' && data?.premium_expires_at && new Date(data.premium_expires_at) < new Date()) {
     await supabase().from('profiles').update({ subscription_tier: 'free', premium_expires_at: null }).eq('id', user.id)
@@ -572,7 +573,7 @@ export async function getActiveStories() {
 export async function deleteStory(storyId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const { data: story } = await supabase().from('stories').select('user_id').eq('id', storyId).single()
+  const { data: story } = await supabase().from('stories').select('user_id').eq('id', storyId).maybeSingle()
   if (!story) return { error: 'Story introuvable' }
   if (story.user_id !== user.id) return { error: 'Non autorisé' }
   const { error } = await supabase().from('stories').delete().eq('id', storyId)
@@ -590,7 +591,7 @@ export async function setTravelMode(city: string, active: boolean) {
 export async function getTravelMode() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { city: null, active: false }
-  const { data } = await supabase().from('profiles').select('travel_city, travel_active').eq('id', user.id).single()
+  const { data } = await supabase().from('profiles').select('travel_city, travel_active').eq('id', user.id).maybeSingle()
   return { city: data?.travel_city ?? null, active: data?.travel_active ?? false }
 }
 
@@ -689,7 +690,7 @@ export async function uploadProfileVideo(file: File) {
 export async function deleteProfileVideo() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const { data: profile } = await supabase().from('profiles').select('video_url').eq('id', user.id).single()
+  const { data: profile } = await supabase().from('profiles').select('video_url').eq('id', user.id).maybeSingle()
   if (profile?.video_url) {
     const fileName = profile.video_url.split('/profile_videos/').pop()
     if (fileName) await supabase().storage.from('profile_videos').remove([fileName])
@@ -709,7 +710,7 @@ export async function flagContent(type: string, id: string, text?: string, url?:
 export async function getModerationQueue() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { data: [], error: 'Not authenticated' }
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
   if (!profile?.is_admin) return { data: [], error: 'Accès refusé' }
   const { data, error } = await supabase().from('moderation_queue').select('*').order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
@@ -718,7 +719,7 @@ export async function getModerationQueue() {
 export async function reviewContent(id: string, approved: boolean) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
   if (!profile?.is_admin) return { error: 'Accès refusé' }
   const { error } = await supabase().from('moderation_queue').update({ reviewed: true, status: approved ? 'approved' : 'rejected' }).eq('id', id)
   return { error: error?.message ?? null }
@@ -972,7 +973,7 @@ export async function setGhostMode(enabled: boolean) {
 export async function getGhostMode() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return false
-  const { data, error } = await supabase().from('profiles').select('ghost_mode').eq('id', user.id).single()
+  const { data, error } = await supabase().from('profiles').select('ghost_mode').eq('id', user.id).maybeSingle()
   if (error || !data) return false
   return (data as { ghost_mode: boolean }).ghost_mode
 }
@@ -1043,7 +1044,7 @@ export async function getDailyProfile() {
   if (!user) return { error: 'Not authenticated' }
   const { data: rpcData, error: rpcError } = await supabase().rpc('select_daily_profile')
   if (!rpcData || rpcError) return { data: null, error: rpcError?.message }
-  const { data: profile } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', rpcData as string).single()
+  const { data: profile } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', rpcData as string).maybeSingle()
   return { data: profile as Profile | null, error: null }
 }
 
@@ -1262,7 +1263,7 @@ export async function getGiftTransactions() {
 export async function getAdminStats() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
   if (!profile?.is_admin) return null
 
   const { count: totalGifts } = await supabase().from('sent_gifts').select('*', { count: 'exact', head: true }).eq('status', 'completed')
@@ -1277,7 +1278,7 @@ export async function getAdminStats() {
 export async function adminUpdatePayoutStatus(txId: string, status: 'completed' | 'failed') {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Non authentifié' }
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).single()
+  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
   if (!profile?.is_admin) return { error: 'Accès refusé' }
   const { error } = await supabase().from('gift_transactions').update({ status }).eq('id', txId)
   return { error: error?.message }

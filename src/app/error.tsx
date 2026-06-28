@@ -9,7 +9,7 @@ export default function RootError({ reset }: { error: Error; reset: () => void }
         </div>
         <h2 className="text-xl font-bold mb-1">Oups !</h2>
         <p className="text-[#9E9488] text-sm mb-6">Une erreur est survenue.</p>
-        <button onClick={reset}
+        <button type="button" onClick={reset}
           className="w-full py-3.5 rounded-full text-white font-semibold transition active:scale-95"
           style={{ background: '#D92D4A' }}>
           Réessayer

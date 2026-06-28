@@ -106,6 +106,7 @@
   --radius-full: 9999px;
 
   /* ── Typography scale ── */
+  --font-display: 'Playfair Display', serif;
   --font-playfair: 'Playfair Display', serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
   --text-xs: 0.75rem;

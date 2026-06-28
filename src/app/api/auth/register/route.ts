@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
+import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient()
     const { error: profileError } = await admin.from('profiles').insert({
-      id: authData.user.id, name, age, photos: [], interests: [],
+      id: authData.user.id, name: sanitize(name), age, photos: [], interests: [],
     })
 
     if (profileError) {

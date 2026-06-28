@@ -2,6 +2,7 @@
   "name": "Erosia",
   "short_name": "Erosia",
   "description": "Là où les cœurs se rencontrent",
+  "scope": "/",
   "start_url": "/discover",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],

@@ -1,5 +1,19 @@
-if (!process.env.PAYDUNYA_MASTER_KEY || !process.env.PAYDUNYA_PRIVATE_KEY || !process.env.PAYDUNYA_TOKEN) {
-  throw new Error('PayDunya (disburse): clés API manquantes')
+function getPaydunyaMasterKey(): string {
+  const key = process.env.PAYDUNYA_MASTER_KEY
+  if (!key) throw new Error('PAYDUNYA_MASTER_KEY not configured')
+  return key
+}
+
+function getPaydunyaPrivateKey(): string {
+  const key = process.env.PAYDUNYA_PRIVATE_KEY
+  if (!key) throw new Error('PAYDUNYA_PRIVATE_KEY not configured')
+  return key
+}
+
+function getPaydunyaToken(): string {
+  const token = process.env.PAYDUNYA_TOKEN
+  if (!token) throw new Error('PAYDUNYA_TOKEN not configured')
+  return token
 }
 
 const BASE = process.env.PAYDUNYA_MODE === 'live'
@@ -9,9 +23,9 @@ const BASE = process.env.PAYDUNYA_MODE === 'live'
 function headers() {
   return {
     'Content-Type': 'application/json',
-    'PAYDUNYA-MASTER-KEY': process.env.PAYDUNYA_MASTER_KEY!,
-    'PAYDUNYA-PRIVATE-KEY': process.env.PAYDUNYA_PRIVATE_KEY!,
-    'PAYDUNYA-TOKEN': process.env.PAYDUNYA_TOKEN!,
+    'PAYDUNYA-MASTER-KEY': getPaydunyaMasterKey(),
+    'PAYDUNYA-PRIVATE-KEY': getPaydunyaPrivateKey(),
+    'PAYDUNYA-TOKEN': getPaydunyaToken(),
   }
 }
 

@@ -48,6 +48,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Confirmation"
             className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-6 backdrop-blur-sm"
             onClick={() => handle(false)}
           >
@@ -61,11 +64,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             >
               <p className="text-sm text-[#F5F0EB] mb-6 leading-relaxed">{state.message}</p>
               <div className="flex gap-3">
-                <button onClick={() => handle(false)}
+                <button type="button" onClick={() => handle(false)}
                   className="flex-1 py-2.5 rounded-full text-sm font-medium border border-[#2C2A28] text-[#A09890] hover:bg-[#222225] transition-all duration-200">
                   Annuler
                 </button>
-                <button onClick={() => handle(true)}
+                <button type="button" onClick={() => handle(true)}
                   className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white shadow-[0_4px_16px_rgba(217,45,74,0.25)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)] transition-all duration-200"
                   style={{ background: '#D92D4A' }}>
                   Confirmer

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
     const body = await request.json()

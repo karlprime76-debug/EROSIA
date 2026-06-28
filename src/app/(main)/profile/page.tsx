@@ -33,7 +33,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-      const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).single()
+      const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
       if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       setLoading(false)
     })()
@@ -43,7 +43,7 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
-    const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).single()
+    const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
     if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship') }
   }
   const handlePhoto = async () => {

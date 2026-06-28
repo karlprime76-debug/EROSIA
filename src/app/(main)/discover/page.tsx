@@ -67,7 +67,7 @@ export default function DiscoverPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setMyId(user.id)
-        supabase.from('profiles').select('photos').eq('id', user.id).single().then(({ data }) => {
+        supabase.from('profiles').select('photos').eq('id', user.id).maybeSingle().then(({ data }) => {
           if (data?.photos?.[0]) setMyPhoto(data.photos[0])
         })
       }

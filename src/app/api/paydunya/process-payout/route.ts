@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     let body: Record<string, unknown>
     try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
     const { amountCents } = body as { amountCents?: number }
-    if (!amountCents || amountCents <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
+    if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || amountCents <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
 
     const admin = createAdminClient()
 
