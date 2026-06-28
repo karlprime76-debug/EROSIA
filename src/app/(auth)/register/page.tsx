@@ -91,6 +91,7 @@ export default function RegisterPage() {
           {/* Error */}
           {(serverError || Object.keys(errors).length > 0) && (
             <motion.p
+              role="alert"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-[var(--error)] text-center bg-[var(--error-bg)] rounded-xl py-2.5 px-4 border border-[rgba(248,113,113,0.15)]"

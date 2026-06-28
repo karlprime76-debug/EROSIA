@@ -43,7 +43,7 @@ export default function SwRegister() {
   return (
     <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#D92D4A] text-white px-4 py-3 rounded-xl shadow-lg">
       <span className="text-sm font-medium">Mise à jour disponible</span>
-      <button
+      <button type="button"
         onClick={handleRefresh}
         className="bg-white text-[#D92D4A] text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-white/90 transition-colors"
       >

@@ -74,7 +74,7 @@ export default function DateIdeasPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
               <span className="text-2xl opacity-40">💝</span>
             </div>
-            <p className="text-sm text-[#6B6258]">Aucune idée de date dans cette catégorie.</p>
+            <p className="text-sm text-[#9E9488]">Aucune idée de date dans cette catégorie.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -83,7 +83,7 @@ export default function DateIdeasPage() {
                 className={`bg-[#1C1C1E] rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-[#D92D4A]' : 'border-[#2A2826]'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl">{idea.emoji || '💝'}</span>
-                  <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-[#D92D4A] fill-[#D92D4A]' : 'text-[#6B6258]'} />
+                  <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-[#D92D4A] fill-[#D92D4A]' : 'text-[#9E9488]'} />
                 </div>
                 <p className="text-xs font-medium">{idea.idea}</p>
               </button>

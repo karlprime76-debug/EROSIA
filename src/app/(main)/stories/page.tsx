@@ -41,13 +41,19 @@ export default function StoriesPage() {
     const f = e.target.files?.[0]
     if (!f) return
     setUploading(true)
-    const result = await uploadStory(f)
-    if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-    toast('Story publiée', 'success')
-    setUploading(false)
-    getActiveStories().then(({ data }) => {
-      if (data) setStories(data as Story[])
-    })
+    try {
+      const result = await uploadStory(f)
+      if (result.error) { toast(result.error, 'error'); return }
+      toast('Story publiée', 'success')
+      getActiveStories().then(({ data }) => {
+        if (data) setStories(data as Story[])
+      }).catch(console.error)
+    } catch (err) {
+      console.error('handleUpload error', err)
+      toast('Erreur lors de la publication', 'error')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -56,7 +62,7 @@ export default function StoriesPage() {
     toast('Story supprimée', 'success')
     getActiveStories().then(({ data }) => {
       if (data) setStories(data as Story[])
-    })
+    }).catch(console.error)
   }
 
   if (loading) return (
@@ -78,14 +84,14 @@ export default function StoriesPage() {
         <h2 className="text-2xl font-bold">Stories</h2>
         <div className="flex-1" />
         {isPremium ? (
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+          <button type="button" aria-label="Ajouter une story" onClick={() => fileRef.current?.click()} disabled={uploading}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:shadow-[0_0_15px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
             <Plus size={18} />
           </button>
         ) : (
-          <button type="button" onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
+          <button type="button" aria-label="Premium requis" onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
             className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628] hover:bg-[#2A2826] transition-all active:scale-90">
-            <Lock size={16} className="text-[#6B6258]" />
+            <Lock size={16} className="text-[#9E9488]" />
           </button>
         )}
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleUpload} className="hidden" />
@@ -97,13 +103,13 @@ export default function StoriesPage() {
               <span className="text-3xl opacity-40">📸</span>
             </div>
             <p className="text-lg font-semibold">Aucune story</p>
-            <p className="text-[#6B6258] text-sm mt-1 max-w-xs leading-relaxed">Ajoute une photo qui disparaîtra dans 24h.</p>
+            <p className="text-[#9E9488] text-sm mt-1 max-w-xs leading-relaxed">Ajoute une photo qui disparaîtra dans 24h.</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {stories.map(s => (
               <div key={s.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E]">
-                {s.media_url && <Image src={s.media_url} alt="story" width={200} height={355} className="w-full h-full object-cover" />}
+                {s.media_url && <Image src={s.media_url} alt={"Story de " + (s.profile?.name || "quelqu'un")} width={200} height={355} className="w-full h-full object-cover" />}
                 <button type="button" onClick={() => handleDelete(s.id)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                   <Trash2 size={14} />

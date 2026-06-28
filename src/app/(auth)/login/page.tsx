@@ -23,18 +23,23 @@ export default function LoginPage() {
     if (!password) { setError('Mot de passe requis'); return }
     if (password.length < 8) { setError('8 caractères minimum'); return }
     setLoading(true)
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (authError) {
-      const msg = authError.message.includes('Invalid login credentials')
-        ? 'Email ou mot de passe incorrect'
-        : authError.message.includes('Email not confirmed')
-          ? 'Email non confirmé'
-          : 'Erreur de connexion'
-      setError(msg)
-      return
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) {
+        const msg = authError.message.includes('Invalid login credentials')
+          ? 'Email ou mot de passe incorrect'
+          : authError.message.includes('Email not confirmed')
+            ? 'Email non confirmé'
+            : 'Erreur de connexion'
+        setError(msg)
+        return
+      }
+      router.push('/discover')
+    } catch {
+      setError('Erreur de connexion')
+    } finally {
+      setLoading(false)
     }
-    router.push('/discover')
   }
 
   return (
@@ -68,6 +73,7 @@ export default function LoginPage() {
           {/* Error */}
           {error && (
             <motion.p
+              role="alert"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-[var(--error)] text-center bg-[var(--error-bg)] rounded-xl py-2.5 px-4 border border-[rgba(248,113,113,0.15)]"

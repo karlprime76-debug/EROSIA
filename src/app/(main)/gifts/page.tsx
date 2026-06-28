@@ -105,34 +105,45 @@ function GiftsContent() {
   const handleSend = async () => {
     if (!selectedGift || !selectedMatch) return
     setSending(true)
-    const match = matches.find(m => m.id === selectedMatch)
-    if (!match) return
-    const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
-    if (result.data?.sent) {
-      toast('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.', 'success')
-      setSelectedGift(null)
+    try {
+      const match = matches.find(m => m.id === selectedMatch)
+      if (!match) return
+      const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
+      if (result.data?.sent) {
+        toast('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.', 'success')
+        setSelectedGift(null)
+        return
+      }
+      if (result.data?.url) { window.location.href = result.data.url; return }
+      toast(result.error ?? 'Erreur de paiement', 'error')
+    } catch (err) {
+      console.error('handleSend error', err)
+      toast('Erreur lors de l\'envoi du cadeau', 'error')
+    } finally {
       setSending(false)
-      return
     }
-    if (result.data?.url) { window.location.href = result.data.url; return }
-    toast(result.error ?? 'Erreur de paiement', 'error')
-    setSending(false)
   }
 
   const handlePayout = async () => {
     const amount = parseInt(payoutAmount)
     if (!amount || amount <= 0 || amount > balance) return
     setPayoutProcessing(true)
-    const { error, message } = await requestPayout(amount)
-    if (error) { toast(error, 'error'); setPayoutProcessing(false); return }
-    toast(message ?? `Retrait de ${fmt(amount)} F effectué !`, 'success')
-    setShowPayoutModal(false)
-    setPayoutAmount('')
-    setPayoutProcessing(false)
-    const b = await getGiftBalance()
-    setBalance(b)
-    const t = await getGiftTransactions()
-    if (t.data) setTransactions(t.data)
+    try {
+      const { error, message } = await requestPayout(amount)
+      if (error) { toast(error, 'error'); return }
+      toast(message ?? `Retrait de ${fmt(amount)} F effectué !`, 'success')
+      setShowPayoutModal(false)
+      setPayoutAmount('')
+      const b = await getGiftBalance()
+      setBalance(b)
+      const t = await getGiftTransactions()
+      if (t.data) setTransactions(t.data)
+    } catch (err) {
+      console.error('handlePayout error', err)
+      toast('Erreur lors du retrait', 'error')
+    } finally {
+      setPayoutProcessing(false)
+    }
   }
 
   const handleSavePayment = async () => {
@@ -181,14 +192,14 @@ function GiftsContent() {
         </div>
 
         {showPayoutModal && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
+          <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
-            <div className="w-full max-w-sm bg-[#1C1C1E] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[#1C1C1E] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-white mb-1">Retirer ton solde</h3>
               <p className="text-xs text-[#9E9488] mb-4">Solde disponible : <strong className="text-white">{fmt(balance)} F</strong></p>
               <div className="mb-3">
                 <label className="text-xs text-[#9E9488] mb-1 block">Montant (F)</label>
-                <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance}
+                <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance} aria-label="Montant du retrait"
                   className="w-full px-4 py-3 rounded-xl bg-[#262628] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
               </div>
               <div className="mb-4">
@@ -211,7 +222,7 @@ function GiftsContent() {
 
         <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
           className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
-          {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[#6B6258]" /> : <Smartphone size={20} className="text-[#6B6258]" />}
+          {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[#9E9488]" /> : <Smartphone size={20} className="text-[#9E9488]" />}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Moyen de paiement</p>
             <p className="text-xs text-[#9E9488]">
@@ -252,7 +263,7 @@ function GiftsContent() {
                 </div>
                 <div>
                   <label className="text-xs text-[#9E9488] mb-1 block">Numéro de téléphone</label>
-                  <input value={payPhone} onChange={e => setPayPhone(e.target.value)} placeholder="+221 77 123 45 67"
+                  <input value={payPhone} onChange={e => setPayPhone(e.target.value)} placeholder="+221 77 123 45 67" aria-label="Numéro de téléphone"
                     className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
                 </div>
               </>
@@ -261,7 +272,7 @@ function GiftsContent() {
                 <p className="text-xs text-[#9E9488] text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
                 <div>
                   <label className="text-xs text-[#9E9488] mb-1 block">4 derniers chiffres</label>
-                  <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric"
+                  <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric" aria-label="4 derniers chiffres de la carte"
                     className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
                 </div>
                 <div>
@@ -290,7 +301,7 @@ function GiftsContent() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
               <span className="text-2xl opacity-40">🎁</span>
             </div>
-            <p className="text-sm text-[#6B6258]">Aucun cadeau disponible pour le moment.</p>
+            <p className="text-sm text-[#9E9488]">Aucun cadeau disponible pour le moment.</p>
           </div>
         ) : (
         <div className="grid grid-cols-3 gap-3">
@@ -300,7 +311,7 @@ function GiftsContent() {
               <span className="text-3xl block mb-1 transition-transform duration-200 group-hover:scale-110">{g.emoji || '🎁'}</span>
               <p className="text-[10px] font-medium truncate">{g.name}</p>
               <p className="text-[10px] text-[#D92D4A] font-bold">{fmt(toXof(g.price_cents))} F</p>
-              <p className="text-[8px] text-[#6B6258]">+{FEE_PERCENT}% frais</p>
+              <p className="text-[8px] text-[#9E9488]">+{FEE_PERCENT}% frais</p>
             </button>
           ))}
         </div>
@@ -310,7 +321,7 @@ function GiftsContent() {
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
             <p className="text-sm text-center">
               <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[#D92D4A]">{fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F</strong>
-              <br /><span className="text-xs text-[#6B6258]">dont {FEE_PERCENT}% de frais</span>
+              <br /><span className="text-xs text-[#9E9488]">dont {FEE_PERCENT}% de frais</span>
             </p>
             <div>
               <label className="text-xs text-[#9E9488] mb-1 block">Destinataire</label>
@@ -326,7 +337,7 @@ function GiftsContent() {
               <label className="text-xs text-[#9E9488] mb-1 block">Message (optionnel)</label>
               <textarea value={message} onChange={e => setMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
                 rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
-              <p className="text-[10px] text-right text-[#6B6258]">{message.length}/200</p>
+              <p className="text-[10px] text-right text-[#9E9488]">{message.length}/200</p>
             </div>
             <button type="button" onClick={handleSend} disabled={!selectedMatch || sending}
               className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>

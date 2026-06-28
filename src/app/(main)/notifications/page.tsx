@@ -67,7 +67,7 @@ export default function NotificationsPage() {
               <Bell size={36} className="text-[#D92D4A]/40" />
             </div>
             <p className="text-lg font-semibold">Aucune notification</p>
-            <p className="text-[#6B6258] text-sm mt-1 max-w-xs leading-relaxed">Les matchs, messages et activités apparaîtront ici.</p>
+            <p className="text-[#9E9488] text-sm mt-1 max-w-xs leading-relaxed">Les matchs, messages et activités apparaîtront ici.</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -81,13 +81,13 @@ export default function NotificationsPage() {
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                     n.read ? 'bg-[#1C1C1E]' : 'bg-[#D92D4A]/10'
                   }`}>
-                    <Icon size={18} className={n.read ? 'text-[#6B6258]' : 'text-[#D92D4A]'} />
+                    <Icon size={18} className={n.read ? 'text-[#9E9488]' : 'text-[#D92D4A]'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${n.read ? 'text-[#9E9488]' : 'text-white font-medium'}`}>
                       {labelMap[n.type] || 'Notification'}
                     </p>
-                    <p className="text-xs text-[#6B6258] mt-0.5">
+                    <p className="text-xs text-[#9E9488] mt-0.5">
                       {new Date(n.created_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>

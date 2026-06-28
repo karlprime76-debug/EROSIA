@@ -59,7 +59,7 @@ export default function MatchesPage() {
       }
       setConvs(list)
       setLoading(false)
-    })()
+    })().catch(console.error)
   }, [])
 
   const handleUnmatch = async (matchId: string, e: React.MouseEvent) => {
@@ -78,9 +78,9 @@ export default function MatchesPage() {
       <header className="px-5 pt-6 pb-4">
         <h2 className="text-3xl font-bold">
           Matchs
-          <span className="text-[#6B6258] text-lg ml-2 font-normal">{convs.length}</span>
+          <span className="text-[#9E9488] text-lg ml-2 font-normal">{convs.length}</span>
         </h2>
-        <p className="text-[#6B6258] text-sm mt-0.5">Conversations et œillades</p>
+        <p className="text-[#9E9488] text-sm mt-0.5">Conversations et œillades</p>
         {(streak > 0 || swipesLeft > 0) && (
           <div className="flex gap-3 mt-3">
             {streak > 0 && (
@@ -113,7 +113,7 @@ export default function MatchesPage() {
                       {f.sender?.photos?.[0] ? (
                         <Image src={f.sender.photos[0]} alt={f.sender.name} width={64} height={64} className="object-cover w-full h-full" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-lg">?</div>
+                        <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-lg">?</div>
                       )}
                     </div>
                   </div>
@@ -130,7 +130,7 @@ export default function MatchesPage() {
               <Heart size={36} className="text-[#D92D4A]/40" />
             </div>
             <h3 className="font-semibold text-lg">Pas encore de matchs</h3>
-            <p className="text-[#6B6258] text-sm mt-1 max-w-xs mx-auto leading-relaxed">
+            <p className="text-[#9E9488] text-sm mt-1 max-w-xs mx-auto leading-relaxed">
               Continue à découvrir des profils et trouve l&rsquo;âme qui te correspond.
             </p>
             <Link href="/discover" className="inline-block mt-6 px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:shadow-[0_0_20px_rgba(217,45,74,0.3)] active:scale-95"
@@ -150,10 +150,10 @@ export default function MatchesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{c.profile.name}</p>
-                  <p className="text-xs text-[#6B6258] truncate mt-0.5">Dites bonjour 👋</p>
+                  <p className="text-xs text-[#9E9488] truncate mt-0.5">Dites bonjour 👋</p>
                 </div>
                   <MessageCircle size={18} className="text-[#5A5248] group-hover:text-[#D92D4A] transition-colors" />
-                <button type="button" onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button type="button" aria-label="Ne plus match" onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 focus:opacity-100 group-hover:opacity-100 transition-opacity">
                   <X size={14} className="text-[#5A5248] hover:text-red-500 transition-colors" />
                 </button>
               </Link>

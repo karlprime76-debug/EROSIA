@@ -22,9 +22,9 @@ function DailyProfileContent() {
       </header>
       <div className="flex-1 flex items-center justify-center px-8 text-center">
         <div>
-          <Star size={40} className="text-[#6B6258] mx-auto mb-3" />
+          <Star size={40} className="text-[#9E9488] mx-auto mb-3" />
           <p className="text-[#9E9488] text-sm">Aucun profil disponible aujourd&rsquo;hui</p>
-          <p className="text-[#6B6258] text-xs mt-1">Reviens demain !</p>
+          <p className="text-[#9E9488] text-xs mt-1">Reviens demain !</p>
         </div>
       </div>
     </div>
@@ -32,11 +32,17 @@ function DailyProfileContent() {
 
   const handleLike = async () => {
     setLiking(true)
-    await createSwipe(profile.id, 'like')
-    const { isMatch } = await checkForMatch(profile.id)
-    if (isMatch) toast('C\'est un match ! 🔥', 'success')
-    setProfilePromise(getDailyProfile())
-    setLiking(false)
+    try {
+      await createSwipe(profile.id, 'like')
+      const { isMatch } = await checkForMatch(profile.id)
+      if (isMatch) toast('C\'est un match ! 🔥', 'success')
+      setProfilePromise(getDailyProfile())
+    } catch (err) {
+      console.error('handleLike error', err)
+      toast('Erreur lors du like', 'error')
+    } finally {
+      setLiking(false)
+    }
   }
 
   return (
@@ -51,7 +57,7 @@ function DailyProfileContent() {
           {profile.photos?.[0] ? (
             <Image src={profile.photos[0]} alt={profile.name} fill className="object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-4xl">?</div>
+            <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-4xl">?</div>
           )}
         </div>
         <h2 className="text-xl font-bold">{profile.name}, {profile.age}</h2>

@@ -39,8 +39,14 @@ export default function DuelsPage() {
   const votesFor = (duel: DuelItem, profileId: string) => duel.votes?.filter(v => v.chosen_id === profileId).length ?? 0
 
   const handleVote = async (duelId: string, chosenId: string) => {
-    await voteDuel(duelId, chosenId)
-    getDuels().then(({ data }) => { if (data) setDuels(data) })
+    try {
+      await voteDuel(duelId, chosenId)
+      const { data } = await getDuels()
+      if (data) setDuels(data)
+    } catch (err) {
+      console.error('handleVote error', err)
+      toast('Erreur lors du vote', 'error')
+    }
   }
 
   return (
@@ -59,18 +65,18 @@ export default function DuelsPage() {
           <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
         ) : duels.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <Swords size={40} className="text-[#6B6258] mb-3" />
+            <Swords size={40} className="text-[#9E9488] mb-3" />
             <p className="text-[#9E9488] text-sm">Aucun duel pour le moment</p>
           </div>
         ) : duels.map(d => (
           <div key={d.id} className="bg-[#1C1C1E] rounded-xl border border-[#2A2826] p-4">
-            <p className="text-xs text-[#6B6258] mb-3">{totalVotes(d)} vote(s)</p>
+            <p className="text-xs text-[#9E9488] mb-3">{totalVotes(d)} vote(s)</p>
             <div className="flex items-center gap-3">
               <div className="flex-1 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full bg-zinc-700 overflow-hidden mb-1">
                   {d.profile_a?.photos?.[0] ? (
                     <Image src={d.profile_a.photos[0]} alt={d.profile_a?.name ?? 'Profil A'} width={64} height={64} className="object-cover w-full h-full" />
-                  ) : <div className="w-full h-full flex items-center justify-center text-[#6B6258]">?</div>}
+                  ) : <div className="w-full h-full flex items-center justify-center text-[#9E9488]">?</div>}
                 </div>
                 <p className="text-xs font-medium">{d.profile_a?.name}</p>
                 <p className="text-[10px] text-[#D92D4A]">{votesFor(d, d.profile_a_id)} votes</p>
@@ -79,12 +85,12 @@ export default function DuelsPage() {
                   Voter
                 </button>
               </div>
-              <div className="text-2xl text-[#6B6258]">VS</div>
+              <div className="text-2xl text-[#9E9488]">VS</div>
               <div className="flex-1 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full bg-zinc-700 overflow-hidden mb-1">
                   {d.profile_b?.photos?.[0] ? (
                     <Image src={d.profile_b.photos[0]} alt={d.profile_b?.name ?? 'Profil B'} width={64} height={64} className="object-cover w-full h-full" />
-                  ) : <div className="w-full h-full flex items-center justify-center text-[#6B6258]">?</div>}
+                  ) : <div className="w-full h-full flex items-center justify-center text-[#9E9488]">?</div>}
                 </div>
                 <p className="text-xs font-medium">{d.profile_b?.name}</p>
                 <p className="text-[10px] text-[#D92D4A]">{votesFor(d, d.profile_b_id)} votes</p>

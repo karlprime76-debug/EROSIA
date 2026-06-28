@@ -38,9 +38,15 @@ export default function NewDuelPage() {
   const handleCreate = async () => {
     if (!selectedA || !selectedB || selectedA === selectedB) return
     setCreating(true)
-    await createDuel(selectedA, selectedB)
-    setCreating(false)
-    router.push('/duels')
+    try {
+      await createDuel(selectedA, selectedB)
+      router.push('/duels')
+    } catch (err) {
+      console.error('handleCreate error', err)
+      toast('Erreur lors de la création du duel', 'error')
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (

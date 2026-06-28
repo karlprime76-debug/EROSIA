@@ -36,7 +36,7 @@ export default function ProfilePage() {
       const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
       if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       setLoading(false)
-    })()
+    })().catch(console.error)
     return () => clearTimeout(timer)
   }, [])
   const loadProfile = async () => {
@@ -163,7 +163,7 @@ export default function ProfilePage() {
                       <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
                     </button>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#6B6258] text-3xl">?</div>
+                    <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-3xl">?</div>
                   )}
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              {profile?.location && <p className="text-sm text-[#6B6258]">📍 {profile.location}</p>}
+              {profile?.location && <p className="text-sm text-[#9E9488]">📍 {profile.location}</p>}
               {profile?.last_seen && <p className="text-xs text-[#9E9488] mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
             </div>
           </div>
@@ -203,12 +203,12 @@ export default function ProfilePage() {
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
-                      <button type="button" onClick={async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(console.error) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
                         <Star size={14} className="text-amber-500" />
                       </button>
                     )}
-                    <button type="button" onClick={async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) }}
+                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(console.error) }}
                       className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
                       <Trash2 size={14} className="text-red-500" />
                     </button>
@@ -231,7 +231,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#6B6258] disabled:opacity-40">
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#9E9488] disabled:opacity-40">
                   {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[#D92D4A] border-t-transparent rounded-full" /> : <Camera size={24} />}
                 </button>
               )}
@@ -246,13 +246,13 @@ export default function ProfilePage() {
               <label htmlFor="profile-name" className="text-sm font-medium mb-1 block">Pseudo</label>
               <input id="profile-name" value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))} placeholder="Ton pseudo"
                 maxLength={80} className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
-              <p className="text-[10px] text-[#6B6258] text-right mt-1">{nameValue.length}/80</p>
+              <p className="text-[10px] text-[#9E9488] text-right mt-1">{nameValue.length}/80</p>
             </div>
             <div>
               <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
               <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={4}
                 className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] resize-none" />
-              <p className="text-[10px] text-[#6B6258] text-right mt-1">{bio.length}/500</p>
+              <p className="text-[10px] text-[#9E9488] text-right mt-1">{bio.length}/500</p>
             </div>
             <div>
               <label htmlFor="profile-interests" className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
@@ -333,9 +333,9 @@ export default function ProfilePage() {
       )}
 
       {themePicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setThemePicker(false) }}>
-          <div className="w-full max-w-lg bg-[#1C1C1E] rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-lg bg-[#1C1C1E] rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-center mb-5">Apparence</h3>
             <div className="space-y-2">
               {[

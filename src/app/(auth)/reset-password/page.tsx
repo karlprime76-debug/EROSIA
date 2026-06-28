@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                   focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_rgba(217,45,74,0.12)]
                   placeholder:text-[var(--text-muted)]" />
             </div>
-            {error && <p className="text-sm text-[var(--error)] text-center">{error}</p>}
+            {error && <p role="alert" className="text-sm text-[var(--error)] text-center">{error}</p>}
             <Button type="submit" variant="premium" size="pill-lg" loading={loading} className="w-full">
               {loading ? 'Mise à jour…' : 'Enregistrer'}
             </Button>

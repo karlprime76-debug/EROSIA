@@ -30,46 +30,64 @@ export default function OnboardingPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
-    })
+    }).catch(console.error)
   }, [router])
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     setUploading(true)
-    const result = await uploadPhoto(file, userId, photos.length)
-    if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-    if (result.url) {
-      setPhotos(prev => [...prev, result.url!])
-      await updateProfile(userId, { photos: [...photos, result.url] })
+    try {
+      const result = await uploadPhoto(file, userId, photos.length)
+      if (result.error) { toast(result.error, 'error'); return }
+      if (result.url) {
+        setPhotos(prev => [...prev, result.url!])
+        await updateProfile(userId, { photos: [...photos, result.url] })
+      }
+    } catch (err) {
+      console.error('handleAddPhoto error', err)
+      toast('Erreur lors de l\'ajout de la photo', 'error')
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   const handleVerifPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     setVerifUploading(true)
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const fileName = `verification/${userId}/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage.from('verification_photos').upload(fileName, file)
-    if (uploadError) { toast(uploadError.message, 'error'); setVerifUploading(false); return }
-    const { data: urlData } = supabase.storage.from('verification_photos').getPublicUrl(fileName)
-    setVerifPhoto(urlData.publicUrl)
-    await supabase.from('verification_requests').insert({
-      user_id: userId, photo_url: urlData.publicUrl,
-    })
-    setVerifDone(true)
-    setVerifUploading(false)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const fileName = `verification/${userId}/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('verification_photos').upload(fileName, file)
+      if (uploadError) { toast(uploadError.message, 'error'); return }
+      const { data: urlData } = supabase.storage.from('verification_photos').getPublicUrl(fileName)
+      setVerifPhoto(urlData.publicUrl)
+      await supabase.from('verification_requests').insert({
+        user_id: userId, photo_url: urlData.publicUrl,
+      })
+      setVerifDone(true)
+    } catch (err) {
+      console.error('handleVerifPhoto error', err)
+      toast('Erreur lors du téléchargement', 'error')
+    } finally {
+      setVerifUploading(false)
+    }
   }
 
   const handleFinishProfile = async () => {
     if (!userId) return
     setSaving(true)
-    const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-    await updateProfile(userId, { bio, interests: interestsArr, looking_for: lookingFor as LookingFor })
-    setSaving(false)
-    setStep(2)
+    try {
+      const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
+      await updateProfile(userId, { bio, interests: interestsArr, looking_for: lookingFor as LookingFor })
+      setStep(2)
+    } catch (err) {
+      console.error('handleFinishProfile error', err)
+      toast('Erreur lors de la sauvegarde du profil', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleComplete = async () => {
@@ -87,7 +105,7 @@ export default function OnboardingPage() {
           ))}
         </div>
         {step < 3 && (
-          <button onClick={() => router.push('/discover')} className="text-[#9E9488] text-xs hover:text-white transition">
+          <button type="button" onClick={() => router.push('/discover')} className="text-[#9E9488] text-xs hover:text-white transition">
             Passer
           </button>
         )}
@@ -107,19 +125,19 @@ export default function OnboardingPage() {
             <div className="flex gap-3 flex-wrap justify-center mb-6">
               {photos.map((photo, i) => (
                 <div key={i} className="w-24 h-32 rounded-xl overflow-hidden bg-[#1C1C1E] border border-[#2A2826]">
-                  <Image src={photo} alt="" width={96} height={128} className="w-full h-full object-cover" />
+                  <Image src={photo} alt={"Photo " + (i + 1)} width={96} height={128} className="w-full h-full object-cover" />
                 </div>
               ))}
               {photos.length < 6 && (
-                <button onClick={() => inputRef.current?.click()} disabled={uploading}
-                  className="w-24 h-32 rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#6B6258] hover:border-[#D92D4A]/30 transition-all active:scale-95">
+                <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
+                  className="w-24 h-32 rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#9E9488] hover:border-[#D92D4A]/30 transition-all active:scale-95">
                   {uploading ? <div className="animate-spin w-5 h-5 border-2 border-[#D92D4A] border-t-transparent rounded-full" /> : <Camera size={24} />}
                 </button>
               )}
             </div>
             <input ref={inputRef} type="file" accept="image/*" onChange={handleAddPhoto} className="hidden" />
 
-            <button onClick={() => photos.length > 0 && setStep(1)} disabled={photos.length === 0}
+            <button type="button" onClick={() => photos.length > 0 && setStep(1)} disabled={photos.length === 0}
               className="w-full max-w-xs py-3.5 rounded-full text-white font-semibold disabled:opacity-30 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
               {photos.length > 0 ? `Continuer (${photos.length} photo${photos.length > 1 ? 's' : ''})` : 'Ajoute au moins 1 photo'}
               <ChevronRight size={18} />
@@ -132,18 +150,18 @@ export default function OnboardingPage() {
             <div className="flex-1 space-y-4 pt-4">
               <div>
                 <label className="text-xs text-[#9E9488] font-medium mb-1.5 block">Bio</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={3} placeholder="Parle un peu de toi..."
+                <textarea value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={3} placeholder="Parle un peu de toi..." aria-label="Bio"
                   className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
-                <p className="text-[10px] text-[#6B6258] text-right mt-1">{bio.length}/500</p>
+                <p className="text-[10px] text-[#9E9488] text-right mt-1">{bio.length}/500</p>
               </div>
               <div>
                 <label className="text-xs text-[#9E9488] font-medium mb-1.5 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
-                <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
+                <input value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..." aria-label="Centres d'intérêt"
                   className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
               </div>
               <div>
                 <label className="text-xs text-[#9E9488] font-medium mb-1.5 block">Ce que tu cherches</label>
-                <select value={lookingFor} onChange={e => setLookingFor(e.target.value)}
+                <select value={lookingFor} onChange={e => setLookingFor(e.target.value)} aria-label="Je cherche"
                   className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]">
                   <option value="friendship">Amitié</option>
                   <option value="casual">Plan cul</option>
@@ -154,7 +172,7 @@ export default function OnboardingPage() {
               </div>
             </div>
             <div className="py-6">
-              <button onClick={handleFinishProfile} disabled={saving}
+              <button type="button" onClick={handleFinishProfile} disabled={saving}
                 className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
                 {saving ? 'Enregistrement...' : 'Continuer'}
                 <ChevronRight size={18} />
@@ -178,8 +196,8 @@ export default function OnboardingPage() {
                 <Image src={verifPhoto} alt="Selfie" width={192} height={192} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <button onClick={() => document.getElementById('verif-input')?.click()} disabled={verifUploading}
-                className="w-48 h-48 rounded-2xl border-2 border-dashed border-[#2A2826] flex flex-col items-center justify-center text-[#6B6258] hover:border-[#A855F7]/30 transition-all active:scale-95">
+              <button type="button" onClick={() => document.getElementById('verif-input')?.click()} disabled={verifUploading}
+                className="w-48 h-48 rounded-2xl border-2 border-dashed border-[#2A2826] flex flex-col items-center justify-center text-[#9E9488] hover:border-[#A855F7]/30 transition-all active:scale-95">
                 {verifUploading ? (
                   <div className="animate-spin w-8 h-8 border-2 border-[#A855F7] border-t-transparent rounded-full" />
                 ) : (
@@ -198,11 +216,11 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <button onClick={() => setStep(3)} className="mt-4 w-full max-w-xs py-3.5 rounded-full text-white font-semibold flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
+            <button type="button" onClick={() => setStep(3)} className="mt-4 w-full max-w-xs py-3.5 rounded-full text-white font-semibold flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
               Terminer
               <ChevronRight size={18} />
             </button>
-            <button onClick={() => setStep(3)} className="text-[#9E9488] text-xs mt-3 hover:text-white transition">
+            <button type="button" onClick={() => setStep(3)} className="text-[#9E9488] text-xs mt-3 hover:text-white transition">
               Passer la vérification
             </button>
           </div>
@@ -217,7 +235,7 @@ export default function OnboardingPage() {
             <p className="text-[#9E9488] text-sm mb-8 text-center max-w-xs">
               Ton profil est visible dans les découvertes. Vas-y, explore !
             </p>
-            <button onClick={handleComplete}
+            <button type="button" onClick={handleComplete}
               className="w-full max-w-xs py-3.5 rounded-full text-white font-semibold flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
               Découvrir des profils
               <Sparkles size={18} />

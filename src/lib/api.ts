@@ -61,8 +61,6 @@ export interface Message {
   created_at: string
 }
 
-export type ReportReason = 'fake' | 'harassment' | 'spam' | 'inappropriate' | 'other'
-
 export interface BlockedProfile {
   blocked_id: string
   created_at: string
@@ -71,6 +69,15 @@ export interface BlockedProfile {
 
 function supabase() {
   return sbClient
+}
+
+async function assertMatchParticipant(matchId: string): Promise<{ userId?: string; error?: string }> {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data } = await supabase().from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()
+  if (!data) return { error: 'Match introuvable' }
+  if (data.user1_id !== user.id && data.user2_id !== user.id) return { error: 'Non autorisé' }
+  return { userId: user.id }
 }
 
 export function resetApiClient() {} // kept for compat, no-op
@@ -188,18 +195,20 @@ export async function checkForMatch(targetId: string) {
 }
 
 export async function getMessages(matchId: string) {
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return { data: null, error: authErr }
   const { data, error } = await supabase()
     .from('messages').select('*').eq('match_id', matchId).order('created_at', { ascending: true })
   return { data: data as Message[] | null, error: error?.message }
 }
 
 export async function sendMessage(matchId: string, text: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
   const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
   if (!clean.trim()) return { error: 'Message vide' }
   const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, text: clean,
+    match_id: matchId, sender_id: userId, text: clean,
   }).select().single()
   return { data: data as Message | null, error: error?.message }
 }
@@ -274,13 +283,6 @@ export async function blockProfile(blockedId: string) {
   return { error: error?.message }
 }
 
-export async function unblockProfile(blockedId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('blocks').delete().eq('blocker_id', user.id).eq('blocked_id', blockedId)
-  return { error: error?.message }
-}
-
 export async function getBlockedIds() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return []
@@ -296,25 +298,25 @@ export async function reportProfile(reportedId: string, reason: string) {
 }
 
 export async function sendPhotoMessage(matchId: string, file: File) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
 
   const ext = file.name.split('.').pop() ?? 'jpg'
-  const fileName = `chat/${matchId}/${Date.now()}_${user.id}.${ext}`
+  const fileName = `chat/${matchId}/${Date.now()}_${userId}.${ext}`
   const { error: uploadError } = await supabase().storage.from('chat_photos').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
 
   const { data: urlData } = supabase().storage.from('chat_photos').getPublicUrl(fileName)
 
   const { error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, image_url: urlData.publicUrl,
+    match_id: matchId, sender_id: userId, image_url: urlData.publicUrl,
   })
   return { error: error?.message }
 }
 
 export async function unmatchUser(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return { error: authErr }
   const { error: msgErr } = await supabase().from('messages').delete().eq('match_id', matchId)
   if (msgErr) return { error: msgErr.message }
   const { error } = await supabase().from('matches').delete().eq('id', matchId)
@@ -403,13 +405,6 @@ export async function useSuperLike() {
 }
 
 // 3. Incognito mode
-export async function setIncognito(incognito: boolean) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('profiles').update({ incognito }).eq('id', user.id)
-  return { error: error?.message }
-}
-
 export async function getIncognito() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return false
@@ -425,13 +420,6 @@ export async function savePushSubscription(endpoint: string, p256dh: string, aut
   const { error } = await supabase().from('push_subscriptions').insert({
     user_id: user.id, endpoint, p256dh, auth,
   })
-  return { error: error?.message }
-}
-
-export async function removePushSubscription(endpoint: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint)
   return { error: error?.message }
 }
 
@@ -457,13 +445,6 @@ export async function getQuizAnswers() {
 }
 
 // 6. Compatibility
-export async function getCompatibilityWith(otherUserId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { score: 0 }
-  const { data } = await supabase().rpc('get_compatibility', { user_a_id: user.id, user_b_id: otherUserId })
-  return { score: (data as number) ?? 0 }
-}
-
 export async function getCompatibilityBatch(otherUserIds: string[]) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user || otherUserIds.length === 0) return {}
@@ -475,18 +456,6 @@ export async function getCompatibilityBatch(otherUserIds: string[]) {
     if (r.data !== undefined) scores[otherUserIds[i]] = Number(r.data) || 0
   })
   return scores
-}
-
-// 7. Blocked users management
-export async function getBlockedProfiles() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [] }
-  const { data, error } = await supabase()
-    .from('blocks')
-    .select('blocked_id, created_at, blocked:profiles!blocks_blocked_id_fkey(name, photos)')
-    .eq('blocker_id', user.id)
-    .order('created_at', { ascending: false })
-  return { data: data ?? [], error: error?.message }
 }
 
 // 9. Typing indicator (no SQL, uses Realtime channels)
@@ -612,14 +581,6 @@ export async function removeReaction(messageId: string) {
   return { error: error?.message }
 }
 
-export async function getReactions(messageId: string) {
-  const { data, error } = await supabase()
-    .from('message_reactions')
-    .select('*, profile:profiles!message_reactions_user_id_fkey(name)')
-    .eq('message_id', messageId)
-  return { data: data ?? [], error: error?.message }
-}
-
 // ---- FEATURE 7: Notifications ----
 export async function getNotifications() {
   const { data: { user } } = await supabase().auth.getUser()
@@ -635,7 +596,7 @@ export async function getNotifications() {
 export async function markNotificationRead(notificationId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('notifications').update({ read: true }).eq('id', notificationId)
+  const { error } = await supabase().from('notifications').update({ read: true }).eq('id', notificationId).eq('user_id', user.id)
   return { error: error?.message }
 }
 
@@ -666,10 +627,10 @@ export async function uploadAudio(file: File, matchId: string) {
 }
 
 export async function sendAudioMessage(matchId: string, audioUrl: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
   const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, audio_url: audioUrl,
+    match_id: matchId, sender_id: userId, audio_url: audioUrl,
   }).select().single()
   return { data: data as Message | null, error: error?.message }
 }
@@ -700,13 +661,6 @@ export async function deleteProfileVideo() {
 }
 
 // ---- FEATURE 11: Moderation ----
-export async function flagContent(type: string, id: string, text?: string, url?: string) {
-  const { data, error } = await supabase().rpc('flag_content', {
-    p_content_type: type, p_content_id: id, p_content_text: text ?? null, p_content_url: url ?? null,
-  })
-  return { data, error: error?.message }
-}
-
 export async function getModerationQueue() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { data: [], error: 'Not authenticated' }
@@ -762,17 +716,6 @@ export async function leaveEvent(eventId: string) {
   return { error: error?.message }
 }
 
-export async function getMyEvents() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [] }
-  const { data, error } = await supabase()
-    .from('events')
-    .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
-    .eq('creator_id', user.id)
-    .order('event_date', { ascending: true })
-  return { data: data ?? [], error: error?.message }
-}
-
 // ---- FEATURE 13: Duels ----
 export async function createDuel(profileAId: string, profileBId: string) {
   const { data: { user } } = await supabase().auth.getUser()
@@ -793,6 +736,8 @@ export async function voteDuel(duelId: string, chosenId: string) {
 }
 
 export async function getDuels() {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { data: [], error: 'Not authenticated' }
   const { data, error } = await supabase()
     .from('duels')
     .select('*, profile_a:profiles!duels_profile_a_id_fkey(name, photos), profile_b:profiles!duels_profile_b_id_fkey(name, photos), votes:duel_votes(*)')
@@ -832,58 +777,18 @@ export async function getMyDateIdeas() {
   return { data: data ?? [], error: error?.message }
 }
 
-export async function getMutualDateIdeas(otherUserId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [] }
-  const { data } = await supabase()
-    .from('user_date_ideas')
-    .select('idea_id')
-    .eq('user_id', user.id)
-  const myIdeaIds = (data ?? []).map(d => d.idea_id)
-  if (myIdeaIds.length === 0) return { data: [], error: null }
-  const { data: otherData, error: otherError } = await supabase()
-    .from('user_date_ideas')
-    .select('*, idea:date_ideas!user_date_ideas_idea_id_fkey(*)')
-    .eq('user_id', otherUserId)
-    .in('idea_id', myIdeaIds)
-  return { data: otherData ?? [], error: otherError?.message }
-}
-
 // ---- FEATURE 15: Ephemeral chat ----
 export async function toggleEphemeral(matchId: string, enabled: boolean) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return { error: authErr }
   const { error } = await supabase().from('matches').update({ ephemeral: enabled }).eq('id', matchId)
   return { error: error?.message }
-}
-
-export async function sendEphemeralMessage(matchId: string, text: string, expiresInMinutes: number) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
-  if (!clean.trim()) return { error: 'Message vide' }
-  const safeMinutes = Math.max(1, Math.min(expiresInMinutes, 525600))
-  const expiresAt = new Date(Date.now() + safeMinutes * 60 * 1000).toISOString()
-  const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: user.id, text: clean, expires_at: expiresAt,
-  }).select().single()
-  return { data: data as Message | null, error: error?.message }
 }
 
 // ---- FEATURE 16: Gifts ----
 export async function getGifts() {
   const { data, error } = await supabase().from('gifts').select('*')
   return { data: data ?? [], error: error?.message }
-}
-
-export async function sendGift(receiverId: string, giftId: string, matchId: string, message?: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  if (receiverId === user.id) return { error: 'Vous ne pouvez pas vous offrir un cadeau' }
-  const { data, error } = await supabase().from('sent_gifts').insert({
-    sender_id: user.id, receiver_id: receiverId, gift_id: giftId, match_id: matchId, message: message ?? null,
-  }).select().single()
-  return { data, error: error?.message }
 }
 
 export async function getReceivedGifts() {
@@ -899,10 +804,10 @@ export async function getReceivedGifts() {
 
 // ---- FEATURE 17: Visio-Chat ----
 export async function startCall(matchId: string, calleeId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
   const { data, error } = await supabase().from('calls').insert({
-    match_id: matchId, caller_id: user.id, callee_id: calleeId, status: 'ringing',
+    match_id: matchId, caller_id: userId, callee_id: calleeId, status: 'ringing',
   }).select().single()
   return { data: data ?? null, error: error?.message }
 }
@@ -910,6 +815,9 @@ export async function startCall(matchId: string, calleeId: string) {
 export async function endCall(callId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const { data: call } = await supabase().from('calls').select('caller_id,callee_id').eq('id', callId).maybeSingle()
+  if (!call) return { error: 'Appel introuvable' }
+  if (call.caller_id !== user.id && call.callee_id !== user.id) return { error: 'Non autorisé' }
   const { data, error } = await supabase().from('calls').update({
     status: 'ended', ended_at: new Date().toISOString(),
   }).eq('id', callId).select().single()
@@ -917,8 +825,8 @@ export async function endCall(callId: string) {
 }
 
 export async function getCallStatus(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: null }
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return { data: null, error: authErr }
   const { data, error } = await supabase()
     .from('calls').select('*').eq('match_id', matchId)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -938,22 +846,22 @@ export async function getProfileQuizSummary(userId: string) {
 
 // ---- FEATURE 19: Read Receipts ----
 export async function markAsRead(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().rpc('mark_messages_read', { p_match_id: matchId, p_reader_id: user.id })
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
+  const { data, error } = await supabase().rpc('mark_messages_read', { p_match_id: matchId, p_reader_id: userId })
   return { data: data as number | null, error: error?.message }
 }
 
 export async function getUnreadCount(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return 0
-  const { data } = await supabase().rpc('get_unread_count', { p_match_id: matchId, p_user_id: user.id })
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return 0
+  const { data } = await supabase().rpc('get_unread_count', { p_match_id: matchId, p_user_id: userId })
   return Number(data) || 0
 }
 
 export async function getLastReadAt(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return null
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return null
   const { data } = await supabase()
     .from('messages').select('read_at').eq('match_id', matchId)
     .not('read_at', 'is', null).order('read_at', { ascending: false }).limit(1).maybeSingle()
@@ -986,24 +894,6 @@ export async function getIcebreakerSuggestion(targetId: string) {
   return { data: data as string | null, error: error?.message }
 }
 
-export async function markIcebreakerUsed(suggestionId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('icebreaker_suggestions').update({ used: true }).eq('id', suggestionId).eq('user_id', user.id)
-  return { error: error?.message }
-}
-
-export async function getIcebreakerSuggestions() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [] }
-  const { data, error } = await supabase()
-    .from('icebreaker_suggestions')
-    .select('*, target:profiles!icebreaker_suggestions_target_id_fkey(name, photos)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-  return { data: data ?? [], error: error?.message }
-}
-
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()
@@ -1014,10 +904,10 @@ export async function getStreak() {
 
 // ---- FEATURE 23: Shared Playlist ----
 export async function addPlaylistItem(matchId: string, title: string, artist?: string, url?: string, platform?: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  const { userId, error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr || !userId) return { error: authErr }
   const { data, error } = await supabase().from('playlist_items').insert({
-    match_id: matchId, user_id: user.id, title, artist: artist ?? null, url: url ?? null, platform: platform ?? 'spotify',
+    match_id: matchId, user_id: userId, title, artist: artist ?? null, url: url ?? null, platform: platform ?? 'spotify',
   }).select().single()
   return { data: data ?? null, error: error?.message }
 }
@@ -1030,6 +920,8 @@ export async function removePlaylistItem(itemId: string) {
 }
 
 export async function getPlaylist(matchId: string) {
+  const { error: authErr } = await assertMatchParticipant(matchId)
+  if (authErr) return { data: [], error: authErr }
   const { data, error } = await supabase()
     .from('playlist_items')
     .select('*, user:profiles!playlist_items_user_id_fkey(name)')
@@ -1068,30 +960,6 @@ export async function getDailySwipeCount() {
 
 // 99. Paginated queries
 const PAGE_SIZE = 20
-
-export async function getMessagesPaginated(matchId: string, page: number) {
-  const from = (page - 1) * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
-  const { data, error } = await supabase()
-    .from('messages').select('*').eq('match_id', matchId)
-    .order('created_at', { ascending: false })
-    .range(from, to)
-  return { data: data as Message[] | null, error: error?.message }
-}
-
-export async function getNotificationsPaginated(page: number) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: null }
-  const from = (page - 1) * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
-  const { data, error } = await supabase()
-    .from('notifications')
-    .select('*, actor:profiles!notifications_actor_id_fkey(name, photos)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .range(from, to)
-  return { data: data ?? null, error: error?.message }
-}
 
 export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   const from = (page - 1) * PAGE_SIZE
@@ -1258,30 +1126,6 @@ export async function getGiftTransactions() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
-}
-
-export async function getAdminStats() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
-  if (!profile?.is_admin) return null
-
-  const { count: totalGifts } = await supabase().from('sent_gifts').select('*', { count: 'exact', head: true }).eq('status', 'completed')
-  const { count: totalUsers } = await supabase().from('profiles').select('*', { count: 'exact', head: true })
-  const { count: pendingVerifs } = await supabase().from('verification_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-  const { count: pendingPayouts } = await supabase().from('gift_transactions').select('*', { count: 'exact', head: true }).eq('type', 'payout').eq('status', 'pending')
-  const { data: payouts } = await supabase().from('gift_transactions').select('*').eq('type', 'payout').eq('status', 'pending')
-
-  return { totalGifts: totalGifts ?? 0, totalUsers: totalUsers ?? 0, pendingVerifs: pendingVerifs ?? 0, pendingPayouts: pendingPayouts ?? 0, payouts: payouts ?? [] }
-}
-
-export async function adminUpdatePayoutStatus(txId: string, status: 'completed' | 'failed') {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
-  const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
-  if (!profile?.is_admin) return { error: 'Accès refusé' }
-  const { error } = await supabase().from('gift_transactions').update({ status }).eq('id', txId)
-  return { error: error?.message }
 }
 
 export async function completeOnboarding() {

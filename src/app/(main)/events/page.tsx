@@ -39,15 +39,25 @@ export default function EventsPage() {
   const participantCount = (e: EventItem) => e.participants?.filter(p => p.status === 'accepted').length ?? 0
 
   const handleJoin = async (eventId: string) => {
-    await joinEvent(eventId)
-    const { data } = await getEvents()
-    if (data) setEvents(data)
+    try {
+      await joinEvent(eventId)
+      const { data } = await getEvents()
+      if (data) setEvents(data)
+    } catch (err) {
+      console.error('handleJoin error', err)
+      toast('Erreur lors de l\'inscription', 'error')
+    }
   }
 
   const handleLeave = async (eventId: string) => {
-    await leaveEvent(eventId)
-    const { data } = await getEvents()
-    if (data) setEvents(data)
+    try {
+      await leaveEvent(eventId)
+      const { data } = await getEvents()
+      if (data) setEvents(data)
+    } catch (err) {
+      console.error('handleLeave error', err)
+      toast('Erreur lors du désistement', 'error')
+    }
   }
 
   return (
@@ -67,7 +77,7 @@ export default function EventsPage() {
         ) : events.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-[#9E9488] text-sm">Aucun événement à venir</p>
-            <p className="text-[#6B6258] text-xs mt-1">Sois le premier à créer une antenne</p>
+            <p className="text-[#9E9488] text-xs mt-1">Sois le premier à créer une antenne</p>
           </div>
         ) : events.map(e => (
           <div key={e.id} className="bg-[#1C1C1E] rounded-xl border border-[#2A2826] p-4">
@@ -79,9 +89,9 @@ export default function EventsPage() {
                 <h3 className="font-semibold text-sm">{e.title}</h3>
                 {e.description && <p className="text-xs text-[#9E9488] mt-0.5 line-clamp-2">{e.description}</p>}
                 <div className="flex flex-wrap gap-3 mt-2">
-                  {e.location && <span className="text-[10px] text-[#6B6258] flex items-center gap-1"><MapPin size={10} />{e.location}</span>}
-                  {e.event_date && <span className="text-[10px] text-[#6B6258] flex items-center gap-1"><Calendar size={10} />{new Date(e.event_date).toLocaleDateString('fr-FR')}</span>}
-                  <span className="text-[10px] text-[#6B6258] flex items-center gap-1"><Users size={10} />{participantCount(e)}{e.max_participants ? `/${e.max_participants}` : ''}</span>
+                  {e.location && <span className="text-[10px] text-[#9E9488] flex items-center gap-1"><MapPin size={10} />{e.location}</span>}
+                  {e.event_date && <span className="text-[10px] text-[#9E9488] flex items-center gap-1"><Calendar size={10} />{new Date(e.event_date).toLocaleDateString('fr-FR')}</span>}
+                  <span className="text-[10px] text-[#9E9488] flex items-center gap-1"><Users size={10} />{participantCount(e)}{e.max_participants ? `/${e.max_participants}` : ''}</span>
                 </div>
               </div>
               <button type="button" onClick={() => isJoined(e) ? handleLeave(e.id) : handleJoin(e.id)}

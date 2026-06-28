@@ -33,12 +33,12 @@ export default function SettingsPage() {
       startTransition(() => setUpgradeSuccess(true))
       router.replace('/settings')
     }
-    getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') })
+    getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') }).catch(console.error)
     getTravelMode().then(mode => {
       setTravelActive(mode.active)
       setTravelCity(mode.city ?? '')
-    })
-    getGhostMode().then(setGhostMode)
+    }).catch(console.error)
+    getGhostMode().then(setGhostMode).catch(console.error)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).maybeSingle().then(({ data }) => {
@@ -48,8 +48,8 @@ export default function SettingsPage() {
           if (data.notif_push !== null) setNotifPush(data.notif_push)
           if (data.notif_email !== null) setNotifEmail(data.notif_email)
         }
-      })
-    }).finally(() => setSettingsLoaded(true))
+      }, console.error)
+    }).catch(console.error).finally(() => setSettingsLoaded(true))
   }, [router])
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function SettingsPage() {
     let attempts = 0
     const id = setInterval(async () => {
       attempts++
-      const { tier } = await getSubscriptionStatus()
+      const { tier } = await getSubscriptionStatus().catch(() => ({ tier: 'free' as const }))
       if (tier === 'premium') {
         setSubscriptionTier('premium')
         setIsPremium(true)
@@ -131,11 +131,11 @@ export default function SettingsPage() {
           render: () => (
             <div className="flex gap-2 mt-1">
               {visibilityOptions.map(o => (
-                <button type="button" key={o.value} onClick={async () => {
+                <button type="button" key={o.value} onClick={() => { (async () => {
                 setVisibility(o.value)
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
-              }}
+              })().catch(console.error) }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
                   {o.label}
                 </button>
@@ -149,24 +149,24 @@ export default function SettingsPage() {
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Push</span>
-                <button type="button" role="switch" aria-checked={notifPush} onClick={async () => {
+                <button type="button" role="switch" aria-checked={notifPush} onClick={() => { (async () => {
                   const v = !notifPush
                   setNotifPush(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_push: v }).eq('id', user.id)
-                }}
+                })().catch(console.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Email</span>
-                <button type="button" role="switch" aria-checked={notifEmail} onClick={async () => {
+                <button type="button" role="switch" aria-checked={notifEmail} onClick={() => { (async () => {
                   const v = !notifEmail
                   setNotifEmail(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_email: v }).eq('id', user.id)
-                }}
+                })().catch(console.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>
@@ -179,7 +179,7 @@ export default function SettingsPage() {
           desc: ghostMode ? 'Invisible pour les autres' : 'Visible',
           render: () => (
             isPremium ? <ToggleSwitch enabled={ghostMode} onChange={handleGhostToggle} />
-              : <Lock size={16} className="text-[#6B6258]" />
+              : <Lock size={16} className="text-[#9E9488]" />
           ),
         },
       ],
@@ -193,7 +193,7 @@ export default function SettingsPage() {
           render: () => editingName ? (
             <div className="flex items-center gap-1 mt-2">
               <div className="flex-1">
-                <input value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))}
+                <input value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))} aria-label="Modifier le nom"
                   onKeyDown={async (e) => {
                     if (e.key === 'Enter') {
                       if (!nameValue.trim() || nameValue.trim().length < 2) return
@@ -207,18 +207,18 @@ export default function SettingsPage() {
                   className="w-full rounded-lg bg-[#262628] border border-[#2A2826] px-3 py-2 text-sm text-white outline-none focus:border-[#D92D4A]"
                   autoFocus maxLength={80}
                 />
-                <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{nameValue.length}/80</p>
+                <p className="text-[10px] text-right text-[#9E9488] mt-0.5">{nameValue.length}/80</p>
               </div>
-              <button type="button" onClick={async () => {
+              <button type="button" aria-label="Enregistrer" onClick={() => { (async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
                 setSavingName(true)
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) { await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id); setProfileName(nameValue.trim()) }
                 setSavingName(false); setEditingName(false)
-              }} disabled={savingName}
+              })().catch(console.error) }} disabled={savingName}
                 className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
-              <button type="button" onClick={() => { setNameValue(profileName); setEditingName(false) }}
-                className="rounded-full p-1.5 text-[#6B6258] hover:bg-[#262628]"><X size={16} /></button>
+              <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}
+                className="rounded-full p-1.5 text-[#9E9488] hover:bg-[#262628]"><X size={16} /></button>
             </div>
           ) : (
             <button type="button" onClick={() => setEditingName(true)}
@@ -279,11 +279,11 @@ export default function SettingsPage() {
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Activer</span>
                 {isPremium ? <ToggleSwitch enabled={travelActive} onChange={handleTravelToggle2} />
-                  : <Lock size={16} className="text-[#6B6258]" />}
+                  : <Lock size={16} className="text-[#9E9488]" />}
               </label>
               {travelActive && (
                 <input value={travelCity} onChange={e => setTravelCity(e.target.value)} onBlur={saveTravelCity}
-                  placeholder="Nom de la ville..."
+                  placeholder="Nom de la ville..." aria-label="Ville de voyage"
                   className="w-full px-3 py-2 rounded-lg bg-[#262628] text-sm text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]"
                 />
               )}
@@ -338,10 +338,10 @@ export default function SettingsPage() {
                 <div key={label}
                   className="px-4 py-3.5 border-b border-[#2A2826] last:border-0">
                   <div className="flex items-center gap-3">
-                    <Icon size={20} className={danger ? 'text-[#D92D4A]' : 'text-[#6B6258] shrink-0'} />
+                    <Icon size={20} className={danger ? 'text-[#D92D4A]' : 'text-[#9E9488] shrink-0'} />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${danger ? 'text-[#D92D4A]' : ''}`}>{label}</p>
-                      {desc && <p className="text-xs text-[#6B6258]">{desc}</p>}
+                      {desc && <p className="text-xs text-[#9E9488]">{desc}</p>}
                     </div>
                     {onClick && !danger && label !== 'Se déconnecter' && label !== 'Centre d\'aide' && (
                       <button type="button" onClick={onClick}

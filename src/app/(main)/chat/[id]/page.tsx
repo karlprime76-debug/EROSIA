@@ -252,8 +252,8 @@ export default function ChatPage() {
           setOtherProfile((prev) => prev ? { ...prev, last_seen: p.last_seen as string } : null)
         })
         .subscribe()
-    })()
-
+    })().catch(console.error)
+    
     const channel = supabase
       .channel(`messages:${id}`)
       .on('postgres_changes', {
@@ -283,7 +283,7 @@ export default function ChatPage() {
     ;(async () => {
       typingSentChannel = supabase.channel(`typing:match-${id}`)
       typingSentChannel.subscribe()
-    })()
+    })().catch(console.error)
     
     const typingRecvChannel = supabase.channel(`typing:match-${id}`)
     typingRecvChannel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
@@ -481,7 +481,7 @@ export default function ChatPage() {
         </div>
         <h2 className="text-xl font-bold mb-1">Chat indisponible</h2>
         <p className="text-[#9E9488] text-sm mb-6">Tu ne peux pas t&rsquo;envoyer des messages à toi-même.</p>
-        <button onClick={() => router.push('/matches')}
+        <button type="button" onClick={() => router.push('/matches')}
           className="w-full py-3.5 rounded-full text-white font-semibold transition active:scale-95" style={{ background: '#D92D4A' }}>
           Retour aux matchs
         </button>
@@ -500,26 +500,26 @@ export default function ChatPage() {
           <div>
             <p className="font-semibold text-sm">{otherProfile?.name || 'Match'}</p>
             {otherProfile?.last_seen && !isOnline && (
-              <p className="text-[10px] text-[#6B6258]">{formatLastSeen(otherProfile.last_seen)}</p>
+              <p className="text-[10px] text-[#9E9488]">{formatLastSeen(otherProfile.last_seen)}</p>
             )}
             {isOnline && <p className="text-[10px] text-green-400">En ligne</p>}
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button type="button" aria-label="Playlist" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#6B6258] hover:bg-white/5'}`}>
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:bg-white/5'}`}>
             <Music size={16} />
           </button>
           <button type="button" onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
-            className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#6B6258] border border-transparent hover:border-white/10'}`}>
+            className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#9E9488] border border-transparent hover:border-white/10'}`}>
             {match?.ephemeral ? 'Éphémère' : 'Permanent'}
           </button>
           <button type="button" aria-label="Appel vidéo" onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[#6B6258] hover:bg-white/5 disabled:opacity-30 transition-all">
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#9E9488] hover:bg-white/5 disabled:opacity-30 transition-all">
             <Video size={16} />
           </button>
           <button type="button" aria-label="Supprimer le match" onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
-            <X size={16} className="text-[#6B6258]" />
+            <X size={16} className="text-[#9E9488]" />
           </button>
         </div>
       </div>
@@ -555,7 +555,7 @@ export default function ChatPage() {
               Activé (24h)
             </button>
           </div>
-          <p className="text-[10px] text-[#6B6258] mt-1">Les messages disparaîtront après 24h</p>
+          <p className="text-[10px] text-[#9E9488] mt-1">Les messages disparaîtront après 24h</p>
         </div>
       )}
 
@@ -563,22 +563,22 @@ export default function ChatPage() {
         <div className="border-b border-[#2A2826] bg-[#1C1C1E] px-4 py-3 max-h-48 overflow-y-auto">
           <p className="text-xs text-[#9E9488] font-medium mb-2 uppercase tracking-wider">Playlist partagée</p>
           {playlist.length === 0 ? (
-            <p className="text-xs text-[#6B6258]">Ajoutez des musiques à votre playlist</p>
+            <p className="text-xs text-[#9E9488]">Ajoutez des musiques à votre playlist</p>
           ) : playlist.map(item => (
             <div key={item.id} className="flex items-center justify-between py-1.5">
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">{item.title}</p>
-                {item.artist && <p className="text-[10px] text-[#6B6258]">{item.artist}</p>}
+                {item.artist && <p className="text-[10px] text-[#9E9488]">{item.artist}</p>}
               </div>
-              <button type="button" aria-label="Retirer de la playlist" onClick={() => handleRemovePlaylist(item.id)} className="text-[#6B6258] hover:text-white ml-2">
+              <button type="button" aria-label="Retirer de la playlist" onClick={() => handleRemovePlaylist(item.id)} className="text-[#9E9488] hover:text-white ml-2">
                 <X size={14} />
               </button>
             </div>
           ))}
           <div className="flex gap-2 mt-2">
-            <input value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} placeholder="Titre..."
+            <input value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} placeholder="Titre..." aria-label="Titre de la musique"
               className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
-            <input value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} placeholder="URL..."
+            <input value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} placeholder="URL..." aria-label="URL"
               className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
             <button type="button" onClick={handleAddPlaylist}
               className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ background: '#D92D4A' }}>
@@ -606,7 +606,7 @@ export default function ChatPage() {
             </button>
             {aiSuggestion && (
               <div className="mt-2">
-                <button type="button" onClick={async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); }}
+                <button type="button" onClick={() => { (async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); })().catch(console.error) }}
                   className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
                   ✨ {aiSuggestion}
                 </button>
@@ -630,7 +630,7 @@ export default function ChatPage() {
             {showDateSep && (
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 h-px bg-[#2A2826]" />
-                <span className="text-[10px] font-medium text-[#6B6258] uppercase tracking-wider">{dateLabel}</span>
+                <span className="text-[10px] font-medium text-[#9E9488] uppercase tracking-wider">{dateLabel}</span>
                 <div className="flex-1 h-px bg-[#2A2826]" />
               </div>
             )}
@@ -645,7 +645,7 @@ export default function ChatPage() {
                   {revealedOnce[m.id] ? (
                     <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
                   ) : (
-                    <button onClick={() => setRevealedOnce(r => ({ ...r, [m.id]: true }))} className="block w-full">
+                    <button type="button" aria-label="Révéler la photo" onClick={() => setRevealedOnce(r => ({ ...r, [m.id]: true }))} className="block w-full">
                       <Image src={m.image_url} alt="Photo à vue unique" width={300} height={400} className="w-full object-cover blur-xl brightness-50" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-white text-xs font-medium bg-black/50 px-3 py-1.5 rounded-full">Appuie pour voir 👁️</span>
@@ -672,7 +672,7 @@ export default function ChatPage() {
                       {m.read_at ? (
                     <span className="text-[#D92D4A]">✓✓</span>
                   ) : (
-                    <span className="text-[#6B6258]">✓</span>
+                    <span className="text-[#9E9488]">✓</span>
                   )}
                 </span>
               )}
@@ -685,7 +685,7 @@ export default function ChatPage() {
                   </div>
                 )}
                 <button type="button" onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
-                  className="text-[#6B6258] hover:text-white text-xs ml-1 transition">
+                  className="text-[#9E9488] hover:text-white text-xs ml-1 transition">
                   +
                 </button>
               </div>
@@ -708,7 +708,7 @@ export default function ChatPage() {
       </div>
 
       {!isNearBottom && (
-        <button type="button" onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        <button type="button" aria-label="Aller en bas" onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
           className="fixed bottom-24 right-6 w-10 h-10 rounded-full bg-[#D92D4A] shadow-lg shadow-black/40 flex items-center justify-center z-20 animate-scale-in active:scale-90 transition-all">
           <ChevronDown size={20} />
         </button>
@@ -743,16 +743,16 @@ export default function ChatPage() {
           <Camera size={16} className="text-[#9E9488]" />
         </button>
         <button type="button" aria-label="Vue unique" onClick={() => setViewOnce(!viewOnce)}
-          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${viewOnce ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'glass-light text-[#6B6258] hover:border-white/20'}`}>
+          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${viewOnce ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'glass-light text-[#9E9488] hover:border-white/20'}`}>
           <span className="text-xs font-bold">1x</span>
         </button>
         <div className="flex-1 relative">
           <input value={text} onChange={(e) => { setText(e.target.value.slice(0, 1000)); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Écris un message..." maxLength={1000} className="w-full px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all pr-12" />
-          <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-[#6B6258] pointer-events-none">{text.length}/1000</p>
+            placeholder="Écris un message..." maxLength={1000} aria-label="Message" className="w-full px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all pr-12" />
+          <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-[#9E9488] pointer-events-none">{text.length}/1000</p>
         </div>
         <button type="button" aria-label="Message vocal" onClick={startRecording} disabled={recording}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6258] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[#9E9488] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
           <Mic size={18} />
         </button>
         {recording ? (

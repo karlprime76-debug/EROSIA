@@ -62,13 +62,13 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Visionneuse d'images" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg" onClick={onClose}>
-      <button onClick={onClose} aria-label="Fermer" className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-black/40 text-white hover:bg-white/10 transition">
+      <button type="button" onClick={onClose} aria-label="Fermer" className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-black/40 text-white hover:bg-white/10 transition">
         <X size={24} />
       </button>
 
       <div className="flex items-center gap-4 max-w-4xl w-full h-full px-4" onClick={e => e.stopPropagation()}>
         {images.length > 1 && (
-          <button onClick={prev} aria-label="Image précédente" className="p-2.5 rounded-full bg-black/40 text-white/60 hover:text-white transition shrink-0 hidden sm:block">
+          <button type="button" onClick={prev} aria-label="Image précédente" className="p-2.5 rounded-full bg-black/40 text-white/60 hover:text-white transition shrink-0 hidden sm:block">
             <ChevronLeft size={28} />
           </button>
         )}
@@ -76,7 +76,7 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
         <div className="flex-1 flex items-center justify-center overflow-hidden">
           <Image
             src={images[currentIndex]}
-            alt=""
+            alt={"Photo " + (currentIndex + 1)}
             width={800}
             height={900}
             className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-2xl shadow-2xl"
@@ -85,7 +85,7 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
         </div>
 
         {images.length > 1 && (
-          <button onClick={next} aria-label="Image suivante" className="p-2.5 rounded-full bg-black/40 text-white/60 hover:text-white transition shrink-0 hidden sm:block">
+          <button type="button" onClick={next} aria-label="Image suivante" className="p-2.5 rounded-full bg-black/40 text-white/60 hover:text-white transition shrink-0 hidden sm:block">
             <ChevronRight size={28} />
           </button>
         )}

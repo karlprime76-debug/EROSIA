@@ -58,7 +58,7 @@ export default function AdminPage() {
         loadData()
         loadAdminData()
       }
-    })
+    }).catch(console.error)
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
@@ -104,12 +104,12 @@ export default function AdminPage() {
     <div className="min-h-dvh bg-transparent px-4 py-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Administration</h2>
-        <button onClick={() => { loadData(); loadAdminData() }} className="p-2 text-[#9E9488] hover:text-white transition"><RefreshCw size={18} /></button>
+        <button type="button" aria-label="Rafraîchir" onClick={() => { loadData(); loadAdminData() }} className="p-2 text-[#9E9488] hover:text-white transition"><RefreshCw size={18} /></button>
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+          <button type="button" key={t.key} onClick={() => setTab(t.key)}
             className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${tab === t.key ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488]'}`}>
             {t.label}
           </button>
@@ -154,18 +154,18 @@ export default function AdminPage() {
             <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-[#1C1C1E] flex items-center justify-center shrink-0 overflow-hidden">
                 {req.photo_url ? (
-                  <Image src={req.photo_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
+                  <Image src={req.photo_url} alt="Photo de vérification" width={64} height={64} className="w-full h-full object-cover" />
                 ) : (
-                  <ShieldAlert size={20} className="text-[#6B6258]" />
+                  <ShieldAlert size={20} className="text-[#9E9488]" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{req.profile?.name ?? 'Inconnu'}</p>
-                <p className="text-[10px] text-[#6B6258]">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
+                <p className="text-[10px] text-[#9E9488]">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
               </div>
-              <button onClick={() => handleVerify(req.id, req.user_id, true)}
+              <button type="button" onClick={() => handleVerify(req.id, req.user_id, true)}
                 className="px-4 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition">Approuver</button>
-              <button onClick={() => handleVerify(req.id, req.user_id, false)}
+              <button type="button" onClick={() => handleVerify(req.id, req.user_id, false)}
                 className="px-4 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition">Rejeter</button>
             </div>
           ))}
@@ -180,9 +180,9 @@ export default function AdminPage() {
               <p className="text-xs font-medium text-[#D92D4A] uppercase">{item.content_type}</p>
               {item.content_text && <p className="text-sm mt-1">{item.content_text}</p>}
               <div className="flex gap-2 mt-3">
-                <button onClick={() => handleModeration(item.id, true)}
+                <button type="button" onClick={() => handleModeration(item.id, true)}
                   className="px-4 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition">Approuver</button>
-                <button onClick={() => handleModeration(item.id, false)}
+                <button type="button" onClick={() => handleModeration(item.id, false)}
                   className="px-4 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition">Rejeter</button>
               </div>
             </div>
@@ -210,11 +210,11 @@ export default function AdminPage() {
                   {details.identifier || 'Inconnu'} — {new Date(tx.created_at).toLocaleDateString('fr-FR')}
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={() => handlePayoutAction(tx.id, 'completed')}
+                  <button type="button" onClick={() => handlePayoutAction(tx.id, 'completed')}
                     className="flex-1 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition flex items-center justify-center gap-1">
                     <CheckCircle size={12} /> Marquer effectué
                   </button>
-                  <button onClick={() => handlePayoutAction(tx.id, 'failed')}
+                  <button type="button" onClick={() => handlePayoutAction(tx.id, 'failed')}
                     className="flex-1 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition flex items-center justify-center gap-1">
                     <XCircle size={12} /> Marquer échoué
                   </button>

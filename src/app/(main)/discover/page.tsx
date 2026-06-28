@@ -61,17 +61,17 @@ export default function DiscoverPage() {
   const { confirm } = useConfirm()
 
   useEffect(() => {
-    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY))
-    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) })
-    checkPremium().then(setIsPremium)
+    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(console.error)
+    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(console.error)
+    checkPremium().then(setIsPremium).catch(console.error)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setMyId(user.id)
         supabase.from('profiles').select('photos').eq('id', user.id).maybeSingle().then(({ data }) => {
           if (data?.photos?.[0]) setMyPhoto(data.photos[0])
-        })
+        }, console.error)
       }
-    })
+    }).catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function DiscoverPage() {
           setHasMore(data.length >= DISCOVER_PAGE_SIZE)
         }
         setLoading(false)
-      })
+      }).catch(console.error)
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
   }, [myId, toast])
 
@@ -235,7 +235,7 @@ export default function DiscoverPage() {
   }
 
   const current = profiles[idx]
-  useEffect(() => { if (current) logBehavior('view_profile', current.id) }, [current?.id])
+  useEffect(() => { if (current) logBehavior('view_profile', current.id) }, [current])
 
   const swipeRef = useRef(swipe)
   useEffect(() => { swipeRef.current = swipe })
@@ -272,7 +272,7 @@ export default function DiscoverPage() {
               <RotateCcw size={16} className="text-[#A09890]" />
             </button>
           )}
-          <button type="button" onClick={async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } }}
+          <button type="button" onClick={() => { (async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } })().catch(console.error) }}
             aria-label="Annuler super like"
             className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-indigo-500/30 active:scale-90">
             <Star size={14} className="text-indigo-400" />
@@ -299,11 +299,11 @@ export default function DiscoverPage() {
             <div>
               <label className="text-xs font-medium text-[#A09890] mb-1.5 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
               <div className="flex gap-3 items-center">
-                <input type="range" min={18} max={70} value={filters.minAge}
+                <input type="range" min={18} max={70} value={filters.minAge} aria-label="Âge minimum"
                   onChange={e => setFilters(f => ({ ...f, minAge: Math.min(Number(e.target.value), f.maxAge) }))}
                   className="flex-1 accent-[#D92D4A]" />
                 <span className="text-[#6B6560]">–</span>
-                <input type="range" min={18} max={70} value={filters.maxAge}
+                <input type="range" min={18} max={70} value={filters.maxAge} aria-label="Âge maximum"
                   onChange={e => setFilters(f => ({ ...f, maxAge: Math.max(Number(e.target.value), f.minAge) }))}
                   className="flex-1 accent-[#D92D4A]" />
               </div>
@@ -336,12 +336,12 @@ export default function DiscoverPage() {
               <input id="filter-city" value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value }))} placeholder="Nom de ville"
                 className="w-full bg-[#18181A] text-[#F5F0EB] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-[#D92D4A] focus:shadow-[0_0_0_3px_rgba(217,45,74,0.12)]" />
             </div>
-            <button type="button" onClick={async () => {
+            <button type="button" onClick={() => { (async () => {
               setShowFilters(false); setLoading(true); setPage(1); setHasMore(true)
               const { data } = await fetchProfiles([], 1)
               if (data) { setProfiles(data); setHasMore(data.length >= DISCOVER_PAGE_SIZE) }
               setLoading(false)
-            }}
+            })().catch(console.error) }}
               className="w-full py-3 rounded-full text-white font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-[#D92D4A] shadow-[0_4px_16px_rgba(217,45,74,0.2)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)]">
               Appliquer les filtres
             </button>
@@ -427,7 +427,7 @@ export default function DiscoverPage() {
                       <span className="text-[11px] text-[#D92D4A] bg-[#D92D4A]/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{lookingForLabel(current.looking_for)}</span>
                     </div>
                   )}
-                  <button type="button" onClick={async () => {
+                  <button type="button" onClick={() => { (async () => {
                     if (!current) return
                     if (await confirm('Bloquer ce profil ?')) {
                       await blockProfile(current.id)
@@ -435,7 +435,7 @@ export default function DiscoverPage() {
                       if (data) setProfiles(data)
                       setIdx(0)
                     }
-                  }} aria-label="Bloquer"
+                  })().catch(console.error) }} aria-label="Bloquer"
                     className="absolute top-4 right-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full z-10 hover:bg-black/60 transition-all duration-200">
                     <Shield size={15} className="text-[#6B6560]" />
                   </button>
@@ -455,12 +455,12 @@ export default function DiscoverPage() {
                       {superLikesLeft}/{SUPER_LIKE_DAILY}
                     </span>
                   </div>
-                  <button type="button" onClick={async () => {
+                  <button type="button" onClick={() => { (async () => {
                     if (!current || flirtedIds.includes(current.id)) return
                     await sendFlirt(current.id)
                     logBehavior('send_flirt', current.id)
                     setFlirtedIds(ids => [...ids, current.id])
-                  }} aria-label="Clin d'oeil"
+                  })().catch(console.error) }} aria-label="Clin d'oeil"
                     className="w-11 h-11 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-[#D92D4A]/30">
                     <Eye size={18} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6560]'} />
                   </button>
@@ -485,13 +485,14 @@ export default function DiscoverPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
+            aria-hidden="true" role="presentation" className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
             onClick={() => setShowReportModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              role="dialog" aria-modal="true" tabIndex={-1}
               className="glass rounded-3xl p-8 max-w-sm w-full text-center"
               onClick={e => e.stopPropagation()}
             >
@@ -499,13 +500,13 @@ export default function DiscoverPage() {
               <p className="text-[#A09890] text-sm mb-5">Pour quelle raison ?</p>
               <div className="space-y-2">
                 {REPORT_REASONS.map((reason) => (
-                  <button type="button" key={reason} onClick={async () => {
+                  <button type="button" key={reason} onClick={() => { (async () => {
                     if (!current) return
                     const { error } = await reportProfile(current.id, reason)
                     setShowReportModal(false)
                     if (error) { toast('Erreur lors du signalement', 'error') }
                     else { toast('Signalement envoyé', 'success') }
-                  }}
+                  })().catch(console.error) }}
                     className="w-full py-3 rounded-xl text-sm font-medium bg-[#18181A] text-[#F5F0EB] hover:bg-[#222225] transition-all duration-200 border border-[#2C2A28]">
                     {reason}
                   </button>
@@ -526,7 +527,7 @@ export default function DiscoverPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
+            aria-hidden="true" role="presentation" className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
             onClick={() => setMatchModal(null)}
           >
             <MatchBurst />
@@ -534,6 +535,7 @@ export default function DiscoverPage() {
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
+              role="dialog" aria-modal="true" tabIndex={-1}
               className="glass rounded-3xl p-8 max-w-sm w-full text-center relative z-10"
             >
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#A8102A] mx-auto mb-5 flex items-center justify-center shadow-[0_0_40px_rgba(217,45,74,0.3)]">

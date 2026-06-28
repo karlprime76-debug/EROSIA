@@ -26,7 +26,7 @@ export default function CreateEventPage() {
   const [isPremium, setIsPremium] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { checkPremium().then(setIsPremium).finally(() => setLoading(false)) }, [])
+  useEffect(() => { checkPremium().then(setIsPremium).catch(console.error).finally(() => setLoading(false)) }, [])
 
   const handleSubmit = async () => {
     if (!title) { toast('Le titre est requis.', 'error'); return }
@@ -59,24 +59,24 @@ export default function CreateEventPage() {
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Titre *</label>
-          <input value={title} onChange={e => setTitle(e.target.value.slice(0, 100))} placeholder="Soirée cinéma..." maxLength={100}
+          <input value={title} onChange={e => setTitle(e.target.value.slice(0, 100))} placeholder="Soirée cinéma..." maxLength={100} aria-label="Titre de l'événement"
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
-          <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{title.length}/100</p>
+          <p className="text-[10px] text-right text-[#9E9488] mt-0.5">{title.length}/100</p>
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Quelques détails..."
+          <textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 500))} placeholder="Quelques détails..." aria-label="Description"
             rows={3} maxLength={500} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
-          <p className="text-[10px] text-right text-[#6B6258] mt-0.5">{description.length}/500</p>
+          <p className="text-[10px] text-right text-[#9E9488] mt-0.5">{description.length}/500</p>
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Lieu</label>
-          <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Paris 11e"
+          <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Paris 11e" aria-label="Lieu"
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Date</label>
-          <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)}
+          <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} aria-label="Date et heure"
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
         </div>
         <div>
@@ -92,7 +92,7 @@ export default function CreateEventPage() {
         </div>
         <div>
           <label className="text-xs text-[#9E9488] font-medium mb-1 block">Max participants</label>
-          <input type="number" value={maxParticipants} onChange={e => setMaxParticipants(e.target.value)} placeholder="50"
+          <input type="number" value={maxParticipants} onChange={e => setMaxParticipants(e.target.value)} placeholder="50" aria-label="Nombre maximum de participants"
             className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A]" />
         </div>
         {isPremium === false ? (
