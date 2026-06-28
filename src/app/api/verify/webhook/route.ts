@@ -4,16 +4,27 @@ import { verifyWebhookSignature } from '@/lib/didit'
 import { logger } from '@/lib/logger'
 import type { DiditWebhookPayload } from '@/lib/didit'
 
-// TODO: Replace with DB-backed webhook_events table (id uuid PK, event_id text UNIQUE, source text, processed_at timestamptz)
-const processedEvents = new Set<string>()
+const dedupCache = new Set<string>()
+
+async function isProcessed(eventId: string): Promise<boolean> {
+  if (dedupCache.has(eventId)) return true
+  try {
+    const admin = await createAdminClient()
+    const { data } = await admin.from('webhook_events').select('id').eq('event_id', eventId).maybeSingle()
+    if (data) { dedupCache.add(eventId); return true }
+  } catch {
+    // table may not exist yet; fall back to in-memory
+  }
+  return false
+}
 
 async function markProcessed(eventId: string) {
-  processedEvents.add(eventId)
+  dedupCache.add(eventId)
   try {
     const admin = await createAdminClient()
     await admin.from('webhook_events').insert({ event_id: eventId, source: 'didit' })
   } catch {
-    // table may not exist yet; Set is the fallback
+    // table may not exist yet; in-memory cache is the fallback
   }
 }
 
@@ -31,7 +42,7 @@ export async function POST(request: Request) {
 
     const payload: DiditWebhookPayload = JSON.parse(rawBody)
 
-    if (processedEvents.has(payload.event_id)) {
+    if (await isProcessed(payload.event_id)) {
       logger.info('Duplicate Didit webhook event (already processed)', { eventId: payload.event_id })
       return NextResponse.json({ received: true })
     }

@@ -17,7 +17,7 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL,
-  'https://erosia-jet.vercel.app',
+  'https://erosia.app',
   'http://localhost:3000',
 ].filter(Boolean) as string[]
 

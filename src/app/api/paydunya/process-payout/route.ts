@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
     const accountAlias = extractPhoneAlias(account.phone)
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia-jet.vercel.app'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://erosia.app'
     const callbackUrl = `${siteUrl}/api/paydunya/payout-callback`
 
     let invoice: { response_code?: string; response_text?: string; token?: string; status?: string }

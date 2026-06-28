@@ -107,7 +107,7 @@ export async function signOut() {
 }
 
 export async function resetPassword(email: string) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia-prod.vercel.app'
+  const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia.app'
   const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
   return { error: error?.message ?? null }
 }

@@ -5,7 +5,6 @@
 -- Part 1: Profiles new columns
 -- ==============================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium'));
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS paydunya_invoice_token TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS travel_city TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS travel_active BOOLEAN DEFAULT false;
@@ -296,3 +295,20 @@ CREATE TRIGGER on_message_notification
   AFTER INSERT ON messages
   FOR EACH ROW
   EXECUTE FUNCTION notify_message();
+
+-- ==============================
+-- Webhook dedup table
+-- ==============================
+CREATE TABLE IF NOT EXISTS webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id TEXT NOT NULL UNIQUE,
+  source TEXT NOT NULL,
+  processed_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role only — webhook_events" ON webhook_events;
+CREATE POLICY "Service role only — webhook_events"
+  ON webhook_events
+  USING (false);
