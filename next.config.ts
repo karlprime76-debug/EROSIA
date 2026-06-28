@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'vxycbjwmovfzywyvrjql.supabase.co' },
+      { protocol: 'https', hostname: '*.supabase.co' },
     ],
     deviceSizes: [640, 768, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],

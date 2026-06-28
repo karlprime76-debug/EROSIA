@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
 import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
+import { validateFile, sanitizeFilename } from '@/lib/media'
 import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
 import { useConfirm } from '@/components/ConfirmDialog'
 
@@ -396,11 +397,12 @@ export default function ChatPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const err = validateFile(file, 'chat_photo')
+    if (err) { console.error(err); return }
     if (viewOnce) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const fileName = `chat/${id}/${Date.now()}_${user.id}_once.${ext}`
+      const fileName = `chat/${id}/${Date.now()}_${user.id}_once_${sanitizeFilename(file.name)}`
       const { error: uploadError } = await supabase.storage.from('chat_photos').upload(fileName, file)
       if (uploadError) return
       const { data: urlData } = supabase.storage.from('chat_photos').getPublicUrl(fileName)

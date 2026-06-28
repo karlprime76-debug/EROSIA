@@ -94,7 +94,7 @@ export default function StoriesPage() {
             <Lock size={16} className="text-[#9E9488]" />
           </button>
         )}
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleUpload} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/*,video/mp4,video/quicktime" capture="environment" onChange={handleUpload} className="hidden" />
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         {stories.length === 0 ? (
@@ -109,7 +109,11 @@ export default function StoriesPage() {
           <div className="grid grid-cols-3 gap-3">
             {stories.map(s => (
               <div key={s.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E]">
-                {s.media_url && <Image src={s.media_url} alt={"Story de " + (s.profile?.name || "quelqu'un")} width={200} height={355} className="w-full h-full object-cover" />}
+                {s.media_url && s.type === 'video' ? (
+                  <video src={s.media_url} className="w-full h-full object-cover" muted playsInline />
+                ) : (
+                  <Image src={s.media_url} alt={"Story de " + (s.profile?.name || "quelqu'un")} width={200} height={355} className="w-full h-full object-cover" />
+                )}
                 <button type="button" onClick={() => handleDelete(s.id)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                   <Trash2 size={14} />

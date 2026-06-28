@@ -1,6 +1,7 @@
 import { supabase as sbClient } from './supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
 import type { BehaviorAction } from './engine/types'
+import { validateFile, sanitizeFilename } from './media'
 
 export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
 
@@ -217,8 +218,9 @@ export async function uploadPhoto(uri: File, userId: string, index: number) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
   if (user.id !== userId) return { error: 'Non autorisé' }
-  const ext = uri.name.split('.').pop() ?? 'jpg'
-  const fileName = `${userId}/${index}.${ext}`
+  const err = validateFile(uri, 'photo')
+  if (err) return { error: err }
+  const fileName = `${userId}/${index}.${sanitizeFilename(uri.name)}`
   const { error } = await supabase().storage.from('photos').upload(fileName, uri, { upsert: true })
   if (error) return { error: error.message }
   const { data: urlData } = supabase().storage.from('photos').getPublicUrl(fileName)
@@ -300,9 +302,10 @@ export async function reportProfile(reportedId: string, reason: string) {
 export async function sendPhotoMessage(matchId: string, file: File) {
   const { userId, error: authErr } = await assertMatchParticipant(matchId)
   if (authErr || !userId) return { error: authErr }
+  const err = validateFile(file, 'chat_photo')
+  if (err) return { error: err }
 
-  const ext = file.name.split('.').pop() ?? 'jpg'
-  const fileName = `chat/${matchId}/${Date.now()}_${userId}.${ext}`
+  const fileName = `chat/${matchId}/${Date.now()}_${userId}_${sanitizeFilename(file.name)}`
   const { error: uploadError } = await supabase().storage.from('chat_photos').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
 
@@ -512,9 +515,10 @@ export async function getIcebreakers(category?: string) {
 export async function uploadStory(file: File) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+  const err = validateFile(file, 'story')
+  if (err) return { error: err }
 
-  const ext = file.name.split('.').pop() ?? 'jpg'
-  const fileName = `stories/${user.id}/${Date.now()}.${ext}`
+  const fileName = `stories/${user.id}/${Date.now()}_${sanitizeFilename(file.name)}`
   const { error: uploadError } = await supabase().storage.from('stories').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
 
@@ -618,8 +622,9 @@ export async function getNotificationUnreadCount() {
 export async function uploadAudio(file: File, matchId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const ext = file.name.split('.').pop() ?? 'mp3'
-  const fileName = `chat_audio/${matchId}/${Date.now()}_${user.id}.${ext}`
+  const err = validateFile(file, 'audio')
+  if (err) return { error: err }
+  const fileName = `chat_audio/${matchId}/${Date.now()}_${user.id}_${sanitizeFilename(file.name, 'mp3')}`
   const { error: uploadError } = await supabase().storage.from('chat_audio').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
   const { data: urlData } = supabase().storage.from('chat_audio').getPublicUrl(fileName)
@@ -639,8 +644,9 @@ export async function sendAudioMessage(matchId: string, audioUrl: string) {
 export async function uploadProfileVideo(file: File) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const ext = file.name.split('.').pop() ?? 'mp4'
-  const fileName = `profile_videos/${user.id}/${Date.now()}.${ext}`
+  const err = validateFile(file, 'video')
+  if (err) return { error: err }
+  const fileName = `profile_videos/${user.id}/${Date.now()}_${sanitizeFilename(file.name, 'mp4')}`
   const { error: uploadError } = await supabase().storage.from('profile_videos').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
   const { data: urlData } = supabase().storage.from('profile_videos').getPublicUrl(fileName)

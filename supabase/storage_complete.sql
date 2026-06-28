@@ -17,6 +17,8 @@ DROP POLICY IF EXISTS "Public read stories" ON storage.objects;
 CREATE POLICY "Public read stories" ON storage.objects FOR SELECT USING (bucket_id = 'stories');
 DROP POLICY IF EXISTS "Auth upload stories" ON storage.objects;
 CREATE POLICY "Auth upload stories" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'stories' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Users update own stories" ON storage.objects;
+CREATE POLICY "Users update own stories" ON storage.objects FOR UPDATE USING (bucket_id = 'stories' AND auth.uid() = owner);
 DROP POLICY IF EXISTS "Users delete own stories" ON storage.objects;
 CREATE POLICY "Users delete own stories" ON storage.objects FOR DELETE USING (bucket_id = 'stories' AND auth.uid() = owner);
 
@@ -26,6 +28,8 @@ DROP POLICY IF EXISTS "Public read videos" ON storage.objects;
 CREATE POLICY "Public read videos" ON storage.objects FOR SELECT USING (bucket_id = 'profile_videos');
 DROP POLICY IF EXISTS "Auth upload videos" ON storage.objects;
 CREATE POLICY "Auth upload videos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'profile_videos' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Users update own videos" ON storage.objects;
+CREATE POLICY "Users update own videos" ON storage.objects FOR UPDATE USING (bucket_id = 'profile_videos' AND auth.uid() = owner);
 DROP POLICY IF EXISTS "Users delete own videos" ON storage.objects;
 CREATE POLICY "Users delete own videos" ON storage.objects FOR DELETE USING (bucket_id = 'profile_videos' AND auth.uid() = owner);
 
@@ -35,6 +39,10 @@ DROP POLICY IF EXISTS "Chat photos public read" ON storage.objects;
 CREATE POLICY "Chat photos public read" ON storage.objects FOR SELECT USING (bucket_id = 'chat_photos');
 DROP POLICY IF EXISTS "Auth upload chat photos" ON storage.objects;
 CREATE POLICY "Auth upload chat photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'chat_photos' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Chat photos owner update" ON storage.objects;
+CREATE POLICY "Chat photos owner update" ON storage.objects FOR UPDATE USING (bucket_id = 'chat_photos' AND auth.uid() = owner);
+DROP POLICY IF EXISTS "Chat photos owner delete" ON storage.objects;
+CREATE POLICY "Chat photos owner delete" ON storage.objects FOR DELETE USING (bucket_id = 'chat_photos' AND auth.uid() = owner);
 
 -- 5. Chat audio
 INSERT INTO storage.buckets (id, name, public) VALUES ('chat_audio', 'chat_audio', true) ON CONFLICT (id) DO NOTHING;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, Check, ChevronRight, Shield, Sparkles, Image as ImageIcon } from 'lucide-react'
 import { uploadPhoto, updateProfile, completeOnboarding, type LookingFor } from '@/lib/api'
+import { validateFile, sanitizeFilename } from '@/lib/media'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 
@@ -55,10 +56,11 @@ export default function OnboardingPage() {
   const handleVerifPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !userId) return
+    const verifErr = validateFile(file, 'photo')
+    if (verifErr) { toast(verifErr, 'error'); return }
     setVerifUploading(true)
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const fileName = `verification/${userId}/${Date.now()}.${ext}`
+      const fileName = `verification/${userId}/${Date.now()}_${sanitizeFilename(file.name)}`
       const { error: uploadError } = await supabase.storage.from('verification_photos').upload(fileName, file)
       if (uploadError) { toast(uploadError.message, 'error'); return }
       const { data: urlData } = supabase.storage.from('verification_photos').getPublicUrl(fileName)
