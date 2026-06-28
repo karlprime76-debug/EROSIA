@@ -139,18 +139,20 @@ export async function getProfile(id: string) {
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {
+  console.log('updateProfile: début', { id, updates })
   const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  if (user.id !== id) return { error: 'Non autorisé' }
-  // Sanitize text fields
+  if (!user) { console.warn('updateProfile: non authentifié'); return { error: 'Not authenticated' } }
+  if (user.id !== id) { console.warn('updateProfile: accès non autorisé', { userId: user.id, profileId: id }); return { error: 'Non autorisé' } }
   const sanitized = { ...updates }
   if (typeof sanitized.bio === 'string') sanitized.bio = sanitized.bio.replace(/<[^>]*>/g, '').slice(0, 500)
   if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.replace(/<[^>]*>/g, '').slice(0, 80)
   if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitized.occupation.replace(/<[^>]*>/g, '').slice(0, 100)
   if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
+  console.log('updateProfile: appel Supabase', { sanitized, id })
   const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id).select().maybeSingle()
-  if (error) return { error: error.message }
-  if (!data) return { error: 'Impossible de mettre à jour le profil. Réessaie.' }
+  if (error) { console.error('updateProfile: erreur Supabase', error); return { error: error.message } }
+  if (!data) { console.warn('updateProfile: données nulles après update (possible RLS)', { id }); return { error: 'Impossible de mettre à jour le profil. Vérifie que tu es bien connecté et réessaie.' } }
+  console.log('updateProfile: succès', data)
   return { data }
 }
 

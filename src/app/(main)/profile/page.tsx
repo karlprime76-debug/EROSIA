@@ -71,23 +71,38 @@ export default function ProfilePage() {
   }
 
   const [savingProfile, setSavingProfile] = useState(false)
+  const savingRef = useRef(false)
 
   const saveProfile = async () => {
-    if (!profile) return
+    if (!profile) { console.warn('saveProfile: profile null, abandon'); return }
+    if (savingRef.current) { console.warn('saveProfile: déjà en cours, ignore double clic'); return }
+    savingRef.current = true
     setSavingProfile(true)
+    console.log('saveProfile: début sauvegarde', { nameValue, bio, interests, lookingFor })
     try {
       const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-      const name = nameValue.trim() || profile.name || 'Utilisateur'
-      const { error } = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
-      if (error) { console.error('saveProfile updateProfile error', error); toast(error, 'error'); setSavingProfile(false); return }
-      setProfile({ ...profile, name, bio, interests: interestsArr, looking_for: lookingFor })
-      toast('Profil mis à jour', 'success')
+      const name = (nameValue.trim() || profile.name || 'Utilisateur').slice(0, 80)
+      console.log('saveProfile: appel updateProfile', { id: profile.id, name, bio, interestsArr, lookingFor })
+      const result = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
+      console.log('saveProfile: résultat updateProfile', result)
+      if (result.error) {
+        console.error('saveProfile: updateProfile a retourné une erreur', result.error)
+        toast(result.error, 'error')
+        setSavingProfile(false)
+        savingRef.current = false
+        return
+      }
+      console.log('saveProfile: mise à jour réussie')
+      loadProfile()
+      toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
     } catch (err) {
-      console.error('saveProfile unexpected error', err)
-      toast('Erreur lors de la sauvegarde', 'error')
+      console.error('saveProfile: exception inattendue', err)
+      toast(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde', 'error')
+    } finally {
+      setSavingProfile(false)
+      savingRef.current = false
     }
-    setSavingProfile(false)
   }
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
