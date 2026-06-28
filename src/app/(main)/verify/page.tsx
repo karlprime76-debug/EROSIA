@@ -1,28 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Camera, CheckCircle, Clock, Shield, ExternalLink } from 'lucide-react'
-import { submitVerification, getVerificationStatus, createDiditSession } from '@/lib/api'
+import { ArrowLeft, CheckCircle, Clock, Shield, ExternalLink } from 'lucide-react'
+import { getVerificationStatus, createDiditSession } from '@/lib/api'
 import { DiditSdk } from '@didit-protocol/sdk-web'
 import { useToast } from '@/components/Toast'
 
 export default function VerifyPage() {
   const router = useRouter()
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [verifying, setVerifying] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     getVerificationStatus().then(s => setStatus(s.status)).catch(() => { toast('Erreur chargement statut', 'error') }).finally(() => setLoading(false))
   }, [toast])
-
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   const handleDiditVerify = async () => {
     setVerifying(true)
@@ -52,23 +46,6 @@ export default function VerifyPage() {
     } finally {
       setVerifying(false)
     }
-  }
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) {
-      if (preview) URL.revokeObjectURL(preview)
-      setFile(f)
-      setPreview(URL.createObjectURL(f))
-    }
-  }
-
-  const handleSubmit = async () => {
-    if (!file) return
-    setUploading(true)
-    const { error } = await submitVerification(file)
-    if (!error) setStatus('pending')
-    setUploading(false)
   }
 
   if (loading) return (
@@ -113,33 +90,6 @@ export default function VerifyPage() {
               </button>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#2A2826]" /></div>
-              <div className="relative flex justify-center"><span className="bg-[#070708] px-3 text-xs text-[#6B6258]">ou</span></div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs text-[#6B6258] text-center">Vérification manuelle (selfie + pseudo)</p>
-              <div onClick={() => fileRef.current?.click()} className="aspect-[3/4] rounded-2xl border-2 border-dashed border-[#2A2826] flex items-center justify-center cursor-pointer bg-[#1C1C1E] overflow-hidden">
-                {preview ? (
-                  <img src={preview} alt="selfie" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-[#6B6258]">
-                    <Camera size={32} />
-                    <span className="text-sm">Ajouter une photo</span>
-                  </div>
-                )}
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleFile} className="hidden" />
-              <p className="text-[10px] text-[#6B6258] text-center leading-relaxed">
-                Prends un selfie avec un papier portant <strong>ton pseudo</strong> et la date du jour
-              </p>
-              <button type="button" onClick={handleSubmit} disabled={!file || uploading}
-                className="w-full py-3 rounded-full font-semibold text-white disabled:opacity-50 text-sm"
-                style={{ background: '#18181A', border: '1px solid #2A2826' }}>
-                {uploading ? 'Envoi...' : 'Envoyer ma vérification'}
-              </button>
-            </div>
           </div>
         )}
       </div>

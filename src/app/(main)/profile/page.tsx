@@ -60,11 +60,11 @@ export default function ProfilePage() {
         if (result.url) {
           const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
           const { error: updateErr } = await updateProfile(profile.id, { photos })
-          if (updateErr) { toast(updateErr, 'error'); setUploading(false); return }
+          if (updateErr) { console.error('handlePhoto updateProfile error', updateErr); toast(updateErr, 'error'); setUploading(false); return }
           setProfile({ ...profile, photos })
           toast('Photo ajoutée', 'success')
         }
-      } catch { toast('Erreur lors de l\'ajout de la photo', 'error') }
+      } catch (err) { console.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
       setUploading(false)
     }
     input.click()
@@ -77,13 +77,14 @@ export default function ProfilePage() {
     setSavingProfile(true)
     try {
       const interestsArr = interests.split(',').map(i => i.trim()).filter(Boolean)
-      const name = nameValue.trim() || profile.name
+      const name = nameValue.trim() || profile.name || 'Utilisateur'
       const { error } = await updateProfile(profile.id, { name, bio, interests: interestsArr, looking_for: lookingFor })
-      if (error) { toast(error, 'error'); setSavingProfile(false); return }
+      if (error) { console.error('saveProfile updateProfile error', error); toast(error, 'error'); setSavingProfile(false); return }
       setProfile({ ...profile, name, bio, interests: interestsArr, looking_for: lookingFor })
       toast('Profil mis à jour', 'success')
       setEditing(false)
-    } catch {
+    } catch (err) {
+      console.error('saveProfile unexpected error', err)
       toast('Erreur lors de la sauvegarde', 'error')
     }
     setSavingProfile(false)
