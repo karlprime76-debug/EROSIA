@@ -515,24 +515,6 @@ export async function checkPremium() {
   return tier === 'premium'
 }
 
-// ---- FEATURE 2: Selfie verification ----
-export async function submitVerification(photoFile: File) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  const ext = photoFile.name.split('.').pop() ?? 'jpg'
-  const fileName = `verification/${user.id}/${Date.now()}.${ext}`
-  const { error: uploadError } = await supabase().storage.from('verification_photos').upload(fileName, photoFile)
-  if (uploadError) return { error: uploadError.message }
-
-  const { data: urlData } = supabase().storage.from('verification_photos').getPublicUrl(fileName)
-
-  const { data, error } = await supabase().from('verification_requests').insert({
-    user_id: user.id, photo_url: urlData.publicUrl,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
 export async function getVerificationStatus() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { status: null }
