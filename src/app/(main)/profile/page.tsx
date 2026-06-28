@@ -46,7 +46,7 @@ export default function ProfilePage() {
           const { data: { user } } = await supabase.auth.getUser()
           console.log('📦 browser getUser fallback:', user?.id, user?.email)
           if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, video_url'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
             console.log('📦 browser select fallback:', data?.id, data?.name)
             if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship') }
