@@ -29,24 +29,29 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const timer = setTimeout(() => setNow(Date.now()), 0)
+    let cancelled = false
     ;(async () => {
       try {
         const { data: { user }, error: authErr } = await supabase.auth.getUser()
-        if (authErr || !user) { console.warn('loadProfile: auth failed', authErr); setLoading(false); return }
+        if (cancelled) return
+        if (authErr || !user) { console.warn('loadProfile: auth failed', authErr); if (!cancelled) setLoading(false); return }
         const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
         let { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+        if (cancelled) return
         if (!data) {
           console.warn('loadProfile: no profile row for user, creating one', user.id)
           const { error: insertErr } = await supabase.from('profiles').insert({ id: user.id, name: 'Utilisateur', photos: [], interests: [] })
-          if (insertErr) { console.error('loadProfile: failed to create profile', insertErr); setLoading(false); return }
+          if (cancelled) return
+          if (insertErr) { console.error('loadProfile: failed to create profile', insertErr); if (!cancelled) setLoading(false); return }
           const { data: newData } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+          if (cancelled) return
           if (newData) data = newData
         }
-        if (data) { setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+        if (data && !cancelled) { console.log('loadProfile: profile loaded', data.id, data.name); setProfile(data as Profile); setNameValue((data as Profile).name ?? ''); setBio((data as Profile).bio ?? ''); setInterests((data as Profile).interests?.join(', ') ?? ''); setLookingFor((data as Profile).looking_for ?? 'friendship'); getProfileTraits((data as Profile).id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
       } catch (err) { console.error('loadProfile: exception', err) }
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     })().catch(console.error)
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [])
   const loadProfile = async () => {
     try {
@@ -129,7 +134,10 @@ export default function ProfilePage() {
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       console.log('saveProfile: succès', data)
       setProfile({ ...p, ...data } as Profile)
-      loadProfile()
+      setNameValue((data.name ?? p.name) || '')
+      setBio((data.bio ?? p.bio) || '')
+      setInterests((data.interests ?? p.interests)?.join(', ') || '')
+      setLookingFor((data.looking_for ?? p.looking_for) as LookingFor)
       toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
     } catch (err) {
@@ -142,6 +150,7 @@ export default function ProfilePage() {
   }
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+  useEffect(() => { console.log('🔍 profile state:', profile ? `id=${profile.id} name=${profile.name} photos=${profile.photos?.length}` : 'null') }, [profile])
 
   const formatLastSeen = (date: string) => {
     const diff = now - new Date(date).getTime()
