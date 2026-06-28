@@ -119,7 +119,6 @@ export default function ProfilePage() {
         toast('Aucune modification détectée.', 'info')
         setSavingProfile(false); savingRef.current = false; return
       }
-      sanitized.updated_at = new Date().toISOString()
       console.log('saveProfile: envoi vers Supabase', sanitized)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
