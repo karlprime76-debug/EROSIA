@@ -64,6 +64,10 @@ CREATE POLICY "Users can view own matches"
   ON matches FOR SELECT
   USING (auth.uid() IN (user1_id, user2_id));
 
+CREATE POLICY "Users can delete own matches"
+  ON matches FOR DELETE
+  USING (auth.uid() IN (user1_id, user2_id));
+
 -- Messages
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

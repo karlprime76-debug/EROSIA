@@ -321,10 +321,14 @@ export async function sendPhotoMessage(matchId: string, file: File) {
 }
 
 export async function unmatchUser(matchId: string) {
-  const { error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr) return { error: authErr }
-  const { error: msgErr } = await supabase().from('messages').delete().eq('match_id', matchId)
-  if (msgErr) return { error: msgErr.message }
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const { data: match } = await supabase().from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()
+  if (!match) return { error: 'Match introuvable' }
+  if (match.user1_id !== user.id && match.user2_id !== user.id) return { error: 'Non autorisé' }
+  const otherId = match.user1_id === user.id ? match.user2_id : match.user1_id
+  await supabase().from('swipes').delete().or(`and(swiper_id.eq.${user.id},swiped_id.eq.${otherId}),and(swiper_id.eq.${otherId},swiped_id.eq.${user.id})`)
+  await supabase().from('messages').delete().eq('match_id', matchId)
   const { error } = await supabase().from('matches').delete().eq('id', matchId)
   return { error: error?.message }
 }

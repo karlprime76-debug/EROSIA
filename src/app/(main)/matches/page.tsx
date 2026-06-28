@@ -66,7 +66,8 @@ export default function MatchesPage() {
     e.preventDefault()
     e.stopPropagation()
     if (await confirm('Supprimer ce match ?')) {
-      await unmatchUser(matchId)
+      const { error } = await unmatchUser(matchId)
+      if (error) { console.error('unmatch failed', error); return }
       setConvs(prev => prev.filter(c => c.matchId !== matchId))
     }
   }
