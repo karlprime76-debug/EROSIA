@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
             user_id: receiverId,
             actor_id: userId,
             type: 'gift',
-            content: `Tu as reçu un cadeau !`,
+            title: 'Cadeau reçu !',
+            message: 'Tu as reçu un cadeau !',
           })
         } catch (e) {
           logger.error('Notification insert failed (non-blocking)', { error: String(e) })

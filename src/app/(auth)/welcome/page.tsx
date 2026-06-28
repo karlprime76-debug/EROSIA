@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { FloatingHearts } from '@/components/3d/FloatingHearts'
 import { Flame, MessageCircle, Gift, MapPin, Shield, Star, Sparkles, ArrowRight } from 'lucide-react'
@@ -22,6 +22,7 @@ const features = [
 ]
 
 export default function WelcomePage() {
+  const router = useRouter()
   return (
     <div className="relative min-h-dvh flex flex-col overflow-hidden bg-[var(--bg)]">
       <FloatingHearts />
@@ -129,17 +130,13 @@ export default function WelcomePage() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.75 }}
             className="w-full max-w-sm lg:max-w-md flex flex-col gap-2.5"
           >
-            <Link href="/register" className="block w-full">
-              <Button variant="premium" size="pill-lg" className="w-full text-base">
-                Commencer l&rsquo;aventure
-                <ArrowRight size={18} />
-              </Button>
-            </Link>
-            <Link href="/login" className="block w-full">
-              <Button variant="ghost" size="pill-lg" className="w-full text-sm">
-                J&rsquo;ai déjà un compte
-              </Button>
-            </Link>
+            <Button variant="premium" size="pill-lg" className="w-full text-base" onClick={() => router.push('/register')}>
+              Commencer l&rsquo;aventure
+              <ArrowRight size={18} />
+            </Button>
+            <Button variant="ghost" size="pill-lg" className="w-full text-sm" onClick={() => router.push('/login')}>
+              J&rsquo;ai déjà un compte
+            </Button>
           </motion.div>
         </div>
       </div>

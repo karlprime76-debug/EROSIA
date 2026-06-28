@@ -24,7 +24,7 @@ CREATE POLICY "Users can manage own push subscriptions"
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question TEXT NOT NULL,
-  options TEXT[] NOT NULL,
+  options JSONB NOT NULL,
   category TEXT DEFAULT 'general',
   created_at TIMESTAMPTZ DEFAULT now()
 );

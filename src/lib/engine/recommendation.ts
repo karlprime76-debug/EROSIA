@@ -39,7 +39,7 @@ async function getRecommendations(input: RecommendInput): Promise<RecommendOutpu
 
   const allExclude = [...new Set([...extraExclude, ...swipedIds, ...blockedIds, userId])]
   if (allExclude.length > 0) {
-    query = query.not('id', 'in', `(${allExclude.map(id => `"${id}"`).join(',')})`)
+    query = query.not('id', 'in', `(${allExclude.join(',')})`)
   }
 
   // Filtres optionnels

@@ -108,13 +108,13 @@ function GiftsContent() {
     const match = matches.find(m => m.id === selectedMatch)
     if (!match) return
     const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
-    if (result.sent) {
+    if (result.data?.sent) {
       toast('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.', 'success')
       setSelectedGift(null)
       setSending(false)
       return
     }
-    if (result.url) { window.location.href = result.url; return }
+    if (result.data?.url) { window.location.href = result.data.url; return }
     toast(result.error ?? 'Erreur de paiement', 'error')
     setSending(false)
   }

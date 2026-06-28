@@ -35,15 +35,15 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     conversationResult,
     interestResult,
   ] = await Promise.all([
-    compatEngine?.compute({ userId, targetId }).catch(() => ({ score: 0, factors: {} })) ?? { score: 0, factors: {} },
-    compatEngine?.compute({ userId: targetId, targetId: userId }).catch(() => ({ score: 0, factors: {} })) ?? { score: 0, factors: {} },
-    behaviorEngine?.compute({ userId }).catch(() => ({ score: 0, signals: {} })) ?? { score: 0, signals: {} },
-    behaviorEngine?.compute({ userId: targetId }).catch(() => ({ score: 0, signals: {} })) ?? { score: 0, signals: {} },
-    trustEngine?.compute({ userId: targetId }).catch(() => ({ score: 50, flags: [] })) ?? { score: 50, flags: [] },
-    activityEngine?.compute({ userId }).catch(() => ({ score: 1 })) ?? { score: 1 },
-    activityEngine?.compute({ userId: targetId }).catch(() => ({ score: 1 })) ?? { score: 1 },
-    conversationEngine?.compute({ userId }).catch(() => ({ score: 0, metrics: {} })) ?? { score: 0, metrics: {} },
-    interestEngine?.compute({ userId, targetId }).catch(() => ({ shared: 0, related: 0, boost: 0, details: [] })) ?? { shared: 0, related: 0, boost: 0, details: [] },
+    (await compatEngine?.compute({ userId, targetId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
+    (await compatEngine?.compute({ userId: targetId, targetId: userId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
+    (await behaviorEngine?.compute({ userId }).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
+    (await behaviorEngine?.compute({ userId: targetId }).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
+    (await trustEngine?.compute({ userId: targetId }).catch(() => ({ score: 50, flags: [] }))) ?? { score: 50, flags: [] },
+    (await activityEngine?.compute({ userId }).catch(() => ({ score: 1 }))) ?? { score: 1 },
+    (await activityEngine?.compute({ userId: targetId }).catch(() => ({ score: 1 }))) ?? { score: 1 },
+    (await conversationEngine?.compute({ userId }).catch(() => ({ score: 0, metrics: {} }))) ?? { score: 0, metrics: {} },
+    (await interestEngine?.compute({ userId, targetId }).catch(() => ({ shared: 0, related: 0, boost: 0, details: [] }))) ?? { shared: 0, related: 0, boost: 0, details: [] },
   ])
 
   // Poids

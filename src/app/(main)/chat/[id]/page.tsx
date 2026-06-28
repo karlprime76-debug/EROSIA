@@ -361,17 +361,24 @@ export default function ChatPage() {
     return () => clearTimeout(t)
   }, [id, messages.length])
 
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current)
+    }
+  }, [])
+
   const broadcastTyping = useCallback(() => {
     const now = Date.now()
     if (now - lastTypingBroadcast.current > 300) {
       lastTypingBroadcast.current = now
-      const ch = supabase.channel(`typing:match-${id}`)
-      ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          ch.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
-          setTimeout(() => supabase.removeChannel(ch), 1000)
-        }
-      })
+      if (!typingChannelRef.current) {
+        const ch = supabase.channel(`typing:match-${id}`)
+        typingChannelRef.current = ch
+        ch.subscribe()
+      }
+      typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
     }
   }, [id, currentUser?.id])
 

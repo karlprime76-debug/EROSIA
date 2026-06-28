@@ -101,12 +101,13 @@ export async function signOut() {
 
 export async function resetPassword(email: string) {
   const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia-prod.vercel.app'
-  return supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
+  const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
+  return { error: error?.message ?? null }
 }
 
 export async function updatePassword(password: string) {
   const { error } = await supabase().auth.updateUser({ password })
-  return { error: error?.message }
+  return { error: error?.message ?? null }
 }
 
 const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
@@ -153,7 +154,7 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
       .from('swipes').select('*', { count: 'exact', head: true })
       .eq('swiper_id', user.id)
       .gte('created_at', new Date().toISOString().slice(0, 10))
-    if (count && count >= 20) return { error: 'Limite de swipe atteinte' }
+    if ((count ?? 0) >= 20) return { error: 'Limite de swipe atteinte' }
   }
   const { data, error } = await supabase().from('swipes').insert({
     swiper_id: user.id, swiped_id: swipedId, direction,
@@ -313,7 +314,8 @@ export async function sendPhotoMessage(matchId: string, file: File) {
 export async function unmatchUser(matchId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  await supabase().from('messages').delete().eq('match_id', matchId)
+  const { error: msgErr } = await supabase().from('messages').delete().eq('match_id', matchId)
+  if (msgErr) return { error: msgErr.message }
   const { error } = await supabase().from('matches').delete().eq('id', matchId)
   return { error: error?.message }
 }
@@ -469,7 +471,7 @@ export async function getCompatibilityBatch(otherUserIds: string[]) {
   ))
   const scores: Record<string, number> = {}
   results.forEach((r, i) => {
-    if (r.data !== undefined) scores[otherUserIds[i]] = (r.data as number) ?? 0
+    if (r.data !== undefined) scores[otherUserIds[i]] = Number(r.data) || 0
   })
   return scores
 }
@@ -859,7 +861,8 @@ export async function sendEphemeralMessage(matchId: string, text: string, expire
   if (!user) return { error: 'Not authenticated' }
   const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
   if (!clean.trim()) return { error: 'Message vide' }
-  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString()
+  const safeMinutes = Math.max(1, Math.min(expiresInMinutes, 525600))
+  const expiresAt = new Date(Date.now() + safeMinutes * 60 * 1000).toISOString()
   const { data, error } = await supabase().from('messages').insert({
     match_id: matchId, sender_id: user.id, text: clean, expires_at: expiresAt,
   }).select().single()
@@ -944,7 +947,7 @@ export async function getUnreadCount(matchId: string) {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return 0
   const { data } = await supabase().rpc('get_unread_count', { p_match_id: matchId, p_user_id: user.id })
-  return (data as number) ?? 0
+  return Number(data) || 0
 }
 
 export async function getLastReadAt(matchId: string) {
@@ -1119,7 +1122,8 @@ export async function undoSuperLike() {
   const { error: delErr } = await supabase().from('swipes').delete().eq('id', data.id)
   if (delErr) return { error: delErr.message }
   const remaining = await getSuperLikesRemaining()
-  await supabase().from('profiles').update({ super_likes_remaining: remaining + 1 }).eq('id', user.id)
+  const { error: updErr } = await supabase().from('profiles').update({ super_likes_remaining: remaining + 1 }).eq('id', user.id)
+  if (updErr) return { error: updErr.message }
   return { error: null }
 }
 
@@ -1203,8 +1207,8 @@ export async function createGiftCheckout(giftId: string, receiverId: string, mat
   })
   const data = await res.json()
   if (!res.ok) return { error: data.error }
-  if (data.sent) return { sent: true as const }
-  return { url: data.url as string }
+  if (data.sent) return { data: { sent: true as const }, error: null }
+  return { data: { url: data.url as string }, error: null }
 }
 
 // ---- GIFT WALLET / BALANCE ----

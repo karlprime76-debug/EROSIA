@@ -1,3 +1,7 @@
+if (!process.env.PAYDUNYA_MASTER_KEY || !process.env.PAYDUNYA_PRIVATE_KEY || !process.env.PAYDUNYA_TOKEN) {
+  throw new Error('PayDunya (disburse): clés API manquantes')
+}
+
 const BASE = process.env.PAYDUNYA_MODE === 'live'
   ? 'https://app.paydunya.com/api/v2'
   : 'https://app.paydunya-sandbox.com/api/v2'

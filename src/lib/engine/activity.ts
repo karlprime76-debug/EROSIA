@@ -23,11 +23,15 @@ async function computeActivity(userId: string): Promise<ActivityOutput> {
   let score = 1.0
 
   // Décroissance temporelle
-  const lastActive = profile.last_active_at
-    ? new Date(profile.last_active_at).getTime()
-    : profile.last_seen
-      ? new Date(profile.last_seen).getTime()
-      : 0
+  let lastActive = 0
+  if (profile.last_active_at) {
+    const ts = new Date(profile.last_active_at).getTime()
+    if (Number.isFinite(ts)) lastActive = ts
+  }
+  if (!lastActive && profile.last_seen) {
+    const ts = new Date(profile.last_seen).getTime()
+    if (Number.isFinite(ts)) lastActive = ts
+  }
 
   if (lastActive > 0) {
     const daysSinceActive = (Date.now() - lastActive) / (1000 * 60 * 60 * 24)

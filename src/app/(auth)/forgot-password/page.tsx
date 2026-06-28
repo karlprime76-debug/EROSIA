@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await resetPassword(email)
-    if (error) { setError(error.message); setLoading(false); return }
+    if (error) { setError(error); setLoading(false); return }
     setSent(true); setLoading(false)
   }
 

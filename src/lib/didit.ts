@@ -1,6 +1,16 @@
 const DIDIT_API_BASE = 'https://verification.didit.me/v3'
-const DIDIT_API_KEY = process.env.DIDIT_API_KEY ?? ''
-const WEBHOOK_SECRET = process.env.DIDIT_WEBHOOK_SECRET ?? ''
+
+function getDiditKey(): string {
+  const key = process.env.DIDIT_API_KEY
+  if (!key) throw new Error('DIDIT_API_KEY not configured')
+  return key
+}
+
+function getWebhookSecret(): string {
+  const secret = process.env.DIDIT_WEBHOOK_SECRET
+  if (!secret) throw new Error('DIDIT_WEBHOOK_SECRET not configured')
+  return secret
+}
 
 interface DiditSessionResponse {
   session_id: string
@@ -40,7 +50,7 @@ async function diditFetch(path: string, options: RequestInit = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': DIDIT_API_KEY,
+      'x-api-key': getDiditKey(),
       ...options.headers,
     },
   })
@@ -77,11 +87,11 @@ export async function getSessionDecision(sessionId: string): Promise<{ status: s
 }
 
 export async function verifyWebhookSignature(payload: string, signature: string, timestamp: string): Promise<boolean> {
-  if (!WEBHOOK_SECRET) return false
   const ts = parseInt(timestamp, 10)
+  const whSecret = getWebhookSecret()
   if (isNaN(ts) || Math.abs(Date.now() / 1000 - ts) > 300) return false
   const encoder = new TextEncoder()
-  const keyBuf = encoder.encode(WEBHOOK_SECRET).buffer as ArrayBuffer
+  const keyBuf = encoder.encode(whSecret).buffer as ArrayBuffer
   const key = await crypto.subtle.importKey('raw', keyBuf, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
   const sigBuf = hexToBytes(signature).buffer as ArrayBuffer
   const msgBuf = encoder.encode(payload).buffer as ArrayBuffer
@@ -89,6 +99,7 @@ export async function verifyWebhookSignature(payload: string, signature: string,
 }
 
 function hexToBytes(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0) throw new Error('Invalid hex string length')
   const bytes = new Uint8Array(hex.length / 2)
   for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
   return bytes

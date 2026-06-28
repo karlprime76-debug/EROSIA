@@ -71,10 +71,10 @@ async function computeConversation(userId: string): Promise<ConversationOutput> 
   // Taux de ghosting (matches sans message après 48h)
   const ghostedMatches = matches.filter(m => {
     const matchMsgs = msgs.filter(msg => msg.match_id === m.id)
-    if (matchMsgs.length === 0) return false
+    if (matchMsgs.length === 0) return true
     const lastMsgTime = new Date(matchMsgs[matchMsgs.length - 1].created_at).getTime()
-    const matchTime = new Date(m.created_at).getTime()
-    return lastMsgTime - matchTime < 48 * 60 * 60 * 1000
+    if (isNaN(lastMsgTime)) return true
+    return Date.now() - lastMsgTime > 48 * 60 * 60 * 1000
   })
   metrics.ghostingRate = matches.length > 0 ? ghostedMatches.length / matches.length : 0
 

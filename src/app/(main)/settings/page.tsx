@@ -149,7 +149,7 @@ export default function SettingsPage() {
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Push</span>
-                <button type="button" onClick={async () => {
+                <button type="button" role="switch" aria-checked={notifPush} onClick={async () => {
                   const v = !notifPush
                   setNotifPush(v)
                   const { data: { user } } = await supabase.auth.getUser()
@@ -161,7 +161,7 @@ export default function SettingsPage() {
               </label>
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[#9E9488]">Email</span>
-                <button type="button" onClick={async () => {
+                <button type="button" role="switch" aria-checked={notifEmail} onClick={async () => {
                   const v = !notifEmail
                   setNotifEmail(v)
                   const { data: { user } } = await supabase.auth.getUser()
