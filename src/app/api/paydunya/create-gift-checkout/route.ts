@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).single()
     if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })
     if (typeof gift.price_cents !== 'number') {
-      return NextResponse.json({ error: 'Prix du cadeau invalide' }, { status: 500 })
+      logger.error('create-gift-checkout: price_cents invalide', { gift_id: giftId, price_cents: gift.price_cents })
+      return NextResponse.json({ error: 'Prix du cadeau invalide', code: 'INVALID_PRICE' }, { status: 500 })
     }
 
     const EUR_TO_XOF = 655.957
@@ -53,7 +54,8 @@ export async function POST(request: Request) {
     }
 
     if (result.status !== 'success' || !result.token) {
-      return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement' }, { status: 500 })
+      logger.error('create-gift-checkout: PayDunya non-success', { status: result.status, response_text: result.response_text })
+      return NextResponse.json({ error: result.response_text ?? 'Erreur de création du paiement', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
     const paymentUrl = `https://payment.paydunya.com/payment/${result.token}`
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: paymentUrl })
   } catch (err) {
-    logger.error('create-gift-checkout unexpected error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    logger.error('create-gift-checkout: erreur inattendue', { error: String(err) })
+    return NextResponse.json({ error: 'Erreur serveur', code: 'UNEXPECTED' }, { status: 500 })
   }
 }

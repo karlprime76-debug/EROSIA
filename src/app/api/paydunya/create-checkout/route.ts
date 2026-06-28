@@ -26,7 +26,8 @@ export async function POST(request: Request) {
     }
 
     if (result.status !== 'success' || !result.token) {
-      return NextResponse.json({ error: result.response_text ?? 'Échec de la création du paiement' }, { status: 500 })
+      logger.error('create-checkout: PayDunya non-success', { status: result.status, response_text: result.response_text })
+      return NextResponse.json({ error: result.response_text ?? 'Échec de la création du paiement', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
     const paymentUrl = `https://payment.paydunya.com/payment/${result.token}`
