@@ -29,8 +29,9 @@ export default function ProfilePage() {
 
   const fetchProfileFromApi = async () => {
     const res = await fetch('/api/profile/me')
-    if (!res.ok) return null
     const json = await res.json()
+    console.log('📦 /api/profile/me response:', res.status, json)
+    if (!res.ok) return null
     return json.profile as Profile | null
   }
 
@@ -40,8 +41,20 @@ export default function ProfilePage() {
       try {
         const profileData = await fetchProfileFromApi()
         if (cancelled) return
-        console.log('📦 /api/profile/me result:', profileData?.id, profileData?.name)
-        if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {}) }
+        if (!profileData) {
+          console.warn('⚠️ /api/profile/me returned null, fallback to browser client getUser')
+          const { data: { user } } = await supabase.auth.getUser()
+          console.log('📦 browser getUser fallback:', user?.id, user?.email)
+          if (user && !cancelled) {
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+            const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
+            console.log('📦 browser select fallback:', data?.id, data?.name)
+            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship') }
+          }
+        } else {
+          console.log('✅ /api/profile/me success:', profileData.id, profileData.name)
+          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
+        }
       } catch (err) { console.error('loadProfile: exception', err) }
       if (!cancelled) setLoading(false)
     })()
