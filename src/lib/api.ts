@@ -2,8 +2,10 @@ import { supabase as sbClient } from './supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
 import type { BehaviorAction } from './engine/types'
 import { validateFile, sanitizeFilename } from './media'
+import { logger } from './logger'
 
 export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
+export type Mood = 'discuter' | 'rencontre' | 'disponible_ce_soir' | 'relation_serieuse' | 'chill' | 'de_passage'
 
 export interface Profile {
   id: string
@@ -30,6 +32,7 @@ export interface Profile {
   subscription_tier?: 'free' | 'premium'
   premium_expires_at?: string
   video_url?: string
+  mood?: Mood
 }
 
 export interface Swipe {
@@ -118,7 +121,7 @@ export async function updatePassword(password: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, last_seen, video_url'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, created_at, last_seen, video_url'
 
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)
@@ -139,20 +142,20 @@ export async function getProfile(id: string) {
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {
-  console.log('updateProfile: début', { id, updates })
+  logger.debug('updateProfile: début', { id, updates })
   const { data: { user } } = await supabase().auth.getUser()
-  if (!user) { console.warn('updateProfile: non authentifié'); return { error: 'Not authenticated' } }
-  if (user.id !== id) { console.warn('updateProfile: accès non autorisé', { userId: user.id, profileId: id }); return { error: 'Non autorisé' } }
+  if (!user) { logger.warn('updateProfile: non authentifié'); return { error: 'Not authenticated' } }
+  if (user.id !== id) { logger.warn('updateProfile: accès non autorisé', { userId: user.id, profileId: id }); return { error: 'Non autorisé' } }
   const sanitized = { ...updates }
   if (typeof sanitized.bio === 'string') sanitized.bio = sanitized.bio.replace(/<[^>]*>/g, '').slice(0, 500)
   if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.replace(/<[^>]*>/g, '').slice(0, 80)
   if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitized.occupation.replace(/<[^>]*>/g, '').slice(0, 100)
   if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
-  console.log('updateProfile: appel Supabase', { sanitized, id })
+  logger.debug('updateProfile: appel Supabase', { sanitized, id })
   const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id).select().maybeSingle()
-  if (error) { console.error('updateProfile: erreur Supabase', error); return { error: error.message } }
-  if (!data) { console.warn('updateProfile: données nulles après update (possible RLS)', { id }); return { error: 'Impossible de mettre à jour le profil. Vérifie que tu es bien connecté et réessaie.' } }
-  console.log('updateProfile: succès', data)
+  if (error) { logger.error('updateProfile: erreur Supabase', error); return { error: error.message } }
+  if (!data) { logger.warn('updateProfile: données nulles après update (possible RLS)', { id }); return { error: 'Impossible de mettre à jour le profil. Vérifie que tu es bien connecté et réessaie.' } }
+  logger.debug('updateProfile: succès', data)
   return { data }
 }
 

@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase/client'
 import { getEngine } from './registry'
 import type {
   ScoringEngine, SparkInput, SparkOutput,
@@ -8,15 +9,25 @@ import type {
   ConversationInput, ConversationOutput,
   InterestGraphInput, InterestGraphOutput,
 } from './types'
+import type { Mood } from '@/lib/api'
 import { registerEngine } from './registry'
 
 export class SparkScoreEngine implements ScoringEngine<SparkInput, SparkOutput> {
   name = 'spark-score'
-  version = 1
+  version = 2
 
   async compute(input: SparkInput): Promise<SparkOutput> {
     return computeSparkScore(input.userId, input.targetId)
   }
+}
+
+const MOOD_COMPAT: Record<Mood, Mood[]> = {
+  discuter: ['discuter', 'chill', 'de_passage'],
+  rencontre: ['rencontre', 'disponible_ce_soir', 'relation_serieuse'],
+  disponible_ce_soir: ['disponible_ce_soir', 'rencontre', 'relation_serieuse'],
+  relation_serieuse: ['relation_serieuse', 'rencontre', 'discuter'],
+  chill: ['chill', 'discuter', 'de_passage'],
+  de_passage: ['de_passage', 'discuter', 'chill'],
 }
 
 async function computeSparkScore(userId: string, targetId: string): Promise<SparkOutput> {
@@ -34,6 +45,7 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     activityResult, targetActivity,
     conversationResult,
     interestResult,
+    moodResult,
   ] = await Promise.all([
     (await compatEngine?.compute({ userId, targetId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
     (await compatEngine?.compute({ userId: targetId, targetId: userId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
@@ -44,19 +56,21 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     (await activityEngine?.compute({ userId: targetId }).catch(() => ({ score: 1 }))) ?? { score: 1 },
     (await conversationEngine?.compute({ userId }).catch(() => ({ score: 0, metrics: {} }))) ?? { score: 0, metrics: {} },
     (await interestEngine?.compute({ userId, targetId }).catch(() => ({ shared: 0, related: 0, boost: 0, details: [] }))) ?? { shared: 0, related: 0, boost: 0, details: [] },
+    getMoodCompatibility(userId, targetId),
   ])
 
   // Poids
   const weights = {
-    compatForward: 0.35,
-    compatReverse: 0.15,
+    compatForward: 0.30,
+    compatReverse: 0.12,
     behavior: 0.10,
     targetBehavior: 0.05,
     trust: 0.10,
     activitySelf: 0.05,
     activityTarget: 0.05,
-    conversation: 0.10,
+    conversation: 0.08,
     interestBoost: 0.05,
+    mood: 0.10,
   }
 
   const score =
@@ -68,7 +82,8 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     activityResult.score * weights.activitySelf +
     targetActivity.score * weights.activityTarget +
     conversationResult.score * weights.conversation +
-    interestResult.boost * weights.interestBoost
+    interestResult.boost * weights.interestBoost +
+    moodResult.score * weights.mood
 
   // Générer l'explication
   const parts: string[] = []
@@ -91,10 +106,13 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     parts.push('son profil est vérifié et actif')
   }
 
-  // Vérifier si les deux sont actifs récemment
   const bothActive = activityResult.score > 0.5 && targetActivity.score > 0.5
   if (bothActive) {
     parts.push('vous êtes tous les deux actifs récemment')
+  }
+
+  if (moodResult.explanation) {
+    parts.push(moodResult.explanation)
   }
 
   const explanation = parts.length > 0
@@ -111,8 +129,28 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
       activity: (activityResult.score + targetActivity.score) / 2,
       conversation: conversationResult.score,
       interestBoost: interestResult.boost,
+      mood: moodResult.score,
     },
   }
+}
+
+async function getMoodCompatibility(userId: string, targetId: string): Promise<{ score: number; explanation: string }> {
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, mood')
+    .in('id', [userId, targetId])
+
+  if (!profiles || profiles.length < 2) return { score: 0, explanation: '' }
+
+  const myMood = profiles.find(p => p.id === userId)?.mood as Mood | undefined
+  const theirMood = profiles.find(p => p.id === targetId)?.mood as Mood | undefined
+  if (!myMood || !theirMood) return { score: 0, explanation: '' }
+
+  const isCompat = MOOD_COMPAT[myMood]?.includes(theirMood) ?? false
+  if (isCompat) {
+    return { score: 1, explanation: 'vos moods sont compatibles' }
+  }
+  return { score: 0.3, explanation: '' }
 }
 
 export const sparkScoreEngine = new SparkScoreEngine()

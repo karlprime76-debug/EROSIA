@@ -20,6 +20,7 @@ const DISCOVER_PAGE_SIZE = 20
 const REPORT_REASONS = ['Compte faux', 'Harcèlement', 'Spam', 'Contenu inapproprié', 'Autre'] as const
 
 const lookingForLabel = (v: string) => ({ friendship: 'Amitié', casual: 'Plan cul', fwb: 'FWB', serious: 'Sérieux', open: 'Libre' }[v] ?? v)
+const moodLabel = (v: string) => ({ discuter: '💬 Discuter', rencontre: '🔥 Rencontre', disponible_ce_soir: '🍷 Dispo ce soir', relation_serieuse: '💕 Sérieux', chill: '🎮 Chill', de_passage: '🌍 De passage' }[v] ?? v)
 
 const tabVariants = {
   initial: { opacity: 0, y: 20, scale: 0.95 },
@@ -425,6 +426,11 @@ export default function DiscoverPage() {
                   {current.looking_for && (
                     <div className="absolute bottom-[6rem] left-5 pointer-events-none">
                       <span className="text-[11px] text-[#D92D4A] bg-[#D92D4A]/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{lookingForLabel(current.looking_for)}</span>
+                    </div>
+                  )}
+                  {current.mood && (
+                    <div className="absolute bottom-[4.5rem] left-5 pointer-events-none">
+                      <span className="text-[11px] text-white bg-white/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{moodLabel(current.mood)}</span>
                     </div>
                   )}
                   <button type="button" onClick={() => { (async () => {

@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart, Gift, Check, Sun, Moon, Monitor } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor, type Mood } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -19,6 +20,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
+  const [mood, setMood] = useState<Mood>('discuter')
   const [now, setNow] = useState(0)
   const [profileTraits, setProfileTraits] = useState<string[]>([])
   const [streak, setStreak] = useState(0)
@@ -30,7 +32,7 @@ export default function ProfilePage() {
   const fetchProfileFromApi = async () => {
     const res = await fetch('/api/profile/me')
     const json = await res.json()
-    console.log('📦 /api/profile/me response:', res.status, json)
+    logger.debug('/api/profile/me response', { status: res.status, data: json })
     if (!res.ok) return null
     return json.profile as Profile | null
   }
@@ -42,20 +44,20 @@ export default function ProfilePage() {
         const profileData = await fetchProfileFromApi()
         if (cancelled) return
         if (!profileData) {
-          console.warn('⚠️ /api/profile/me returned null, fallback to browser client getUser')
+          logger.warn('/api/profile/me returned null, fallback to browser client getUser')
           const { data: { user } } = await supabase.auth.getUser()
-          console.log('📦 browser getUser fallback:', user?.id, user?.email)
+          logger.debug('browser getUser fallback', { userId: user?.id, email: user?.email })
           if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, video_url'
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, created_at, video_url'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-            console.log('📦 browser select fallback:', data?.id, data?.name)
-            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship') }
+            logger.debug('browser select fallback', { id: data?.id, name: data?.name })
+            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
           }
         } else {
-          console.log('✅ /api/profile/me success:', profileData.id, profileData.name)
-          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
+          logger.debug('/api/profile/me success', { id: profileData.id, name: profileData.name })
+          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
         }
-      } catch (err) { console.error('loadProfile: exception', err) }
+      } catch (err) { logger.error('loadProfile: exception', err) }
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
@@ -63,8 +65,8 @@ export default function ProfilePage() {
   const loadProfile = async () => {
     try {
       const profileData = await fetchProfileFromApi()
-      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship') }
-    } catch (err) { console.error('loadProfile: exception', err) }
+      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter') }
+    } catch (err) { logger.error('loadProfile: exception', err) }
   }
   const handlePhoto = async () => {
     const input = document.createElement('input')
@@ -80,11 +82,11 @@ export default function ProfilePage() {
         if (result.url) {
           const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
           const { error: updateErr } = await updateProfile(profile.id, { photos })
-          if (updateErr) { console.error('handlePhoto updateProfile error', updateErr); toast(updateErr, 'error'); setUploading(false); return }
+          if (updateErr) { logger.error('handlePhoto updateProfile error', updateErr); toast(updateErr, 'error'); setUploading(false); return }
           setProfile({ ...profile, photos })
           toast('Photo ajoutée', 'success')
         }
-      } catch (err) { console.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
+      } catch (err) { logger.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
       setUploading(false)
     }
     input.click()
@@ -94,18 +96,18 @@ export default function ProfilePage() {
   const savingRef = useRef(false)
 
   const saveProfile = async () => {
-    if (savingRef.current) { console.warn('saveProfile: déjà en cours'); return }
+    if (savingRef.current) { logger.warn('saveProfile: déjà en cours'); return }
     savingRef.current = true
     setSavingProfile(true)
     let p = profile
     if (!p) {
-      console.log('saveProfile: profile null, tentative de rechargement')
+      logger.debug('saveProfile: profile null, tentative de rechargement')
       const { data: { user: u } } = await supabase.auth.getUser()
       if (!u) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, photos, location, video_url').eq('id', u.id).maybeSingle()
-      if (fresh) { p = fresh as Profile } else { p = { id: u.id, name: 'Utilisateur', photos: [], interests: [], age: null, bio: null, occupation: null, location: null, is_verified: false, looking_for: 'friendship', created_at: new Date().toISOString(), incognito: false, ghost_mode: false, super_likes_remaining: 3, super_likes_reset_at: new Date().toISOString() } as Profile }
+      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, photos, location, video_url').eq('id', u.id).maybeSingle()
+      if (fresh) { p = fresh as Profile } else { p = { id: u.id, name: 'Utilisateur', photos: [], interests: [], age: null, bio: null, occupation: null, location: null, is_verified: false, looking_for: 'friendship', mood: 'discuter', created_at: new Date().toISOString(), incognito: false, ghost_mode: false, super_likes_remaining: 3, super_likes_reset_at: new Date().toISOString() } as Profile }
     }
-    console.log('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
+    logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
     try {
       const sanitized: Record<string, unknown> = {}
       const n = (nameValue.trim() || p.name || 'Utilisateur').replace(/<[^>]*>/g, '').slice(0, 80)
@@ -115,30 +117,32 @@ export default function ProfilePage() {
       const i = interests.split(',').map(x => x.trim()).filter(Boolean)
       if (JSON.stringify(i) !== JSON.stringify(p.interests)) sanitized.interests = i
       if (lookingFor !== p.looking_for) sanitized.looking_for = lookingFor
+      if (mood !== p.mood) sanitized.mood = mood
       if (Object.keys(sanitized).length === 0) {
-        console.log('saveProfile: aucun changement')
+        logger.debug('saveProfile: aucun changement')
         toast('Aucune modification détectée.', 'info')
         setSavingProfile(false); savingRef.current = false; return
       }
-      console.log('saveProfile: envoi vers Supabase', sanitized)
+      logger.debug('saveProfile: envoi vers Supabase', sanitized)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, ...sanitized }
-      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, location, photos, video_url').maybeSingle()
-      console.log('saveProfile: réponse Supabase', { data, error })
+      const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, mood: p.mood, ...sanitized }
+      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, location, photos, video_url').maybeSingle()
+      logger.debug('saveProfile: réponse Supabase', { data, error })
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      console.log('saveProfile: succès', data)
+      logger.debug('saveProfile: succès', data)
       setProfile({ ...p, ...data } as Profile)
       setNameValue((data.name ?? p.name) || '')
       setBio((data.bio ?? p.bio) || '')
       setInterests((data.interests ?? p.interests)?.join(', ') || '')
       setLookingFor((data.looking_for ?? p.looking_for) as LookingFor)
+      setMood((data.mood ?? p.mood) as Mood)
       toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
     } catch (err) {
-      console.error('saveProfile: exception', err)
+      logger.error('saveProfile: exception', err)
       toast(err instanceof Error ? err.message : 'Erreur réseau. Vérifie ta connexion.', 'error')
     } finally {
       setSavingProfile(false)
@@ -147,7 +151,7 @@ export default function ProfilePage() {
   }
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
-  useEffect(() => { console.log('🔍 profile state:', profile ? `id=${profile.id} name=${profile.name} photos=${profile.photos?.length}` : 'null') }, [profile])
+  useEffect(() => { logger.debug('profile state', profile ? `id=${profile.id} name=${profile.name} photos=${profile.photos?.length}` : 'null') }, [profile])
 
   const formatLastSeen = (date: string) => {
     const diff = now - new Date(date).getTime()
@@ -260,12 +264,12 @@ export default function ProfilePage() {
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
-                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(console.error) }}
+                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
                         <Star size={14} className="text-amber-500" />
                       </button>
                     )}
-                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(console.error) }}
+                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                       className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
                       <Trash2 size={14} className="text-red-500" />
                     </button>
@@ -327,7 +331,29 @@ export default function ProfilePage() {
                 <option value="open">Relation libre</option>
               </select>
             </div>
-            <button type="button" onClick={() => { saveProfile().catch(console.error) }} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Mon mood</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['discuter', '💬 Discuter'],
+                  ['rencontre', '🔥 Rencontre'],
+                  ['disponible_ce_soir', '🍷 Dispo ce soir'],
+                  ['relation_serieuse', '💕 Sérieux'],
+                  ['chill', '🎮 Chill'],
+                  ['de_passage', '🌍 De passage'],
+                ] as const).map(([val, label]) => (
+                  <button type="button" key={val} onClick={() => setMood(val as Mood)}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+                      mood === val
+                        ? 'border-[#D92D4A] bg-[#D92D4A]/10 text-[#D92D4A]'
+                        : 'border-[#2A2826] text-[#9E9488] hover:border-[#5A5248]'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="button" onClick={() => { saveProfile().catch(logger.error) }} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
               {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
             </button>
           </div>
@@ -354,6 +380,21 @@ export default function ProfilePage() {
                 <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Ce que je cherche</h3>
                 <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-3 py-1.5 rounded-full border border-[#D92D4A]/10">
                   {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
+                </span>
+              </div>
+            )}
+            {profile?.mood && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Mon mood</h3>
+                <span className="inline-flex items-center gap-1.5 text-xs bg-[#D92D4A]/10 px-3 py-1.5 rounded-full border border-[#D92D4A]/10 text-[#D92D4A]">
+                  {{
+                    discuter: '💬 Discuter',
+                    rencontre: '🔥 Rencontre',
+                    disponible_ce_soir: '🍷 Disponible ce soir',
+                    relation_serieuse: '💕 Relation sérieuse',
+                    chill: '🎮 Chill',
+                    de_passage: '🌍 De passage',
+                  }[profile.mood] ?? profile.mood}
                 </span>
               </div>
             )}

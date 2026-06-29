@@ -182,3 +182,11 @@ CREATE TRIGGER trg_gift_transactions_updated_at
   BEFORE UPDATE ON gift_transactions
   FOR EACH ROW
   EXECUTE FUNCTION update_profiles_updated_at();
+
+-- 6. Mood column for profiles
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='mood') THEN
+    ALTER TABLE profiles ADD COLUMN mood TEXT DEFAULT 'discuter';
+    ALTER TABLE profiles ADD CONSTRAINT mood_check CHECK (mood IN ('discuter', 'rencontre', 'disponible_ce_soir', 'relation_serieuse', 'chill', 'de_passage'));
+  END IF;
+END $$;

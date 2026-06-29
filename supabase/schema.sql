@@ -12,6 +12,7 @@ CREATE TABLE profiles (
   interests TEXT[] DEFAULT '{}',
   is_verified BOOLEAN DEFAULT false,
   looking_for TEXT DEFAULT 'friendship' CHECK (looking_for IN ('friendship', 'casual', 'fwb', 'serious', 'open')),
+  mood TEXT DEFAULT 'discuter' CHECK (mood IN ('discuter', 'rencontre', 'disponible_ce_soir', 'relation_serieuse', 'chill', 'de_passage')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
