@@ -39,7 +39,7 @@ function getClientIp(request: NextRequest): string {
 
 const publicPaths = ['/welcome', '/login', '/register', '/forgot-password', '/reset-password', '/auth/callback', '/onboarding']
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname, origin } = new URL(request.url)
   const method = request.method
   const ip = getClientIp(request)

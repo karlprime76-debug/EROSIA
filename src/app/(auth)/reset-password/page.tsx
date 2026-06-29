@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import { supabase } from '@/lib/supabase/client'
-import { FloatingHearts } from '@/components/3d/FloatingHearts'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -33,8 +32,7 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
-      <FloatingHearts />
+    <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -62,8 +60,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative min-h-dvh flex flex-col items-center justify-center px-5 safe-pb safe-pt bg-[var(--bg)]">
-      <FloatingHearts />
+    <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

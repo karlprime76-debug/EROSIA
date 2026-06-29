@@ -45,7 +45,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
   }, [pathname])
 
-  const isActive = (href: string) => pathname.startsWith(href)
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
 
   return (
     <div className="flex-1 flex flex-col w-full min-h-screen relative bg-[var(--bg)]">

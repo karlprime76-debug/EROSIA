@@ -24,6 +24,7 @@ const ASSETS_CACHE = '${ASSETS_CACHE}'
 const STATIC_ASSETS = ['/', '/offline', '/logo.png', '/icone.png', '/manifest.json', '/login', '/register', '/welcome', '/privacy', '/cgu']
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting()
   e.waitUntil(
     caches.open(ASSETS_CACHE).then((c) => c.addAll(STATIC_ASSETS.map((u) => new Request(u, { cache: 'reload' })))).catch(() => {})
   )
@@ -47,20 +48,24 @@ self.addEventListener('fetch', (e) => {
   if (req.url.includes('supabase.co')) return
 
   if (req.destination === 'document') {
-    e.respondWith(staleWhileRevalidate(req))
+    e.respondWith(networkFirst(req))
   } else {
     e.respondWith(cacheFirst(req))
   }
 })
 
-async function staleWhileRevalidate(req) {
-  const cache = await caches.open(CACHE_NAME)
-  const cached = await cache.match(req)
-  const fetchPromise = fetch(req).then((res) => {
-    if (res.ok) cache.put(req, res.clone())
+async function networkFirst(req) {
+  try {
+    const res = await fetch(req)
+    if (res.ok) {
+      const cache = await caches.open(CACHE_NAME)
+      cache.put(req, res.clone())
+    }
     return res
-  }).catch(() => cached)
-  return cached ?? fetchPromise
+  } catch {
+    const cached = await caches.match(req)
+    return cached ?? new Response('Hors ligne', { status: 503 })
+  }
 }
 
 async function cacheFirst(req) {

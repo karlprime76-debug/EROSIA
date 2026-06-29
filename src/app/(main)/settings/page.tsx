@@ -31,7 +31,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
       startTransition(() => setUpgradeSuccess(true))
-      router.replace('/settings')
+      window.history.replaceState(null, '', '/settings')
     }
     getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') }).catch(console.error)
     getTravelMode().then(mode => {

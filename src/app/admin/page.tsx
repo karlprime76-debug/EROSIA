@@ -18,6 +18,7 @@ interface ModerationItem {
 export default function AdminPage() {
   const [userEmail, setUserEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [verifications, setVerifications] = useState<VerificationRequest[]>([])
   const [modQueue, setModQueue] = useState<ModerationItem[]>([])
   const [tab, setTab] = useState<'apercu' | 'verifications' | 'moderation' | 'retraits'>('apercu')
@@ -50,7 +51,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
+      if (!user) { setChecking(false); return }
       setUserEmail(user.email ?? '')
       const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
       if (data?.is_admin) {
@@ -58,6 +59,7 @@ export default function AdminPage() {
         loadData()
         loadAdminData()
       }
+      setChecking(false)
     }).catch(console.error)
   }, [])
 
@@ -83,6 +85,15 @@ export default function AdminPage() {
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     setPayouts(p => p.filter(tx => tx.id !== txId))
   }
+
+  if (checking) return (
+    <div className="min-h-dvh flex items-center justify-center px-6 bg-transparent">
+      <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
+        <div className="w-8 h-8 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[#9E9488] text-sm">Vérification...</p>
+      </div>
+    </div>
+  )
 
   if (!isAdmin) return (
     <div className="min-h-dvh flex items-center justify-center px-6 bg-transparent">
