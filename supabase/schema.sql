@@ -49,6 +49,14 @@ CREATE POLICY "Users can view own swipes"
   ON swipes FOR SELECT
   USING (auth.uid() = swiper_id);
 
+CREATE POLICY "Users can delete own swipes"
+  ON swipes FOR DELETE
+  USING (auth.uid() = swiper_id);
+
+CREATE POLICY "Users can delete swipes involving them"
+  ON swipes FOR DELETE
+  USING (auth.uid() = swiped_id);
+
 -- Matches
 CREATE TABLE matches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,6 +103,16 @@ CREATE POLICY "Users can send messages in their matches"
   WITH CHECK (
     auth.uid() = sender_id
     AND EXISTS (
+      SELECT 1 FROM matches
+      WHERE matches.id = messages.match_id
+      AND (matches.user1_id = auth.uid() OR matches.user2_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can delete messages in their matches"
+  ON messages FOR DELETE
+  USING (
+    EXISTS (
       SELECT 1 FROM matches
       WHERE matches.id = messages.match_id
       AND (matches.user1_id = auth.uid() OR matches.user2_id = auth.uid())

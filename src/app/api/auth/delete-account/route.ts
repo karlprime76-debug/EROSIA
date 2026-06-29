@@ -27,9 +27,15 @@ export async function POST(request: NextRequest) {
     const errors: string[] = []
 
     const tables = [
-      ['messages',        () => admin.from('messages').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
+      ['messages',        async () => {
+        const { data: matchRows } = await admin.from('matches').select('id').or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
+        if (matchRows && matchRows.length > 0) {
+          for (const m of matchRows) { await admin.from('messages').delete().eq('match_id', m.id) }
+        }
+        await admin.from('messages').delete().eq('sender_id', uid)
+      }],
       ['matches',         () => admin.from('matches').delete().or(`user1_id.eq.${uid},user2_id.eq.${uid}`)],
-      ['swipes',          () => admin.from('swipes').delete().eq('swiper_id', uid)],
+      ['swipes',          () => admin.from('swipes').delete().or(`swiper_id.eq.${uid},swiped_id.eq.${uid}`)],
       ['flirts',          () => admin.from('flirts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
       ['blocks',          () => admin.from('blocks').delete().or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`)],
       ['reports',         () => admin.from('reports').delete().or(`reporter_id.eq.${uid},reported_id.eq.${uid}`)],

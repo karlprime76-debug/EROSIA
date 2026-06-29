@@ -40,10 +40,16 @@ CREATE TABLE IF NOT EXISTS quiz_answers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   question_id UUID NOT NULL REFERENCES quiz_questions(id) ON DELETE CASCADE,
-  answer TEXT NOT NULL,
+  answer_index INT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, question_id)
 );
+
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='quiz_answers' AND column_name='answer') THEN
+    ALTER TABLE quiz_answers RENAME COLUMN answer TO answer_index;
+  END IF;
+END $$;
 
 ALTER TABLE quiz_answers ENABLE ROW LEVEL SECURITY;
 
