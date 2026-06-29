@@ -22,6 +22,84 @@ const REPORT_REASONS = ['Compte faux', 'Harcèlement', 'Spam', 'Contenu inapprop
 const lookingForLabel = (v: string) => ({ friendship: 'Amitié', casual: 'Plan cul', fwb: 'FWB', serious: 'Sérieux', open: 'Libre' }[v] ?? v)
 const moodLabel = (v: string) => ({ discuter: '💬 Discuter', rencontre: '🔥 Rencontre', disponible_ce_soir: '🍷 Dispo ce soir', relation_serieuse: '💕 Sérieux', chill: '🎮 Chill', de_passage: '🌍 De passage' }[v] ?? v)
 
+const MOOD_COMPAT: Record<string, string[]> = {
+  discuter: ['discuter', 'chill', 'de_passage'],
+  rencontre: ['rencontre', 'disponible_ce_soir', 'relation_serieuse'],
+  disponible_ce_soir: ['disponible_ce_soir', 'rencontre', 'relation_serieuse'],
+  relation_serieuse: ['relation_serieuse', 'rencontre', 'discuter'],
+  chill: ['chill', 'discuter', 'de_passage'],
+  de_passage: ['de_passage', 'discuter', 'chill'],
+}
+
+const LOOKING_FOR_COMPAT: Record<string, string[]> = {
+  friendship: ['friendship', 'casual', 'open'],
+  casual: ['casual', 'fwb', 'open'],
+  fwb: ['fwb', 'casual', 'open'],
+  serious: ['serious'],
+  open: ['open', 'casual', 'fwb', 'friendship'],
+}
+
+function computeProfileScore(profile: Profile, myLookingFor: string, myMood: string, myLat: number | null, myLng: number | null): number {
+  let score = 50
+
+  // Quiz compat (0-30)
+  if (profile.energy_score !== undefined && profile.energy_score !== null) {
+    score += profile.energy_score * 0.15
+  }
+
+  // Trust score (0-15)
+  if (profile.trust_score !== undefined && profile.trust_score !== null) {
+    score += profile.trust_score * 0.10
+  }
+
+  // Looking-for match (0-20)
+  if (profile.looking_for) {
+    if (profile.looking_for === myLookingFor) {
+      score += 20
+    } else if (LOOKING_FOR_COMPAT[myLookingFor]?.includes(profile.looking_for)) {
+      score += 12
+    }
+  }
+
+  // Mood compatibility (0-15)
+  if (profile.mood) {
+    if (profile.mood === myMood) {
+      score += 15
+    } else if (MOOD_COMPAT[myMood]?.includes(profile.mood)) {
+      score += 8
+    }
+  }
+
+  // Activité récente (0-10)
+  if (profile.last_seen) {
+    const daysSince = (Date.now() - new Date(profile.last_seen).getTime()) / (1000 * 60 * 60 * 24)
+    if (daysSince <= 1) score += 10
+    else if (daysSince <= 3) score += 8
+    else if (daysSince <= 7) score += 5
+    else if (daysSince <= 14) score += 3
+  }
+
+  // Proximité géographique (0-10)
+  if (myLat !== null && myLng !== null && profile.latitude !== undefined && profile.longitude !== undefined && profile.latitude !== null && profile.longitude !== null) {
+    const R = 6371
+    const dLat = (profile.latitude - myLat) * Math.PI / 180
+    const dLng = (profile.longitude - myLng) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(myLat * Math.PI / 180) * Math.cos(profile.latitude * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    if (dist <= 5) score += 10
+    else if (dist <= 15) score += 8
+    else if (dist <= 30) score += 5
+    else if (dist <= 50) score += 3
+    else if (dist <= 100) score += 1
+  }
+
+  // is_verified bonus (0-5)
+  if (profile.is_verified) score += 5
+
+  return Math.round(score)
+}
+
 const tabVariants = {
   initial: { opacity: 0, y: 20, scale: 0.95 },
   animate: { opacity: 1, y: 0, scale: 1 },
@@ -53,6 +131,8 @@ export default function DiscoverPage() {
   const [isPremium, setIsPremium] = useState(false)
   const [myPhoto, setMyPhoto] = useState('')
   const [myId, setMyId] = useState('')
+  const [myLookingForInternal, setMyLookingForInternal] = useState('')
+  const [myMoodInternal, setMyMoodInternal] = useState('')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const profilesRef = useRef(profiles)
@@ -65,14 +145,27 @@ export default function DiscoverPage() {
     getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(console.error)
     getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(console.error)
     checkPremium().then(setIsPremium).catch(console.error)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setMyId(user.id)
-        supabase.from('profiles').select('photos').eq('id', user.id).maybeSingle().then(({ data }) => {
-          if (data?.photos?.[0]) setMyPhoto(data.photos[0])
-        }, console.error)
+    fetch('/api/profile/me').then(r => r.json()).then((json) => {
+      if (json.profile) {
+        setMyId(json.profile.id)
+        setMyLookingForInternal(json.profile.looking_for ?? 'friendship')
+        setMyMoodInternal(json.profile.mood ?? 'discuter')
+        if (json.profile.photos?.[0]) setMyPhoto(json.profile.photos[0])
       }
-    }).catch(console.error)
+    }).catch(() => {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          setMyId(user.id)
+          supabase.from('profiles').select('photos, looking_for, mood').eq('id', user.id).maybeSingle().then(({ data }) => {
+            if (data) {
+              if (data.photos?.[0]) setMyPhoto(data.photos[0])
+              setMyLookingForInternal(data.looking_for ?? 'friendship')
+              setMyMoodInternal(data.mood ?? 'discuter')
+            }
+          }, console.error)
+        }
+      }).catch(console.error)
+    })
   }, [])
 
   useEffect(() => {
@@ -134,19 +227,20 @@ export default function DiscoverPage() {
       const scores = await getCompatibilityBatch(current.map(p => p.id))
       if (cancelled) return
       setCompatScores(scores)
-      if (Object.keys(scores).length) {
-        const sorted = [...current].sort((a, b) => {
-          const sa = scores[a.id] ?? 0
-          const sb = scores[b.id] ?? 0
-          if (sa !== sb) return sb - sa
-          return Math.random() - 0.5
-        })
-        setProfiles(sorted)
-      }
+      const sorted = [...current].sort((a, b) => {
+        const sa = computeProfileScore(a, myLookingForInternal, myMoodInternal, lat, lng)
+        const sb = computeProfileScore(b, myLookingForInternal, myMoodInternal, lat, lng)
+        if (sa !== sb) return sb - sa
+        const qa = scores[a.id] ?? 0
+        const qb = scores[b.id] ?? 0
+        if (qa !== qb) return qb - qa
+        return Math.random() - 0.5
+      })
+      setProfiles(sorted)
     }
     load()
     return () => { cancelled = true }
-  }, [profiles.length])
+  }, [profiles.length, myLookingForInternal, myMoodInternal, lat, lng])
 
   const fetchProfiles = async (extraBlocked: string[] = [], pageNum = 1) => {
     const swiped = await getSwipedIds()
@@ -161,11 +255,14 @@ export default function DiscoverPage() {
     } else {
       result = await getProfilesPaginated(exclude, pageNum, { ...opts, minAge: filters.minAge, maxAge: filters.maxAge })
     }
-    if (result.data && Object.keys(compatScores).length) {
+    if (result.data) {
       result.data.sort((a, b) => {
-        const sa = compatScores[a.id] ?? 0
-        const sb = compatScores[b.id] ?? 0
+        const sa = computeProfileScore(a, myLookingForInternal, myMoodInternal, lat, lng)
+        const sb = computeProfileScore(b, myLookingForInternal, myMoodInternal, lat, lng)
+        const qa = compatScores[a.id] ?? 0
+        const qb = compatScores[b.id] ?? 0
         if (sa !== sb) return sb - sa
+        if (qa !== qb) return qb - qa
         return Math.random() - 0.5
       })
     }
