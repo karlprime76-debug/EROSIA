@@ -16,7 +16,7 @@ export function getDefaultRendererConfig(mobile?: MobileConfig): RendererConfig 
     canvas: null,
     width: typeof window !== 'undefined' ? window.innerWidth : 1920,
     height: typeof window !== 'undefined' ? window.innerHeight : 1080,
-    pixelRatio: mobile?.pixelRatio ?? Math.min(window.devicePixelRatio, 2),
+    pixelRatio: mobile?.pixelRatio ?? (typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1),
     antialias: true,
     shadows: !mobile?.disableShadows,
     toneMapping: 'ACESFilmic',

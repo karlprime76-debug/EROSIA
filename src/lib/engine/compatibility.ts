@@ -14,8 +14,8 @@ export class CompatibilityEngine implements ScoringEngine<CompatInput, CompatOut
 
 async function computeCompat(userId: string, targetId: string): Promise<{ score: number; factors: Record<string, number> }> {
   const [user, target] = await Promise.all([
-    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, lang, created_at').eq('id', userId).maybeSingle(),
-    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, lang, created_at').eq('id', targetId).maybeSingle(),
+    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', targetId).maybeSingle(),
   ])
   if (!user.data || !target.data) return { score: 0, factors: {} }
 
@@ -67,9 +67,7 @@ async function computeCompat(userId: string, targetId: string): Promise<{ score:
   }
 
   // Langue (5%)
-  const uLang = user.data.lang ?? 'fr'
-  const tLang = target.data.lang ?? 'fr'
-  factors.language = uLang === tLang ? 1.0 : 0.3
+  factors.language = 1.0
   weightedSum += factors.language * 0.05; totalWeight += 0.05
 
   // Personnalité via quiz (15%)
