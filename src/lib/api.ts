@@ -33,6 +33,7 @@ export interface Profile {
   premium_expires_at?: string
   video_url?: string
   mood?: Mood
+  energy_score?: number
 }
 
 export interface Swipe {
@@ -121,7 +122,7 @@ export async function updatePassword(password: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, created_at, last_seen, video_url'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, created_at, last_seen, video_url'
 
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)
@@ -1040,6 +1041,11 @@ export async function logBehavior(action: BehaviorAction, targetId?: string, met
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, targetId, metadata }),
   })
+  return res.ok
+}
+
+export async function updateEnergyScore() {
+  const res = await fetch('/api/engine/energy-score', { method: 'POST' })
   return res.ok
 }
 

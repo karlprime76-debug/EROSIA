@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart, Gift, Check, Sun, Moon, Monitor } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, type Profile, type LookingFor, type Mood } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
@@ -48,7 +48,7 @@ export default function ProfilePage() {
           const { data: { user } } = await supabase.auth.getUser()
           logger.debug('browser getUser fallback', { userId: user?.id, email: user?.email })
           if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, created_at, video_url'
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, created_at, video_url'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
             logger.debug('browser select fallback', { id: data?.id, name: data?.name })
             if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
@@ -104,8 +104,8 @@ export default function ProfilePage() {
       logger.debug('saveProfile: profile null, tentative de rechargement')
       const { data: { user: u } } = await supabase.auth.getUser()
       if (!u) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, photos, location, video_url').eq('id', u.id).maybeSingle()
-      if (fresh) { p = fresh as Profile } else { p = { id: u.id, name: 'Utilisateur', photos: [], interests: [], age: null, bio: null, occupation: null, location: null, is_verified: false, looking_for: 'friendship', mood: 'discuter', created_at: new Date().toISOString(), incognito: false, ghost_mode: false, super_likes_remaining: 3, super_likes_reset_at: new Date().toISOString() } as Profile }
+      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, energy_score, photos, location, video_url').eq('id', u.id).maybeSingle()
+      if (fresh) { p = fresh as Profile } else { p = { id: u.id, name: 'Utilisateur', photos: [], interests: [], age: null, bio: null, occupation: null, location: null, is_verified: false, looking_for: 'friendship', mood: 'discuter', energy_score: 50, created_at: new Date().toISOString(), incognito: false, ghost_mode: false, super_likes_remaining: 3, super_likes_reset_at: new Date().toISOString() } as Profile }
     }
     logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
     try {
@@ -128,11 +128,12 @@ export default function ProfilePage() {
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, mood: p.mood, ...sanitized }
-      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, location, photos, video_url').maybeSingle()
+      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, energy_score, location, photos, video_url').maybeSingle()
       logger.debug('saveProfile: réponse Supabase', { data, error })
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       logger.debug('saveProfile: succès', data)
+      updateEnergyScore()
       setProfile({ ...p, ...data } as Profile)
       setNameValue((data.name ?? p.name) || '')
       setBio((data.bio ?? p.bio) || '')
@@ -396,6 +397,27 @@ export default function ProfilePage() {
                     de_passage: '🌍 De passage',
                   }[profile.mood] ?? profile.mood}
                 </span>
+              </div>
+            )}
+            {profile?.energy_score !== undefined && profile?.energy_score !== null && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Energy Score</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2.5 rounded-full bg-[#2A2826] overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${profile.energy_score}%`,
+                        background: profile.energy_score >= 70
+                          ? 'linear-gradient(90deg, #34D399, #22C55E)'
+                          : profile.energy_score >= 40
+                          ? 'linear-gradient(90deg, #FBBF24, #F59E0B)'
+                          : 'linear-gradient(90deg, #F87171, #EF4444)',
+                      }} />
+                  </div>
+                  <span className="text-sm font-bold" style={{
+                    color: profile.energy_score >= 70 ? '#34D399' : profile.energy_score >= 40 ? '#FBBF24' : '#F87171',
+                  }}>{profile.energy_score}</span>
+                </div>
               </div>
             )}
             {profileTraits.length > 0 && (

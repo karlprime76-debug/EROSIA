@@ -183,7 +183,15 @@ CREATE TRIGGER trg_gift_transactions_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_profiles_updated_at();
 
--- 6. Mood column for profiles
+-- 6. Energy Score column for profiles
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='energy_score') THEN
+    ALTER TABLE profiles ADD COLUMN energy_score INT DEFAULT 50;
+    ALTER TABLE profiles ADD CONSTRAINT energy_score_check CHECK (energy_score BETWEEN 0 AND 100);
+  END IF;
+END $$;
+
+-- 7. Mood column for profiles
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='mood') THEN
     ALTER TABLE profiles ADD COLUMN mood TEXT DEFAULT 'discuter';
