@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - p-2.5 min pour boutons icône (44px Apple HIG)
 - BottomSheets : Escape + backdrop + swipe + focus trap
 - Toutes les fonctions api.ts retournent { data, error } ou { error: string }
-- `src/middleware.ts` (anciennement proxy.ts) : auth, rate limiting, CSRF
+- `src/proxy.ts` (anciennement middleware.ts) : auth, rate limiting, CSRF
 
 ## Services
 - **Supabase** : auth, DB, storage, realtime, presence
