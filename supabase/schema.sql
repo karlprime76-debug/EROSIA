@@ -14,6 +14,7 @@ CREATE TABLE profiles (
   looking_for TEXT DEFAULT 'friendship' CHECK (looking_for IN ('friendship', 'casual', 'fwb', 'serious', 'open')),
   mood TEXT DEFAULT 'discuter' CHECK (mood IN ('discuter', 'rencontre', 'disponible_ce_soir', 'relation_serieuse', 'chill', 'de_passage')),
   energy_score INT DEFAULT 50 CHECK (energy_score BETWEEN 0 AND 100),
+  trust_score INT DEFAULT 50 CHECK (trust_score BETWEEN 0 AND 100),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

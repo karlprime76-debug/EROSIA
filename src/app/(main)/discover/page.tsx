@@ -401,6 +401,15 @@ export default function DiscoverPage() {
                     <div className="absolute top-4 left-4 w-11 h-11 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_12px_rgba(217,45,74,0.3)]" />
                   )}
                   <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                    {current.trust_score !== undefined && current.trust_score !== null && (
+                      <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
+                        style={{
+                          background: current.trust_score >= 70 ? 'rgba(129,140,248,0.25)' : current.trust_score >= 40 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)',
+                          color: current.trust_score >= 70 ? '#A5B4FC' : current.trust_score >= 40 ? '#FBBF24' : '#F87171',
+                        }}>
+                        🛡️{current.trust_score}
+                      </div>
+                    )}
                     {current.energy_score !== undefined && current.energy_score !== null && (
                       <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
                         style={{

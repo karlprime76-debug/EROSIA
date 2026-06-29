@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié', userId: null, authErr: authErr?.message }, { status: 401 })
     }
 
-    const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, created_at, video_url'
+    const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, video_url'
     const { data, error: selErr } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
 
     logger.debug('[/api/profile/me] select result', { id: data?.id, name: data?.name, selErr: selErr?.message })

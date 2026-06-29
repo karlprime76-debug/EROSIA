@@ -34,6 +34,7 @@ export interface Profile {
   video_url?: string
   mood?: Mood
   energy_score?: number
+  trust_score?: number
 }
 
 export interface Swipe {
@@ -122,7 +123,7 @@ export async function updatePassword(password: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, created_at, last_seen, video_url'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, last_seen, video_url'
 
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)

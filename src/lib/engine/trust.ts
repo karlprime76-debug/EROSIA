@@ -4,7 +4,7 @@ import { registerEngine } from './registry'
 
 export class TrustEngine implements ScoringEngine<TrustInput, TrustOutput> {
   name = 'trust'
-  version = 1
+  version = 2
 
   async compute(input: TrustInput): Promise<TrustOutput> {
     return computeTrust(input.userId)
@@ -14,51 +14,109 @@ export class TrustEngine implements ScoringEngine<TrustInput, TrustOutput> {
 async function computeTrust(userId: string): Promise<TrustOutput> {
   const flags: string[] = []
 
-  // Charger le profil
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_verified, created_at, photos, bio, interests, onboarding_complete, last_seen')
+    .select('is_verified, created_at, photos, bio, interests, onboarding_complete, last_seen, subscription_tier')
     .eq('id', userId)
     .maybeSingle()
 
   if (!profile) return { score: 0, flags: ['profil_introuvable'] }
 
   let score = 50
-  const reasons: string[] = []
 
-  // Vérification (30%)
+  // KYC / Vérification identité (±15)
   if (profile.is_verified) {
-    score += 15; reasons.push('verifié')
+    score += 15
   } else {
-    score -= 5; reasons.push('non_verifié')
+    score -= 5
+    flags.push('non_verifié')
   }
 
-  // Ancienneté (15%) — bonus log
+  // Ancienneté du compte (0-12)
   const accountAge = Date.now() - new Date(profile.created_at).getTime()
   const ageDays = accountAge / (1000 * 60 * 60 * 24)
   score += Math.min(Math.floor(ageDays / 30) * 2, 10)
+  if (ageDays >= 90) score += 2
   if (ageDays < 1) flags.push('nouveau_compte')
 
-  // Qualité du profil (20%)
+  // Abonnement premium (+5)
+  if (profile.subscription_tier === 'premium') {
+    score += 5
+  }
+
+  // Qualité du profil (-10 à +10)
   let quality = 0
   const photoCount = (profile.photos ?? []).length
   if (photoCount >= 3) quality += 2
   else if (photoCount >= 1) quality += 1
   else quality -= 2
 
-  if (profile.bio && profile.bio.trim().length > 20) quality += 1.5
+  if (profile.bio && profile.bio.trim().length > 20) quality += 2
+  else if (profile.bio && profile.bio.trim().length > 0) quality += 1
   else quality -= 1
 
   const interestCount = (profile.interests ?? []).length
-  if (interestCount >= 3) quality += 1.5
-  else if (interestCount === 0) quality -= 1
+  if (interestCount >= 3) quality += 2
+  else if (interestCount >= 1) quality += 1
+  else quality -= 1
 
   if (profile.onboarding_complete) quality += 1
-  score += quality * 5
+  else quality -= 1
+  score += quality * 2.5
 
   if (quality < 0) flags.push('profil_incomplet')
 
-  // Signalements (pénalité -25%)
+  // Comportement : ratio like/pass, jours actifs, diversité (0-15)
+  const sevenDays = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const thirtyDays = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: recentActions } = await supabase
+    .from('behavior_log')
+    .select('action, created_at')
+    .eq('user_id', userId)
+    .in('action', ['swipe_like', 'swipe_pass', 'swipe_super_like'])
+    .gte('created_at', sevenDays)
+
+  const actions = recentActions ?? []
+  const likes = actions.filter(a => a.action === 'swipe_like' || a.action === 'swipe_super_like').length
+  const total = actions.length
+  const likeRatio = total > 0 ? likes / total : 0.5
+
+  const { data: allActions } = await supabase
+    .from('behavior_log')
+    .select('action, created_at')
+    .eq('user_id', userId)
+    .gte('created_at', sevenDays)
+
+  const activeDays = new Set((allActions ?? []).map(a => new Date(a.created_at).toISOString().slice(0, 10))).size
+  const activeDaysPerWeek = activeDays / 7
+
+  const distinctActions = new Set((allActions ?? []).map(a => a.action)).size
+  const actionDiversity = Math.min(distinctActions / 10, 1)
+
+  const behaviorScore = likeRatio * 5 + activeDaysPerWeek * 5 + actionDiversity * 5
+  score += behaviorScore
+
+  // Comportement anormal : spam detection
+  if (total > 20 && likeRatio < 0.2) {
+    score -= 10
+    flags.push('comportement_anormal')
+  }
+
+  // Taux de réponse aux messages (0-5)
+  const { data: msgActions } = await supabase
+    .from('behavior_log')
+    .select('action')
+    .eq('user_id', userId)
+    .in('action', ['send_message', 'reply_message'])
+    .gte('created_at', thirtyDays)
+
+  const sent = (msgActions ?? []).filter(a => a.action === 'send_message').length
+  const replied = (msgActions ?? []).filter(a => a.action === 'reply_message').length
+  const replyRate = sent > 0 ? replied / sent : 0
+  score += replyRate * 5
+
+  // Signalements (pénalité -30 max)
   const { count: reportCount } = await supabase
     .from('reports')
     .select('id', { count: 'exact', head: true })
@@ -67,11 +125,11 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
   score -= Math.min(reports * 10, 30)
   if (reports > 0) flags.push(`signalé_${reports}_fois`)
 
-  // Activité récente (5%)
+  // Inactivité récente
   const lastSeen = profile.last_seen ? new Date(profile.last_seen).getTime() : 0
-  const daysSinceActive = (Date.now() - lastSeen) / (1000 * 60 * 60 * 24)
-  if (daysSinceActive < 7) {
-    score += 5
+  const daysSinceActive = lastSeen > 0 ? (Date.now() - lastSeen) / (1000 * 60 * 60 * 24) : 99
+  if (daysSinceActive > 90) {
+    score -= 10; flags.push('inactif_+90j')
   } else if (daysSinceActive > 30) {
     score -= 5; flags.push('inactif_+30j')
   }
