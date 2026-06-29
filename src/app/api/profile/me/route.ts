@@ -1,3 +1,4 @@
+// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.10), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.11)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser()
     logger.debug('[/api/profile/me] getUser result', { userId: user?.id, email: user?.email, authErr: authErr?.message })
     if (authErr || !user) {
-      return NextResponse.json({ error: 'Non authentifié', userId: null, authErr: authErr?.message }, { status: 401 })
+      return NextResponse.json({ error: 'Non authentifié', userId: null }, { status: 401 })
     }
 
     const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at'
@@ -29,12 +30,12 @@ export async function GET(request: NextRequest) {
     logger.debug('[/api/profile/me] select result', { id: data?.id, name: data?.name, selErr: selErr?.message })
 
     if (selErr) {
-      return NextResponse.json({ error: selErr.message, userId: user.id }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur lors du chargement du profil', userId: user.id }, { status: 500 })
     }
 
     return NextResponse.json({ profile: data, userId: user.id })
   } catch (err) {
     logger.error('[/api/profile/me] exception', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

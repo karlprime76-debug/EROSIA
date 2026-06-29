@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     })
 
     if (authError || !authData.user) {
-      return NextResponse.json({ error: authError?.message ?? 'Inscription échouée' }, { status: 400 })
+      return NextResponse.json({ error: 'Inscription échouée' }, { status: 400 })
     }
 
     const admin = createAdminClient()
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     if (profileError) {
       logger.error('Profile creation failed', { userId: authData.user.id, error: profileError.message })
-      return NextResponse.json({ error: profileError.message }, { status: 400 })
+      return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
     }
 
     return NextResponse.json({ ok: true })

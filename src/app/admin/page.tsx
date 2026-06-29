@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { getModerationQueue, reviewContent } from '@/lib/api'
 import { Smartphone, Gift, Users, ShieldAlert, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 interface VerificationRequest {
   id: string; user_id: string; photo_url: string; status: string; created_at: string
@@ -60,7 +61,7 @@ export default function AdminPage() {
         loadAdminData()
       }
       setChecking(false)
-    }).catch(console.error)
+    }).catch(logger.error)
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {

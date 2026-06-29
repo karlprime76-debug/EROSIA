@@ -147,8 +147,14 @@ export default function MatchesPage() {
                 className="flex items-center gap-3 p-3 glass-card rounded-2xl transition-all duration-200 hover:border-[#D92D4A]/20 active:scale-[0.98] group animate-slide-up"
                 style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="relative shrink-0">
-                  <Image src={c.profile.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={c.profile.name} width={56} height={56}
-                    className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
+                  {c.profile.photos?.[0] ? (
+                    <Image src={c.profile.photos[0]} alt={c.profile.name} width={56} height={56}
+                      className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-[#262628] ring-2 ring-[#2A2826] flex items-center justify-center">
+                      <Heart size={20} className="text-[#5A5248]" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{c.profile.name}</p>

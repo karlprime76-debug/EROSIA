@@ -1,3 +1,4 @@
+// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.89), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.90)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 

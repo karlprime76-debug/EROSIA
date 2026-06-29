@@ -1,6 +1,6 @@
+// UNGUARDED ENV: process.env.PAYDUNYA_MASTER_KEY! (l.43) — si vide, le hash échoue silencieusement
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { confirmInvoice } from '@/lib/paydunya'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 

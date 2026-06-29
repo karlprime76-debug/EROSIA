@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, signOut } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 import { useConfirm } from '@/components/ConfirmDialog'
+import { logger } from '@/lib/logger'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -33,12 +34,12 @@ export default function SettingsPage() {
       startTransition(() => setUpgradeSuccess(true))
       window.history.replaceState(null, '', '/settings')
     }
-    getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') }).catch(console.error)
+    getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') }).catch(logger.error)
     getTravelMode().then(mode => {
       setTravelActive(mode.active)
       setTravelCity(mode.city ?? '')
-    }).catch(console.error)
-    getGhostMode().then(setGhostMode).catch(console.error)
+    }).catch(logger.error)
+    getGhostMode().then(setGhostMode).catch(logger.error)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).maybeSingle().then(({ data }) => {
@@ -49,7 +50,7 @@ export default function SettingsPage() {
           if (data.notif_email !== null) setNotifEmail(data.notif_email)
         }
       }, console.error)
-    }).catch(console.error).finally(() => setSettingsLoaded(true))
+    }).catch(logger.error).finally(() => setSettingsLoaded(true))
   }, [router])
 
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function SettingsPage() {
       await supabase.auth.signOut()
       router.push('/')
     } catch (e) {
-      console.error('Delete account error:', e)
+      logger.error('Delete account error', e)
       await supabase.auth.signOut()
       router.push('/')
     }
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                 setVisibility(o.value)
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
-              })().catch(console.error) }}
+              })().catch(logger.error) }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
                   {o.label}
                 </button>
@@ -154,7 +155,7 @@ export default function SettingsPage() {
                   setNotifPush(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_push: v }).eq('id', user.id)
-                })().catch(console.error) }}
+                })().catch(logger.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
                 </button>
@@ -166,7 +167,7 @@ export default function SettingsPage() {
                   setNotifEmail(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_email: v }).eq('id', user.id)
-                })().catch(console.error) }}
+                })().catch(logger.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>
@@ -205,7 +206,7 @@ export default function SettingsPage() {
                         if (error) { console.error(error); setSavingName(false); return }
                         setProfileName(nameValue.trim())
                         setSavingName(false); setEditingName(false)
-                      } catch (err) { console.error(err); setSavingName(false) }
+                      } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
                     }
                     if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
                   }}
@@ -224,8 +225,8 @@ export default function SettingsPage() {
                   if (error) { console.error(error); setSavingName(false); return }
                   setProfileName(nameValue.trim())
                   setSavingName(false); setEditingName(false)
-                } catch (err) { console.error(err); setSavingName(false) }
-              })().catch(console.error) }} disabled={savingName}
+                } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
+              })().catch(logger.error) }} disabled={savingName}
                 className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
               <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}
                 className="rounded-full p-1.5 text-[#9E9488] hover:bg-[#262628]"><X size={16} /></button>

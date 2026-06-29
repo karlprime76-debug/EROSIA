@@ -112,7 +112,12 @@ export default function ProfilePage() {
     logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
     try {
       const sanitized: Record<string, unknown> = {}
-      const n = (nameValue.trim() || p.name || 'Utilisateur').replace(/<[^>]*>/g, '').slice(0, 80)
+      const trimmedName = nameValue.trim()
+      if (!trimmedName && !p.name) {
+        toast('Le nom est requis pour enregistrer ton profil.', 'error')
+        setSavingProfile(false); savingRef.current = false; return
+      }
+      const n = (trimmedName || p.name || '').replace(/<[^>]*>/g, '').slice(0, 80)
       if (n !== p.name) sanitized.name = n
       const b = (bio || '').replace(/<[^>]*>/g, '').slice(0, 500)
       if (b !== p.bio) sanitized.bio = b

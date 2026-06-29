@@ -8,6 +8,7 @@ import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { validateFile, sanitizeFilename } from '@/lib/media'
 import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
+import { logger } from '@/lib/logger'
 import { useConfirm } from '@/components/ConfirmDialog'
 
 interface Icebreaker {
@@ -189,7 +190,7 @@ export default function ChatPage() {
       })
       setCallStatus('connected')
     } catch (e) {
-      console.error('Call failed:', e)
+      logger.error('Call failed', e)
       setCallStatus(null)
     }
   }
@@ -284,7 +285,7 @@ export default function ChatPage() {
           setOtherProfile((prev) => prev ? { ...prev, last_seen: p.last_seen as string } : null)
         })
         .subscribe()
-    })().catch(console.error)
+    })().catch(logger.error)
     
     const channel = supabase
       .channel(`messages:${id}`)
@@ -315,7 +316,7 @@ export default function ChatPage() {
     ;(async () => {
       typingSentChannel = supabase.channel(`typing:match-${id}`)
       typingSentChannel.subscribe()
-    })().catch(console.error)
+    })().catch(logger.error)
     
     const typingRecvChannel = supabase.channel(`typing:match-${id}`)
     typingRecvChannel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
@@ -663,7 +664,7 @@ export default function ChatPage() {
             </button>
             {aiSuggestion && (
               <div className="mt-2">
-                <button type="button" onClick={() => { (async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); })().catch(console.error) }}
+                <button type="button" onClick={() => { (async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); })().catch(logger.error) }}
                   className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
                   ✨ {aiSuggestion}
                 </button>

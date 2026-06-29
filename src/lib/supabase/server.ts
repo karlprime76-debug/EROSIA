@@ -1,3 +1,5 @@
+// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.8), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.9)
+// Ces vars sont vérifiées au build — ajouter un guard: if (!url) throw new Error('...')
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 

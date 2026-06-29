@@ -1,3 +1,4 @@
+// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.9), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.10)
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
@@ -25,6 +26,25 @@ export async function POST(request: NextRequest) {
 
     const uid = user.id
     const errors: string[] = []
+
+    // ── Storage cleanup ──
+    const storagePaths = [
+      { bucket: 'photos', prefix: `${uid}/` },
+      { bucket: 'profile_videos', prefix: `profile_videos/${uid}/` },
+      { bucket: 'event_images', prefix: `events/${uid}/` },
+      { bucket: 'stories', prefix: `stories/${uid}/` },
+    ]
+    for (const { bucket, prefix } of storagePaths) {
+      try {
+        const { data: files, error: listErr } = await admin.storage.from(bucket).list(prefix)
+        if (listErr) { errors.push(`${bucket}:list ${listErr.message}`); continue }
+        if (files && files.length > 0) {
+          const paths = files.map(f => `${prefix}${f.name}`)
+          const { error: removeErr } = await admin.storage.from(bucket).remove(paths)
+          if (removeErr) errors.push(`${bucket}:remove ${removeErr.message}`)
+        }
+      } catch (e) { errors.push(`${bucket}: ${String(e)}`) }
+    }
 
     const tables = [
       ['messages',        async () => {

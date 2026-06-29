@@ -7,9 +7,14 @@ function makeChain() {
     eq: vi.fn(() => chain),
     gte: vi.fn(() => chain),
     single: vi.fn(),
+    maybeSingle: vi.fn(),
     order: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     update: vi.fn(() => chain),
+    delete: vi.fn(() => chain),
+    in: vi.fn(() => chain),
+    or: vi.fn(() => chain),
+    upsert: vi.fn(() => chain),
     count: 0,
   }
   return chain
@@ -25,6 +30,7 @@ const { mockSupabase } = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => mockSupabase,
+  supabase: mockSupabase,
 }))
 
 import { signOut, createSwipe, sendMessage } from '../api'
@@ -48,8 +54,8 @@ describe('createSwipe', () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user1' } } })
     const chain = makeChain()
     chain.count = 0
+    chain.maybeSingle.mockResolvedValue({ data: { subscription_tier: 'free' }, error: null })
     chain.single
-      .mockResolvedValueOnce({ data: { subscription_tier: 'free' }, error: null })
       .mockResolvedValueOnce({ data: { id: 'swipe1', swiper_id: 'user1', swiped_id: 'user2', direction: 'like' }, error: null })
     mockSupabase.from.mockReturnValue(chain)
   })
@@ -72,6 +78,8 @@ describe('sendMessage', () => {
     vi.clearAllMocks()
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user1' } } })
     const chain = makeChain()
+    chain.maybeSingle
+      .mockResolvedValueOnce({ data: { user1_id: 'user1', user2_id: 'user2' }, error: null })
     chain.single.mockResolvedValue({ data: { id: 'msg1', match_id: 'match1', sender_id: 'user1', text: 'Hello' }, error: null })
     mockSupabase.from.mockReturnValue(chain)
   })

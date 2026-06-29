@@ -34,7 +34,7 @@ export default function LoginPage() {
         setError(msg)
         return
       }
-      router.push('/discover')
+      router.push('/')
     } catch {
       setError('Erreur de connexion')
     } finally {

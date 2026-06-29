@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase/client'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
+import { logger } from '@/lib/logger'
 import type { AuraState } from '@/lib/aura/types'
 
 const SUPER_LIKE_DAILY = 1
@@ -145,9 +146,9 @@ export default function DiscoverPage() {
   const { confirm } = useConfirm()
 
   useEffect(() => {
-    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(console.error)
-    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(console.error)
-    checkPremium().then(setIsPremium).catch(console.error)
+    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(logger.error)
+    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(logger.error)
+    checkPremium().then(setIsPremium).catch(logger.error)
     fetch('/api/profile/me').then(r => r.json()).then((json) => {
       if (json.profile) {
         setMyId(json.profile.id)
@@ -167,7 +168,7 @@ export default function DiscoverPage() {
             }
           }, console.error)
         }
-      }).catch(console.error)
+      }).catch(logger.error)
     })
   }, [])
 
@@ -193,7 +194,7 @@ export default function DiscoverPage() {
           setHasMore(data.length >= DISCOVER_PAGE_SIZE)
         }
         setLoading(false)
-      }).catch(console.error)
+      }).catch(logger.error)
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
   }, [myId, toast])
 
@@ -382,7 +383,7 @@ export default function DiscoverPage() {
               <RotateCcw size={16} className="text-[#A09890]" />
             </button>
           )}
-          <button type="button" onClick={() => { (async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } })().catch(console.error) }}
+          <button type="button" onClick={() => { (async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } })().catch(logger.error) }}
             aria-label="Annuler super like"
             className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-indigo-500/30 active:scale-90">
             <Star size={14} className="text-indigo-400" />
@@ -451,7 +452,7 @@ export default function DiscoverPage() {
               const { data } = await fetchProfiles([], 1)
               if (data) { setProfiles(data); setHasMore(data.length >= DISCOVER_PAGE_SIZE) }
               setLoading(false)
-            })().catch(console.error) }}
+            })().catch(logger.error) }}
               className="w-full py-3 rounded-full text-white font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-[#D92D4A] shadow-[0_4px_16px_rgba(217,45,74,0.2)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)]">
               Appliquer les filtres
             </button>
@@ -505,7 +506,13 @@ export default function DiscoverPage() {
                       </motion.div>
                     </div>
                   )}
-                  <Image src={current.photos?.[0] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'} alt={current.name} fill className="object-cover pointer-events-none" />
+                  {current.photos?.[0] ? (
+                    <Image src={current.photos[0]} alt={current.name} fill className="object-cover pointer-events-none" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#262628]">
+                      <Heart size={48} className="text-[#5A5248]" />
+                    </div>
+                  )}
                   {storiesUserIds.has(current.id) && (
                     <div className="absolute top-4 left-4 w-11 h-11 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_12px_rgba(217,45,74,0.3)]" />
                   )}
@@ -580,7 +587,7 @@ export default function DiscoverPage() {
                       if (data) setProfiles(data)
                       setIdx(0)
                     }
-                  })().catch(console.error) }} aria-label="Bloquer"
+                  })().catch(logger.error) }} aria-label="Bloquer"
                     className="absolute top-4 right-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full z-10 hover:bg-black/60 transition-all duration-200">
                     <Shield size={15} className="text-[#6B6560]" />
                   </button>
@@ -605,7 +612,7 @@ export default function DiscoverPage() {
                     await sendFlirt(current.id)
                     logBehavior('send_flirt', current.id)
                     setFlirtedIds(ids => [...ids, current.id])
-                  })().catch(console.error) }} aria-label="Clin d'oeil"
+                  })().catch(logger.error) }} aria-label="Clin d'oeil"
                     className="w-11 h-11 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-[#D92D4A]/30">
                     <Eye size={18} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6560]'} />
                   </button>
@@ -651,7 +658,7 @@ export default function DiscoverPage() {
                     setShowReportModal(false)
                     if (error) { toast('Erreur lors du signalement', 'error') }
                     else { toast('Signalement envoyé', 'success') }
-                  })().catch(console.error) }}
+                  })().catch(logger.error) }}
                     className="w-full py-3 rounded-xl text-sm font-medium bg-[#18181A] text-[#F5F0EB] hover:bg-[#222225] transition-all duration-200 border border-[#2C2A28]">
                     {reason}
                   </button>

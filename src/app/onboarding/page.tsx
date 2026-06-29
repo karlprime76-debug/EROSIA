@@ -31,7 +31,10 @@ export default function OnboardingPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
-    }).catch(console.error)
+    }).catch((err) => {
+      console.error('Auth error', err)
+      toast('Erreur de chargement', 'error')
+    })
   }, [router])
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +97,7 @@ export default function OnboardingPage() {
 
   const handleComplete = async () => {
     await completeOnboarding()
-    router.push('/discover')
+    router.push('/')
   }
 
   return (
@@ -107,7 +110,7 @@ export default function OnboardingPage() {
           ))}
         </div>
         {step < 3 && (
-          <button type="button" onClick={() => router.push('/discover')} className="text-[#9E9488] text-xs hover:text-white transition">
+          <button type="button" onClick={async () => { await completeOnboarding(); router.push('/') }} className="text-[#9E9488] text-xs hover:text-white transition">
             Passer
           </button>
         )}

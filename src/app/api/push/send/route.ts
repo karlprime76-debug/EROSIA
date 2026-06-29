@@ -4,7 +4,7 @@ import webpush from 'web-push'
 import { logger } from '@/lib/logger'
 
 if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
-  console.warn('VAPID keys not configured — push notifications disabled')
+  logger.warn('VAPID keys not configured — push notifications disabled')
 } else {
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
