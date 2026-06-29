@@ -42,7 +42,7 @@ function StoryViewer({
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressRef = useRef(0)
   const animRef = useRef<number>(0)
-  const startTime = useRef(Date.now())
+  const startTime = useRef<number>(0)
 
   useEffect(() => {
     if (!isActive) {
@@ -54,19 +54,20 @@ function StoryViewer({
     startTime.current = Date.now()
     progressRef.current = 0
 
-    if (story.type === 'video' && videoRef.current) {
-      videoRef.current.currentTime = 0
-      videoRef.current.play()
+    const video = videoRef.current
+    if (story.type === 'video' && video) {
+      video.currentTime = 0
+      video.play()
       const onTime = () => {
-        if (!videoRef.current) return
-        const pct = (videoRef.current.currentTime / (videoRef.current.duration || 15)) * 100
+        if (!video) return
+        const pct = (video.currentTime / (video.duration || 15)) * 100
         setProgress(Math.min(pct, 100))
         if (pct >= 100) onProgressEnd()
       }
-      videoRef.current.addEventListener('timeupdate', onTime)
+      video.addEventListener('timeupdate', onTime)
       return () => {
-        videoRef.current?.removeEventListener('timeupdate', onTime)
-        videoRef.current?.pause()
+        video?.removeEventListener('timeupdate', onTime)
+        video?.pause()
       }
     }
 
@@ -83,7 +84,7 @@ function StoryViewer({
     animRef.current = requestAnimationFrame(animate)
 
     return () => cancelAnimationFrame(animRef.current)
-  }, [story.id, isActive, onProgressEnd])
+  }, [story.id, story.type, isActive, onProgressEnd])
 
   const handleTap = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -178,7 +179,7 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
 
   useEffect(() => {
     setStoryIdx(0)
-  }, [groupIdx])
+  }, [groupIdx]) // This pattern is safe: when groupIdx changes, reset storyIdx
 
   const currentGroup = groups[groupIdx]
   const currentStory = currentGroup?.stories?.[storyIdx]

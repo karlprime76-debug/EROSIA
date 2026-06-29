@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import type { AuraState } from '@/lib/aura/types'
 
 interface AuraSphereProps {
@@ -173,7 +173,7 @@ export function useAura(userId?: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const url = userId ? `/api/aura?userId=${userId}` : '/api/aura'
@@ -185,9 +185,9 @@ export function useAura(userId?: string) {
       setError('Erreur réseau')
     }
     setLoading(false)
-  }
+  }, [userId])
 
-  const recompute = async () => {
+  const recompute = useCallback(async () => {
     setLoading(true)
     try {
       const url = userId ? `/api/aura?userId=${userId}` : '/api/aura'
@@ -199,9 +199,9 @@ export function useAura(userId?: string) {
       setError('Erreur réseau')
     }
     setLoading(false)
-  }
+  }, [userId])
 
-  useEffect(() => { refresh() }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh() }, [refresh]) // eslint-disable-line react-hooks/set-state-in-effect
 
   return { aura, loading, error, refresh, recompute }
 }

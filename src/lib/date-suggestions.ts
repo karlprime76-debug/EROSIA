@@ -13,7 +13,8 @@ interface DateInput {
   targetId: string
 }
 
-const BUDGETS = ['€', '€€', '€€€'] as const
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _BUDGETS = ['€', '€€', '€€€'] as const
 
 const MOOD_VIBE: Record<Mood, 'chill' | 'romantic' | 'active' | 'social'> = {
   discuter: 'chill',

@@ -34,7 +34,8 @@ const MOOD_COMPAT: Record<Mood, Mood[]> = {
 
 const ICEBREAKER_TEMPLATES = [
   // Intérêts partagés
-  (myInterests: string[], theirInterests: string[], myMood: Mood, theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, location: string | null): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (myInterests: string[], theirInterests: string[], _myMood: Mood, _theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const shared = myInterests.filter(i => theirInterests.includes(i))
     if (shared.length > 0) {
       const topic = shared[Math.floor(Math.random() * shared.length)]
@@ -50,7 +51,8 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Mood compatible
-  (myInterests: string[], theirInterests: string[], myMood: Mood, theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, location: string | null): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (_myInterests: string[], _theirInterests: string[], myMood: Mood, theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const isCompat = MOOD_COMPAT[myMood]?.includes(theirMood) ?? false
     if (isCompat) {
       if (myMood === theirMood) {
@@ -70,7 +72,8 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Intentions alignées
-  (myInterests: string[], theirInterests: string[], myMood: Mood, theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, location: string | null): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (_myInterests: string[], _theirInterests: string[], _myMood: Mood, _theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, _location: string | null): string | null => {
     if (myLF === theirLF) {
       const sameLF = [
         `Vous cherchez tous les deux ${LOOKING_FOR_LABELS[myLF]}, c'est un bon point de départ pour discuter !`,
@@ -82,7 +85,8 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Interêt unique chez l'autre
-  (myInterests: string[], theirInterests: string[], myMood: Mood, theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, location: string | null): string | null => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (myInterests: string[], theirInterests: string[], _myMood: Mood, _theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const unique = theirInterests.filter(i => !myInterests.includes(i))
     if (unique.length > 0) {
       const topic = unique[Math.floor(Math.random() * unique.length)]

@@ -30,10 +30,16 @@ export default function EventsPage() {
   }, [query, selectedCat])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setMyId(data.user.id)
-    }).catch(() => {})
-    fetchEvents().finally(() => setLoading(false))
+    let cancelled = false
+    const initialize = async () => {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user && !cancelled) setMyId(data.user.id)
+      }).catch(() => {})
+      await fetchEvents()
+      if (!cancelled) setLoading(false)
+    }
+    initialize()
+    return () => { cancelled = true }
   }, [fetchEvents])
 
   const isJoined = (e: EventItem) =>

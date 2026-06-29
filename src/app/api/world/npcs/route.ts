@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const zoneId = searchParams.get('zoneId')
 
     if (zoneId) {
-      const npcs = getNPCsByZone(zoneId as any)
+      const npcs = getNPCsByZone(zoneId)
       return NextResponse.json({ npcs })
     }
 

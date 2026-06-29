@@ -629,7 +629,7 @@ export async function uploadProfileVideo(file: File) {
   const { error: uploadError } = await supabase().storage.from('profile_videos').upload(fileName, file)
   if (uploadError) return { error: uploadError.message }
   const { data: urlData } = supabase().storage.from('profile_videos').getPublicUrl(fileName)
-  const { error } = await supabase().from('profiles').update({ video_url: urlData.publicUrl } as any).eq('id', user.id)
+  const { error } = await supabase().from('profiles').update({ video_url: urlData.publicUrl } satisfies Partial<Profile>).eq('id', user.id)
   return { url: urlData.publicUrl, error: error?.message }
 }
 
@@ -641,7 +641,7 @@ export async function deleteProfileVideo() {
     const fileName = profile.video_url.split('/profile_videos/').pop()
     if (fileName) await supabase().storage.from('profile_videos').remove([fileName])
   }
-  const { error } = await supabase().from('profiles').update({ video_url: null } as any).eq('id', user.id)
+  const { error } = await supabase().from('profiles').update({ video_url: null } satisfies Partial<Profile>).eq('id', user.id)
   return { error: error?.message }
 }
 

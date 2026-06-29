@@ -16,10 +16,10 @@ const PHASE_LABELS: Record<string, string> = {
 
 export function HUD({ currentZoneId, playerCount }: HUDProps) {
   const [time, setTime] = useState(12)
-  const [mobile, setMobile] = useState(false)
+  // Mobile detection is determined at render time, not from state
+  const mobile = getMobileConfig().pixelRatio < 2
 
   useEffect(() => {
-    setMobile(getMobileConfig().pixelRatio < 2)
     const tick = setInterval(() => {
       setTime(t => (t + 0.02) % 24)
     }, 1000)

@@ -137,7 +137,6 @@ export default function DiscoverPage() {
   const [myId, setMyId] = useState('')
   const [myLookingForInternal, setMyLookingForInternal] = useState('')
   const [myMoodInternal, setMyMoodInternal] = useState('')
-  const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const profilesRef = useRef(profiles)
   useEffect(() => { profilesRef.current = profiles }, [profiles])
@@ -362,6 +361,64 @@ export default function DiscoverPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [current])
+
+  useEffect(() => {
+    getActiveStories().then(({ data }) => {
+      if (data) setStoriesUserIds(new Set(data.map((s: { userId: string }) => s.userId)))
+    }).catch(() => { toast('Erreur chargement stories', 'error') })
+  }, [toast])
+
+  const haptic = (ms = 10) => { try { navigator.vibrate(ms) } catch {} }
+
+  const current = profiles[idx]
+  useEffect(() => { if (current) logBehavior('view_profile', current.id) }, [current])
+
+  const swipeRef = useRef(swipe)
+  useEffect(() => { swipeRef.current = swipe })
+
+  useEffect(() => {
+    const c = current
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && c) { e.preventDefault(); swipeRef.current('pass') }
+      if (e.key === 'ArrowRight' && c) { e.preventDefault(); swipeRef.current('like') }
+      if (e.key === 'ArrowUp' && c) { e.preventDefault(); swipeRef.current('super_like') }
+      if (e.key === 'Escape') { setShowReportModal(false); setMatchModal(null) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [current])
+
+  useEffect(() => {
+    const current = profilesRef.current
+    if (!current.length) return
+    let cancelled = false
+    const load = async () => {
+      const scores = await getCompatibilityBatch(current.map(p => p.id))
+      if (cancelled) return
+      setCompatScores(scores)
+      const auraRes = await fetch('/api/aura/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: current.map(p => p.id) }),
+      })
+      if (!cancelled && auraRes.ok) {
+        const { auras } = await auraRes.json()
+        if (auras) setAuraMap(auras)
+      }
+      const sorted = [...current].sort((a, b) => {
+        const sa = computeProfileScore(a, myLookingForInternal, myMoodInternal, lat, lng)
+        const sb = computeProfileScore(b, myLookingForInternal, myMoodInternal, lat, lng)
+        if (sa !== sb) return sb - sa
+        const qa = scores[a.id] ?? 0
+        const qb = scores[b.id] ?? 0
+        if (qa !== qb) return qb - qa
+        return Math.random() - 0.5
+      })
+      setProfiles(sorted)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [profiles.length, myLookingForInternal, myMoodInternal, lat, lng])
 
   if (loading) return <DiscoverSkeleton />
 

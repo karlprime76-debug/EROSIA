@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { leaveRoom } from '@/lib/social'
 import { logger } from '@/lib/logger'
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     const { error } = await leaveRoom()
 

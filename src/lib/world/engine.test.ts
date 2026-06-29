@@ -487,7 +487,7 @@ describe('ZoneRegistry', () => {
   })
 
   it('getZone returns undefined for unknown id', () => {
-    expect(getZone('unknown' as any)).toBeUndefined()
+    expect(getZone('unknown' as never)).toBeUndefined()
   })
 
   it('isInZone detects position inside zone', () => {

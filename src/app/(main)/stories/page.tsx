@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Trash2, Eye, Heart, Loader } from 'lucide-react'
@@ -23,7 +23,7 @@ export default function StoriesPage() {
   const [reactionsData, setReactionsData] = useState<Record<string, number>>({})
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const loadingMore = useRef(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const { toast } = useToast()
 
   const load = useCallback(async (pageNum: number, append = false) => {
@@ -34,21 +34,29 @@ export default function StoriesPage() {
   }, [toast])
 
   useEffect(() => {
-    load(1).finally(() => setLoading(false))
-    checkPremium().then(setIsPremium).catch(() => {})
+    let cancelled = false
+    const initialize = async () => {
+      await load(1)
+      if (!cancelled) {
+        setLoading(false)
+        checkPremium().then(setIsPremium).catch(() => {})
+      }
+    }
+    initialize()
+    return () => { cancelled = true }
   }, [load])
 
   const handleScroll = useCallback(async (e: React.UIEvent<HTMLDivElement>) => {
-    if (loadingMore.current || !hasMore) return
+    if (isLoadingMore || !hasMore) return
     const el = e.currentTarget
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) {
-      loadingMore.current = true
+      setIsLoadingMore(true)
       const nextPage = page + 1
       await load(nextPage, true)
       setPage(nextPage)
-      loadingMore.current = false
+      setIsLoadingMore(false)
     }
-  }, [hasMore, page, load])
+  }, [hasMore, page, load, isLoadingMore])
 
   const handleUpload = async (file: File, privacy: StoryPrivacy) => {
     const result = await uploadStory(file, privacy)
@@ -224,7 +232,7 @@ export default function StoriesPage() {
                 )}
               </div>
             ))}
-            {loadingMore.current && (
+            {isLoadingMore && (
               <div className="flex justify-center py-4">
                 <Loader size={16} className="animate-spin text-[#9E9488]" />
               </div>
