@@ -75,7 +75,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
-  const [otherProfile, setOtherProfile] = useState<{ id: string; name: string; last_seen: string } | null>(null)
+  const [otherProfile, setOtherProfile] = useState<{ id: string; name: string } | null>(null)
   const [now, setNow] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -253,8 +253,8 @@ export default function ChatPage() {
 
       if (otherId === user.id) { setIsSelfChat(true); setLoading(false); return }
 
-      const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).maybeSingle()
-      if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
+      const { data: other } = await supabase.from('profiles').select('id, name').eq('id', otherId).maybeSingle()
+      if (other) setOtherProfile(other as { id: string; name: string })
 
       const msgs = await loadMessages()
       if (msgs.length === 0 && other) {
@@ -489,16 +489,7 @@ export default function ChatPage() {
     }
   }
 
-  const formatLastSeen = (lastSeen: string) => {
-    const diff = now - new Date(lastSeen).getTime()
-    if (diff < 60000) return 'En ligne'
-    const minutes = Math.floor(diff / 60000)
-    if (minutes < 60) return `vu il y a ${minutes} min`
-    const hours = Math.floor(minutes / 60)
-    return `vu il y a ${hours} h`
-  }
-
-  const isOnline = otherOnline || (otherProfile?.last_seen && (now - new Date(otherProfile.last_seen).getTime() < 60000))
+  const isOnline = otherOnline
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center bg-transparent">
@@ -532,9 +523,6 @@ export default function ChatPage() {
           </div>
           <div>
             <p className="font-semibold text-sm">{otherProfile?.name || 'Match'}</p>
-            {otherProfile?.last_seen && !isOnline && (
-              <p className="text-[10px] text-[#9E9488]">{formatLastSeen(otherProfile.last_seen)}</p>
-            )}
             {isOnline && <p className="text-[10px] text-green-400">En ligne</p>}
           </div>
         </div>

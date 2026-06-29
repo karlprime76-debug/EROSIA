@@ -50,7 +50,7 @@ export default function ProfilePage() {
           const { data: { user } } = await supabase.auth.getUser()
           logger.debug('browser getUser fallback', { userId: user?.id, email: user?.email })
           if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, video_url'
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
             logger.debug('browser select fallback', { id: data?.id, name: data?.name })
             if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
@@ -106,7 +106,7 @@ export default function ProfilePage() {
       logger.debug('saveProfile: profile null, tentative de rechargement')
       const { data: { user: u } } = await supabase.auth.getUser()
       if (!u) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, photos, location, video_url').eq('id', u.id).maybeSingle()
+      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, photos, location').eq('id', u.id).maybeSingle()
       if (fresh) { p = fresh as Profile } else { toast('Impossible de charger le profil. Recharge la page.', 'error'); setSavingProfile(false); savingRef.current = false; return }
     }
     logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
@@ -130,7 +130,7 @@ export default function ProfilePage() {
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, mood: p.mood, ...sanitized }
-      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, location, photos, video_url').maybeSingle()
+      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, location, photos').maybeSingle()
       logger.debug('saveProfile: réponse Supabase', { data, error })
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }

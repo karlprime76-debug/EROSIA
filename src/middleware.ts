@@ -21,6 +21,16 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ].filter(Boolean) as string[]
 
+function originMatchesHost(originHeader: string | null, request: NextRequest): boolean {
+  if (!originHeader) return false
+  try {
+    const originUrl = new URL(originHeader)
+    return originUrl.host === request.headers.get('host')
+  } catch {
+    return false
+  }
+}
+
 function getClientIp(request: NextRequest): string {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? request.headers.get('x-real-ip')
@@ -42,7 +52,7 @@ export default async function proxy(request: NextRequest) {
     const referer = request.headers.get('referer')
     const allowed = ALLOWED_ORIGINS.some(ao =>
       originHeader === ao || referer?.startsWith(ao)
-    )
+    ) || originMatchesHost(originHeader, request)
     if (!allowed) {
       return NextResponse.json(
         { error: 'Origine non autorisée' },

@@ -1,19 +1,21 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase as sbClient } from '@/lib/supabase/client'
 import { computeAura } from './engine'
 import type { AuraState, AuraConfig } from './types'
 
 export type { AuraState, AuraLabel, AuraConfig } from './types'
 
-function supabase() {
-  return sbClient
+function getClient(supabase?: SupabaseClient) {
+  return supabase ?? sbClient
 }
 
-export async function getAura(userId?: string): Promise<{ data: AuraState | null; error?: string }> {
-  const { data: { user } } = await supabase().auth.getUser()
+export async function getAura(userId?: string, supabase?: SupabaseClient): Promise<{ data: AuraState | null; error?: string }> {
+  const client = getClient(supabase)
+  const { data: { user } } = await client.auth.getUser()
   const uid = userId ?? user?.id
   if (!uid) return { data: null, error: 'Not authenticated' }
 
-  const { data, error } = await supabase()
+  const { data, error } = await client
     .from('aura_snapshots')
     .select('*')
     .eq('user_id', uid)
@@ -38,8 +40,10 @@ export async function getAura(userId?: string): Promise<{ data: AuraState | null
   return { data: null, error: 'Aura non calculée' }
 }
 
-export async function computeAndSaveAura(userId: string): Promise<{ data: AuraState | null; error?: string }> {
-  const { data: profile } = await supabase()
+export async function computeAndSaveAura(userId: string, supabase?: SupabaseClient): Promise<{ data: AuraState | null; error?: string }> {
+  const client = getClient(supabase)
+
+  const { data: profile } = await client
     .from('profiles')
     .select('id, energy_score, trust_score, mood, photos, bio, interests, onboarding_complete')
     .eq('id', userId)
@@ -70,7 +74,7 @@ export async function computeAndSaveAura(userId: string): Promise<{ data: AuraSt
 
   const state = computeAura(config)
 
-  const { error: upsertError } = await supabase()
+  const { error: upsertError } = await client
     .from('aura_snapshots')
     .upsert({
       user_id: userId,

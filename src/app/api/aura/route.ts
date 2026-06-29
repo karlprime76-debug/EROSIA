@@ -9,9 +9,9 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    let { data: aura, error } = await getAura(user.id)
+    let { data: aura, error } = await getAura(user.id, supabase)
     if (error || !aura) {
-      const result = await computeAndSaveAura(user.id)
+      const result = await computeAndSaveAura(user.id, supabase)
       if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
       aura = result.data
     }
@@ -29,7 +29,7 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const result = await computeAndSaveAura(user.id)
+    const result = await computeAndSaveAura(user.id, supabase)
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
 
     return NextResponse.json({ aura: result.data })
