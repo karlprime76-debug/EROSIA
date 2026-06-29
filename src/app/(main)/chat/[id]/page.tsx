@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getAIIcebreaker, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getAIIcebreaker, getDateSuggestions, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { validateFile, sanitizeFilename } from '@/lib/media'
 import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
@@ -109,6 +109,9 @@ export default function ChatPage() {
   const [viewOnce, setViewOnce] = useState(false)
   const [revealedOnce, setRevealedOnce] = useState<Record<string, boolean>>({})
   const [otherOnline, setOtherOnline] = useState(false)
+  const [showDateSuggestions, setShowDateSuggestions] = useState(false)
+  const [dateSuggestions, setDateSuggestions] = useState<Array<{ type: string; budget: string; distance: string; description: string }> | null>(null)
+  const [loadingDateSuggestions, setLoadingDateSuggestions] = useState(false)
 
   const loadPlaylist = async () => {
     const { data } = await getPlaylist(id)
@@ -198,6 +201,27 @@ export default function ChatPage() {
     stream?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
     setCallStatus(null)
     setCallId(null)
+  }
+
+  const handleDateSuggestions = async () => {
+    if (!otherProfile) return
+    setShowDateSuggestions(!showDateSuggestions)
+    if (dateSuggestions) return
+    setLoadingDateSuggestions(true)
+    const { suggestions, error } = await getDateSuggestions(otherProfile.id)
+    if (suggestions && !error) {
+      setDateSuggestions(suggestions)
+    }
+    setLoadingDateSuggestions(false)
+  }
+
+  const sendDateSuggestion = async (suggestion: { type: string; budget: string; description: string }) => {
+    const msg = `📅 On se fait un ${suggestion.type} (${suggestion.budget}) ? ${suggestion.description}`
+    const { data: sent } = await sendMessage(id, msg)
+    if (sent) {
+      setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
+      setShowDateSuggestions(false)
+    }
   }
 
   const handleAddPlaylist = async () => {
@@ -515,6 +539,10 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button type="button" aria-label="Suggestion de date" onClick={handleDateSuggestions}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showDateSuggestions ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:bg-white/5'}`}>
+            <span className="text-base">📅</span>
+          </button>
           <button type="button" aria-label="Playlist" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:bg-white/5'}`}>
             <Music size={16} />
@@ -565,6 +593,38 @@ export default function ChatPage() {
             </button>
           </div>
           <p className="text-[10px] text-[#9E9488] mt-1">Les messages disparaîtront après 24h</p>
+        </div>
+      )}
+
+      {showDateSuggestions && (
+        <div className="border-b border-[#2A2826] bg-[#1C1C1E] px-4 py-3 max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-[#9E9488] font-medium uppercase tracking-wider">Suggestions de date</p>
+            <button type="button" aria-label="Fermer" onClick={() => setShowDateSuggestions(false)} className="text-[#9E9488] hover:text-white">
+              <X size={14} />
+            </button>
+          </div>
+          {loadingDateSuggestions ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin w-5 h-5 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+            </div>
+          ) : dateSuggestions && dateSuggestions.length > 0 ? (
+            <div className="space-y-2">
+              {dateSuggestions.map((s, i) => (
+                <button type="button" key={i} onClick={() => sendDateSuggestion(s)}
+                  className="w-full text-left px-3 py-2.5 rounded-xl glass-card border border-[#2A2826] hover:border-[#D92D4A]/30 transition-all active:scale-95 group">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-semibold text-white capitalize">{s.type}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2A2826] text-[#9E9488]">{s.budget}</span>
+                  </div>
+                  <p className="text-xs text-[#9E9488]">{s.description}</p>
+                  <p className="text-[10px] text-[#6B6258] mt-1">{s.distance}</p>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[#9E9488] py-2">Aucune suggestion disponible</p>
+          )}
         </div>
       )}
 

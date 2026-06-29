@@ -932,6 +932,22 @@ export async function getAIIcebreaker(targetId: string) {
   }
 }
 
+// ---- FEATURE 21.5: Date Suggestions AI ----
+export async function getDateSuggestions(targetId: string) {
+  try {
+    const res = await fetch('/api/ai/date-suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { suggestions: null, error: json.error }
+    return { suggestions: json.suggestions as Array<{ type: string; budget: string; distance: string; description: string }>, error: null }
+  } catch {
+    return { suggestions: null, error: 'Erreur réseau' }
+  }
+}
+
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()
