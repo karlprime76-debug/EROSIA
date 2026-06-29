@@ -12,7 +12,7 @@ export function getMobileConfig(userAgent?: string): MobileConfig {
 
   if (!isMobile) {
     return {
-      pixelRatio: Math.min(window.devicePixelRatio, 2),
+      pixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1,
       shadowMapSize: 2048,
       maxLights: 8,
       disablePostProcessing: false,
@@ -22,7 +22,7 @@ export function getMobileConfig(userAgent?: string): MobileConfig {
   }
 
   return {
-    pixelRatio: Math.min(window.devicePixelRatio, 1.5),
+    pixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 1.5) : 1,
     shadowMapSize: 512,
     maxLights: 4,
     disablePostProcessing: true,

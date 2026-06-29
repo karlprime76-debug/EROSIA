@@ -20,8 +20,8 @@ export function computeLighting(state: DayNightState, isMobile = false): LightCo
 
 export function getSunPosition(state: DayNightState): { x: number; y: number; z: number } {
   const radius = 200
-  const x = radius * Math.cos(state.sunAltitude) * Math.sin(state.sunAzimuth)
-  const y = radius * Math.sin(state.sunAltitude)
-  const z = radius * Math.cos(state.sunAltitude) * Math.cos(state.sunAzimuth)
+  const x = radius * Math.cos(state.sunAzimuth)
+  const y = radius * state.sunAltitude
+  const z = radius * Math.sin(state.sunAzimuth)
   return { x, y: Math.max(y, -50), z }
 }

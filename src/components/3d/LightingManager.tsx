@@ -16,10 +16,11 @@ export function LightingManager() {
     const lighting = computeLighting(dayState)
 
     if (dirLightRef.current) {
-      const angle = dayState.sunAltitude * Math.PI * 2
+      const angle = dayState.sunAzimuth
+      const height = dayState.sunAltitude
       const x = 100 * Math.cos(angle)
-      const y = 100 * Math.sin(Math.max(angle, -0.5))
-      const z = 100 * Math.sin(angle) * 0.5
+      const y = 100 * height
+      const z = 100 * Math.sin(angle)
       dirLightRef.current.position.set(x, y + 10, z)
       dirLightRef.current.intensity = lighting.directionalIntensity
     }
