@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateNPCs, getNPCsByZone } from '@/lib/world'
+import { generateNPCs, getNPCsByZone, getZone, type ZoneId } from '@/lib/world'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
     const zoneId = searchParams.get('zoneId')
 
     if (zoneId) {
-      const npcs = getNPCsByZone(zoneId)
+      const zone = getZone(zoneId as ZoneId)
+      if (!zone) return NextResponse.json({ error: 'Zone introuvable' }, { status: 404 })
+      const npcs = getNPCsByZone(zone.id)
       return NextResponse.json({ npcs })
     }
 

@@ -13,8 +13,7 @@ interface DateInput {
   targetId: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _BUDGETS = ['€', '€€', '€€€'] as const
+const BUDGETS = ['€', '€€', '€€€'] as const
 
 const MOOD_VIBE: Record<Mood, 'chill' | 'romantic' | 'active' | 'social'> = {
   discuter: 'chill',
@@ -41,9 +40,9 @@ const INTEREST_ACTIVITY: Record<string, { type: string; budget: typeof BUDGETS[n
 }
 
 const DEFAULT_SUGGESTIONS: DateSuggestion[] = [
-  { type: 'café', budget: '€', distance: '< 1 km', description: 'Un café cosy pour faire connaissance en toute simplicité' },
-  { type: 'parc', budget: '€', distance: '< 2 km', description: 'Une balade au parc pour un rendez-vous décontracté' },
-  { type: 'restaurant', budget: '€€', distance: '< 3 km', description: 'Un bon restaurant pour partager un repas' },
+  { type: 'café', budget: BUDGETS[0], distance: '< 1 km', description: 'Un café cosy pour faire connaissance en toute simplicité' },
+  { type: 'parc', budget: BUDGETS[0], distance: '< 2 km', description: 'Une balade au parc pour un rendez-vous décontracté' },
+  { type: 'restaurant', budget: BUDGETS[1], distance: '< 3 km', description: 'Un bon restaurant pour partager un repas' },
 ]
 
 function pick<T>(arr: readonly T[]): T {

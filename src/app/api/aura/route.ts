@@ -9,7 +9,8 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { data: aura, error: auraError } = await getAura(user.id, supabase)
+    const { data: auraData, error: auraError } = await getAura(user.id, supabase)
+    let aura = auraData
     if (auraError || !aura) {
       const result = await computeAndSaveAura(user.id, supabase)
       if (result.error) {

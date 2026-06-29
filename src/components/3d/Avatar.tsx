@@ -12,7 +12,7 @@ export function Avatar() {
   const isMobile = detectMobile()
 
   // Desktop keyboard controls
-  const [_getKeys] = useKeyboardControls()
+  const [, getKeys] = useKeyboardControls()
 
   useEffect(() => {
     if (isMobile) return
@@ -21,7 +21,7 @@ export function Avatar() {
   useFrame((_, delta) => {
     if (!groupRef.current || isMobile) return
 
-    const pressed = _getKeys()
+    const pressed = getKeys()
 
     const input = {
       forward: pressed?.forward ?? false,

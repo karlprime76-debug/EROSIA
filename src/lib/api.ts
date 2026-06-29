@@ -31,7 +31,7 @@ export interface Profile {
   travel_active?: boolean
   subscription_tier?: 'free' | 'premium'
   premium_expires_at?: string
-  video_url?: string
+  video_url?: string | null
   mood?: Mood
   energy_score?: number
   trust_score?: number

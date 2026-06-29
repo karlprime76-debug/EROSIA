@@ -138,6 +138,7 @@ export default function DiscoverPage() {
   const [myLookingForInternal, setMyLookingForInternal] = useState('')
   const [myMoodInternal, setMyMoodInternal] = useState('')
   const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
   const profilesRef = useRef(profiles)
   useEffect(() => { profilesRef.current = profiles }, [profiles])
   const router = useRouter()
@@ -367,26 +368,6 @@ export default function DiscoverPage() {
       if (data) setStoriesUserIds(new Set(data.map((s: { userId: string }) => s.userId)))
     }).catch(() => { toast('Erreur chargement stories', 'error') })
   }, [toast])
-
-  const haptic = (ms = 10) => { try { navigator.vibrate(ms) } catch {} }
-
-  const current = profiles[idx]
-  useEffect(() => { if (current) logBehavior('view_profile', current.id) }, [current])
-
-  const swipeRef = useRef(swipe)
-  useEffect(() => { swipeRef.current = swipe })
-
-  useEffect(() => {
-    const c = current
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && c) { e.preventDefault(); swipeRef.current('pass') }
-      if (e.key === 'ArrowRight' && c) { e.preventDefault(); swipeRef.current('like') }
-      if (e.key === 'ArrowUp' && c) { e.preventDefault(); swipeRef.current('super_like') }
-      if (e.key === 'Escape') { setShowReportModal(false); setMatchModal(null) }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [current])
 
   useEffect(() => {
     const current = profilesRef.current

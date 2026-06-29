@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllZones, getZone } from '@/lib/world'
+import { getAllZones, getZone, type ZoneId } from '@/lib/world'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const zoneId = searchParams.get('zoneId')
 
     if (zoneId) {
-      const zone = getZone(zoneId)
+      const zone = getZone(zoneId as ZoneId)
       if (!zone) return NextResponse.json({ error: 'Zone introuvable' }, { status: 404 })
       return NextResponse.json({ zone })
     }
