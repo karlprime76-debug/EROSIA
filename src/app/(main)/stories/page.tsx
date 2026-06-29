@@ -1,68 +1,88 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Plus, Trash2, Lock } from 'lucide-react'
-import { getActiveStories, uploadStory, deleteStory, checkPremium } from '@/lib/api'
+import { ArrowLeft, Trash2, Eye, Heart, Loader } from 'lucide-react'
+import { checkPremium } from '@/lib/api'
+import { getActiveStories, deleteStory, uploadStory, getStoryViews, getStoryReactions } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
-
-interface Story {
-  id: string
-  user_id: string
-  media_url: string
-  type: string
-  created_at: string
-  expires_at: string
-  profile: { name: string; photos: string[]; is_verified: boolean } | null
-}
+import { StoryReader } from '@/components/StoryReader'
+import { StoryCreator } from '@/components/StoryCreator'
+import type { StoryGroup, StoryView, StoryPrivacy } from '@/lib/stories/types'
 
 export default function StoriesPage() {
   const router = useRouter()
-  const [stories, setStories] = useState<Story[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [now, setNow] = useState(0)
-  const [isPremium, setIsPremium] = useState(false)
+  const [groups, setGroups] = useState<StoryGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [isPremium, setIsPremium] = useState(false)
+  const [readerOpen, setReaderOpen] = useState(false)
+  const [readerIndex, setReaderIndex] = useState(0)
+  const [expandedViews, setExpandedViews] = useState<string | null>(null)
+  const [viewsData, setViewsData] = useState<Record<string, StoryView[]>>({})
+  const [reactionsData, setReactionsData] = useState<Record<string, number>>({})
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const loadingMore = useRef(false)
   const { toast } = useToast()
-  const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    getActiveStories().then(({ data }) => {
-      if (data) setStories(data as Story[])
-    }).catch(() => { toast('Erreur chargement stories', 'error') }).finally(() => setLoading(false))
-    checkPremium().then(setIsPremium).catch(() => {})
-    const initTimer = setTimeout(() => setNow(Date.now()), 0)
-    const t = setInterval(() => setNow(Date.now()), 60000)
-    return () => { clearInterval(t); clearTimeout(initTimer) }
+  const load = useCallback(async (pageNum: number, append = false) => {
+    const { data, error } = await getActiveStories(pageNum)
+    if (error) { toast(error, 'error'); return }
+    if (data.length === 0 && pageNum > 1) { setHasMore(false); return }
+    setGroups(prev => append ? [...prev, ...data] : data)
   }, [toast])
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setUploading(true)
-    try {
-      const result = await uploadStory(f)
-      if (result.error) { toast(result.error, 'error'); return }
-      toast('Story publiée', 'success')
-      getActiveStories().then(({ data }) => {
-        if (data) setStories(data as Story[])
-      }).catch(console.error)
-    } catch (err) {
-      console.error('handleUpload error', err)
-      toast('Erreur lors de la publication', 'error')
-    } finally {
-      setUploading(false)
+  useEffect(() => {
+    load(1).finally(() => setLoading(false))
+    checkPremium().then(setIsPremium).catch(() => {})
+  }, [load])
+
+  const handleScroll = useCallback(async (e: React.UIEvent<HTMLDivElement>) => {
+    if (loadingMore.current || !hasMore) return
+    const el = e.currentTarget
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) {
+      loadingMore.current = true
+      const nextPage = page + 1
+      await load(nextPage, true)
+      setPage(nextPage)
+      loadingMore.current = false
     }
+  }, [hasMore, page, load])
+
+  const handleUpload = async (file: File, privacy: StoryPrivacy) => {
+    const result = await uploadStory(file, privacy)
+    if (result.error) { toast(result.error, 'error'); return }
+    toast('Story publiée ✓', 'success')
+    setGroups([]); setPage(1); setHasMore(true)
+    await load(1)
   }
 
-  const handleDelete = async (id: string) => {
-    const { error } = await deleteStory(id)
+  const handleDelete = async (storyId: string) => {
+    const { error } = await deleteStory(storyId)
     if (error) { toast(error, 'error'); return }
-    toast('Story supprimée', 'success')
-    getActiveStories().then(({ data }) => {
-      if (data) setStories(data as Story[])
-    }).catch(console.error)
+    setGroups(prev => prev.map(g => ({
+      ...g,
+      stories: g.stories.filter(s => s.id !== storyId),
+    })).filter(g => g.stories.length > 0))
+  }
+
+  const openReader = (index: number) => {
+    setReaderIndex(index)
+    setReaderOpen(true)
+  }
+
+  const toggleViews = async (storyId: string) => {
+    if (expandedViews === storyId) { setExpandedViews(null); return }
+    setExpandedViews(storyId)
+    if (!viewsData[storyId]) {
+      const { data } = await getStoryViews(storyId)
+      if (data) setViewsData(v => ({ ...v, [storyId]: data }))
+    }
+    if (!reactionsData[storyId]) {
+      const { data } = await getStoryReactions(storyId)
+      if (data) setReactionsData(r => ({ ...r, [storyId]: data.length }))
+    }
   }
 
   if (loading) return (
@@ -82,50 +102,145 @@ export default function StoriesPage() {
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
-        <div className="flex-1" />
-        {isPremium ? (
-          <button type="button" aria-label="Ajouter une story" onClick={() => fileRef.current?.click()} disabled={uploading}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 hover:shadow-[0_0_15px_rgba(217,45,74,0.3)]" style={{ background: '#D92D4A' }}>
-            <Plus size={18} />
-          </button>
-        ) : (
-          <button type="button" aria-label="Premium requis" onClick={() => { toast('Les stories sont réservées aux membres Premium. Passe à Premium pour publier.', 'warning'); router.push('/settings') }} title="Premium requis"
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-[#262628] hover:bg-[#2A2826] transition-all active:scale-90">
-            <Lock size={16} className="text-[#9E9488]" />
-          </button>
-        )}
-        <input ref={fileRef} type="file" accept="image/*,video/mp4,video/quicktime" capture="environment" onChange={handleUpload} className="hidden" />
       </header>
-      <div className="flex-1 px-4 pb-8 overflow-y-auto">
-        {stories.length === 0 ? (
+
+      <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-none">
+        <StoryCreator
+          onUpload={handleUpload}
+          premiumRequired={!isPremium}
+        />
+        {groups.slice(0, 8).map((g, i) => (
+          <button
+            key={g.userId}
+            type="button"
+            onClick={() => openReader(i)}
+            className="flex flex-col items-center gap-1 shrink-0"
+            style={{ width: 80 }}
+          >
+            <div
+              className={`w-16 h-16 rounded-full p-0.5 ${
+                g.allViewed
+                  ? 'border-2 border-[#2A2826]'
+                  : 'bg-gradient-to-br from-[#D92D4A] to-[#C85A17] shadow-[0_0_8px_rgba(217,45,74,0.3)]'
+              }`}
+            >
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#1C1C1E] border-2 border-[#070708]">
+                {g.photo ? (
+                  <Image src={g.photo} alt={g.name} width={64} height={64} className="object-cover w-full h-full" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#9E9488] font-bold">{g.name.charAt(0)}</div>
+                )}
+              </div>
+            </div>
+            <span className="text-[10px] text-[#9E9488] truncate max-w-[72px] text-center">{g.name.split(' ')[0]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 px-4 pb-8 overflow-y-auto" onScroll={handleScroll}>
+        {groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
               <span className="text-3xl opacity-40">📸</span>
             </div>
             <p className="text-lg font-semibold">Aucune story</p>
-            <p className="text-[#9E9488] text-sm mt-1 max-w-xs leading-relaxed">Ajoute une photo qui disparaîtra dans 24h.</p>
+            <p className="text-[#9E9488] text-sm mt-1 max-w-xs leading-relaxed">Les stories apparaîtront ici pendant 24h.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {stories.map(s => (
-              <div key={s.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E]">
-                {s.media_url && s.type === 'video' ? (
-                  <video src={s.media_url} className="w-full h-full object-cover" muted playsInline />
-                ) : (
-                  <Image src={s.media_url} alt={"Story de " + (s.profile?.name || "quelqu'un")} width={200} height={355} className="w-full h-full object-cover" />
-                )}
-                <button type="button" onClick={() => handleDelete(s.id)}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
-                  <Trash2 size={14} />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-black/60 to-transparent">
-                  <p className="text-[10px] text-white/70">Il y a {Math.floor((now - new Date(s.created_at).getTime()) / 3600000)}h</p>
+          <div className="space-y-6">
+            {groups.filter(g => g.userId !== groups[0]?.userId).map(group => (
+              <div key={group.userId}>
+                <div className="flex items-center gap-2 mb-3">
+                  <button type="button" onClick={() => openReader(groups.indexOf(group))} className="flex items-center gap-2 flex-1">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1C1C1E] ring-1 ring-white/10">
+                      {group.photo && <Image src={group.photo} alt={group.name} width={32} height={32} className="object-cover w-full h-full" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{group.name}</p>
+                      <p className="text-[10px] text-[#9E9488]">
+                        {group.stories.length} story{group.stories.length > 1 ? 'ies' : 'y'}
+                      </p>
+                    </div>
+                  </button>
                 </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {group.stories.map(story => (
+                    <div key={story.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E] group">
+                      <button type="button" onClick={() => openReader(groups.indexOf(group))} className="w-full h-full">
+                        {story.type === 'video' ? (
+                          <video src={story.media_url} className="w-full h-full object-cover" muted playsInline />
+                        ) : (
+                          <Image src={story.media_url} alt="" width={200} height={355} className="w-full h-full object-cover" />
+                        )}
+                      </button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between px-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleViews(story.id)}
+                          className="text-[10px] text-white/70 flex items-center gap-1 bg-black/30 px-1.5 py-0.5 rounded-full"
+                        >
+                          <Eye size={10} /> {viewsData[story.id]?.length ?? story.view_count ?? 0}
+                        </button>
+                        <span className="text-[10px] text-white/70 flex items-center gap-1 bg-black/30 px-1.5 py-0.5 rounded-full">
+                          <Heart size={10} /> {reactionsData[story.id] ?? story.reaction_count ?? 0}
+                        </span>
+                      </div>
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(story.id)}
+                          className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {expandedViews && (
+                  <div className="mt-1 bg-[#1C1C1E] rounded-xl p-3 max-h-40 overflow-y-auto">
+                    <p className="text-[10px] text-[#9E9488] font-medium mb-2 uppercase tracking-wider">Vues</p>
+                    {(viewsData[expandedViews] ?? []).length === 0 ? (
+                      <p className="text-xs text-[#9E9488]">Aucune vue</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(viewsData[expandedViews] ?? []).map(v => (
+                          <div key={v.id} className="flex items-center gap-2">
+                            {v.profile?.photos?.[0] && (
+                              <div className="w-5 h-5 rounded-full overflow-hidden bg-[#262628]">
+                                <Image src={v.profile.photos[0]} alt="" width={20} height={20} className="object-cover" />
+                              </div>
+                            )}
+                            <p className="text-xs">{v.profile?.name ?? 'Inconnu'}</p>
+                            <p className="text-[10px] text-[#9E9488] ml-auto">
+                              {new Date(v.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
+            {loadingMore.current && (
+              <div className="flex justify-center py-4">
+                <Loader size={16} className="animate-spin text-[#9E9488]" />
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {readerOpen && groups.length > 0 && (
+        <StoryReader
+          groups={groups}
+          initialGroupIndex={readerIndex}
+          onClose={() => setReaderOpen(false)}
+          onDelete={(storyId) => { handleDelete(storyId) }}
+        />
+      )}
     </div>
   )
 }

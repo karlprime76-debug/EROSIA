@@ -1,0 +1,292 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
+import { X, Trash2 } from 'lucide-react'
+import type { StoryGroup, Story } from '@/lib/stories/types'
+
+const REACTION_EMOJIS = ['❤️', '😂', '😮', '🔥', '😢', '👍']
+
+interface StoryReaderProps {
+  groups: StoryGroup[]
+  initialGroupIndex?: number
+  onClose: () => void
+  onDelete?: (storyId: string) => void
+}
+
+function StoryViewer({
+  story,
+  isActive,
+  onProgressEnd,
+  onReact,
+  onDelete,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+  myReaction,
+}: {
+  story: Story
+  isActive: boolean
+  onProgressEnd: () => void
+  onReact: (emoji: string) => void
+  onDelete?: (id: string) => void
+  onPrev: () => void
+  onNext: () => void
+  hasPrev: boolean
+  hasNext: boolean
+  myReaction: string | null
+}) {
+  const [progress, setProgress] = useState(0)
+  const [showReactions, setShowReactions] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const progressRef = useRef(0)
+  const animRef = useRef<number>(0)
+  const startTime = useRef(Date.now())
+
+  useEffect(() => {
+    if (!isActive) {
+      cancelAnimationFrame(animRef.current)
+      return
+    }
+
+    const duration = story.type === 'video' ? 15000 : 5000
+    startTime.current = Date.now()
+    progressRef.current = 0
+
+    if (story.type === 'video' && videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play()
+      const onTime = () => {
+        if (!videoRef.current) return
+        const pct = (videoRef.current.currentTime / (videoRef.current.duration || 15)) * 100
+        setProgress(Math.min(pct, 100))
+        if (pct >= 100) onProgressEnd()
+      }
+      videoRef.current.addEventListener('timeupdate', onTime)
+      return () => {
+        videoRef.current?.removeEventListener('timeupdate', onTime)
+        videoRef.current?.pause()
+      }
+    }
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime.current
+      const pct = Math.min((elapsed / duration) * 100, 100)
+      setProgress(pct)
+      if (pct >= 100) {
+        onProgressEnd()
+        return
+      }
+      animRef.current = requestAnimationFrame(animate)
+    }
+    animRef.current = requestAnimationFrame(animate)
+
+    return () => cancelAnimationFrame(animRef.current)
+  }, [story.id, isActive, onProgressEnd])
+
+  const handleTap = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    if (x < rect.width * 0.3 && hasPrev) onPrev()
+    else if (x > rect.width * 0.7 && hasNext) onNext()
+    else setShowReactions(!showReactions)
+  }
+
+  return (
+    <div className="absolute inset-0 flex flex-col">
+      <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 px-2 pt-2">
+        {Array.from({ length: 1 }).map((_, i) => (
+          <div key={i} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-100"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex-1 relative cursor-pointer" onClick={handleTap}>
+        {story.type === 'video' ? (
+          <video
+            ref={videoRef}
+            src={story.media_url}
+            className="w-full h-full object-contain bg-black"
+            playsInline
+            muted
+          />
+        ) : (
+          <Image
+            src={story.media_url}
+            alt="Story"
+            fill
+            className="object-contain bg-black"
+            unoptimized
+          />
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+      </div>
+
+      {myReaction && (
+        <div className="absolute bottom-20 right-4 text-3xl z-20 animate-bounce">
+          {myReaction}
+        </div>
+      )}
+
+      {showReactions && (
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent pt-16 pb-6 px-4">
+          <div className="flex items-center justify-center gap-3">
+            {REACTION_EMOJIS.map(emoji => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => { onReact(emoji); setShowReactions(false) }}
+                className={`text-2xl transition-all active:scale-150 hover:scale-125 ${myReaction === emoji ? 'scale-125' : 'opacity-70 hover:opacity-100'}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(story.id)}
+            className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }: StoryReaderProps) {
+  const [groupIdx, setGroupIdx] = useState(initialGroupIndex)
+  const [storyIdx, setStoryIdx] = useState(0)
+  const [myReactions, setMyReactions] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  useEffect(() => {
+    setStoryIdx(0)
+  }, [groupIdx])
+
+  const currentGroup = groups[groupIdx]
+  const currentStory = currentGroup?.stories?.[storyIdx]
+
+  const recordView = useCallback(async (storyId: string) => {
+    try {
+      await fetch(`/api/stories/${storyId}/view`, { method: 'POST' })
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (currentStory?.id) recordView(currentStory.id)
+  }, [currentStory?.id, recordView])
+
+  const next = useCallback(() => {
+    if (!currentGroup) return
+    if (storyIdx < currentGroup.stories.length - 1) {
+      setStoryIdx(i => i + 1)
+    } else if (groupIdx < groups.length - 1) {
+      setGroupIdx(i => i + 1)
+    } else {
+      onClose()
+    }
+  }, [storyIdx, currentGroup, groupIdx, groups.length, onClose])
+
+  const prev = useCallback(() => {
+    if (storyIdx > 0) {
+      setStoryIdx(i => i - 1)
+    } else if (groupIdx > 0) {
+      setGroupIdx(i => i - 1)
+    }
+  }, [storyIdx, groupIdx])
+
+  const handleReact = async (emoji: string) => {
+    if (!currentStory) return
+    try {
+      const res = await fetch(`/api/stories/${currentStory.id}/react`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji }),
+      })
+      if (res.ok) {
+        setMyReactions(r => ({ ...r, [currentStory.id]: myReactions[currentStory.id] === emoji ? '' : emoji }))
+      }
+    } catch {}
+  }
+
+  const handleDelete = async (storyId: string) => {
+    try {
+      const res = await fetch(`/api/stories/${storyId}`, { method: 'DELETE' })
+      if (res.ok) {
+        onDelete?.(storyId)
+        next()
+      }
+    } catch {}
+  }
+
+  if (!currentGroup || !currentStory) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+        <p className="text-white/60">Story introuvable</p>
+      </div>
+    )
+  }
+
+  const hasPrev = storyIdx > 0 || groupIdx > 0
+  const hasNext = storyIdx < (currentGroup.stories.length - 1) || groupIdx < groups.length - 1
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      <div className="relative flex-1">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-3 pb-2 bg-gradient-to-b from-black/50 to-transparent">
+          <div className="flex items-center gap-2 flex-1">
+            {currentGroup.photo && (
+              <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/30">
+                <Image src={currentGroup.photo} alt={currentGroup.name} width={32} height={32} className="object-cover w-full h-full" />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-semibold text-white">{currentGroup.name}</p>
+              <p className="text-[10px] text-white/60">
+                {new Date(currentStory.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-white/40">
+              {storyIdx + 1}/{currentGroup.stories.length}
+            </span>
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <StoryViewer
+          story={currentStory}
+          isActive
+          onProgressEnd={next}
+          onReact={handleReact}
+          onDelete={handleDelete}
+          onPrev={prev}
+          onNext={next}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          myReaction={myReactions[currentStory.id] ?? null}
+        />
+      </div>
+    </div>
+  )
+}

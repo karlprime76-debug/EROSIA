@@ -528,47 +528,7 @@ export async function getIcebreakers(category?: string) {
   return { data: data as Array<{ id: string; question: string; category: string | null }> | null, error: error?.message }
 }
 
-// ---- FEATURE 4: Stories ----
-export async function uploadStory(file: File) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const err = validateFile(file, 'story')
-  if (err) return { error: err }
-
-  const fileName = `stories/${user.id}/${Date.now()}_${sanitizeFilename(file.name)}`
-  const { error: uploadError } = await supabase().storage.from('stories').upload(fileName, file)
-  if (uploadError) return { error: uploadError.message }
-
-  const { data: urlData } = supabase().storage.from('stories').getPublicUrl(fileName)
-
-  const type = file.type.startsWith('video/') ? 'video' : 'image'
-
-  const { data, error } = await supabase().from('stories').insert({
-    user_id: user.id, media_url: urlData.publicUrl, type,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
-export async function getActiveStories() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [] }
-  const { data, error } = await supabase()
-    .from('stories')
-    .select('*, profile:profiles!stories_user_id_fkey(name, photos, is_verified)')
-    .gte('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
-  return { data: data ?? [], error: error?.message }
-}
-
-export async function deleteStory(storyId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data: story } = await supabase().from('stories').select('user_id').eq('id', storyId).maybeSingle()
-  if (!story) return { error: 'Story introuvable' }
-  if (story.user_id !== user.id) return { error: 'Non autorisé' }
-  const { error } = await supabase().from('stories').delete().eq('id', storyId)
-  return { error: error?.message }
-}
+// ---- FEATURE 4: Stories (legacy wrappers, use src/lib/stories for new code) ----
 
 // ---- FEATURE 5: Travel mode ----
 export async function setTravelMode(city: string, active: boolean) {

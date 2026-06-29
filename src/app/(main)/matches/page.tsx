@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { getReceivedFlirts, unmatchUser, getStreak, getDailySwipeCount, type Profile } from '@/lib/api'
 import { MatchesSkeleton } from '@/components/Skeleton'
 import { useConfirm } from '@/components/ConfirmDialog'
+import { logger } from '@/lib/logger'
 
 interface Conversation {
   matchId: string
@@ -59,7 +60,7 @@ export default function MatchesPage() {
       }
       setConvs(list)
       setLoading(false)
-    })().catch(console.error)
+    })().catch(logger.error)
   }, [])
 
   const handleUnmatch = async (matchId: string, e: React.MouseEvent) => {
@@ -67,7 +68,7 @@ export default function MatchesPage() {
     e.stopPropagation()
     if (await confirm('Supprimer ce match ?')) {
       const { error } = await unmatchUser(matchId)
-      if (error) { console.error('unmatch failed', error); return }
+      if (error) { logger.error('unmatch failed', error); return }
       setConvs(prev => prev.filter(c => c.matchId !== matchId))
     }
   }

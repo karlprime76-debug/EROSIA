@@ -6,7 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getActiveStories, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, logBehavior, type Profile } from '@/lib/api'
+import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, undoSuperLike, logBehavior, type Profile } from '@/lib/api'
+import { getActiveStories } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { supabase } from '@/lib/supabase/client'
@@ -198,7 +199,7 @@ export default function DiscoverPage() {
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {
-      if (data) setStoriesUserIds(new Set(data.map((s: { user_id: string }) => s.user_id)))
+      if (data) setStoriesUserIds(new Set(data.map((s: { userId: string }) => s.userId)))
     }).catch(() => { toast('Erreur chargement stories', 'error') })
   }, [toast])
 
