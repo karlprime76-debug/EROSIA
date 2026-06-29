@@ -144,7 +144,7 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
 async function getProfilePair(userId: string, targetId: string) {
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, mood, looking_for, last_seen, latitude, longitude')
+    .select('id, mood, looking_for, latitude, longitude')
     .in('id', [userId, targetId])
 
   const myProfile = profiles?.find(p => p.id === userId)
@@ -159,7 +159,7 @@ async function getProfilePair(userId: string, targetId: string) {
     myLng: myProfile?.longitude ?? null,
     theirLat: theirProfile?.latitude ?? null,
     theirLng: theirProfile?.longitude ?? null,
-    theirLastSeen: theirProfile?.last_seen ?? null,
+    theirLastSeen: null,
   }
 }
 

@@ -14,7 +14,7 @@ export class ActivityEngine implements ScoringEngine<ActivityInput, ActivityOutp
 async function computeActivity(userId: string): Promise<ActivityOutput> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('created_at, last_seen, last_active_at')
+    .select('created_at, last_active_at')
     .eq('id', userId)
     .maybeSingle()
 
@@ -26,10 +26,6 @@ async function computeActivity(userId: string): Promise<ActivityOutput> {
   let lastActive = 0
   if (profile.last_active_at) {
     const ts = new Date(profile.last_active_at).getTime()
-    if (Number.isFinite(ts)) lastActive = ts
-  }
-  if (!lastActive && profile.last_seen) {
-    const ts = new Date(profile.last_seen).getTime()
     if (Number.isFinite(ts)) lastActive = ts
   }
 

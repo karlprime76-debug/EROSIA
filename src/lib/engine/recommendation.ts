@@ -20,7 +20,7 @@ async function getRecommendations(input: RecommendInput): Promise<RecommendOutpu
   // 1. Construire la requête de base
   let query = supabase
     .from('profiles')
-    .select('id, name, age, photos, looking_for, last_seen, created_at, location, latitude, longitude, bio, interests, is_verified', { count: 'exact' })
+    .select('id, name, age, photos, looking_for, created_at, location, latitude, longitude, bio, interests, is_verified', { count: 'exact' })
     .eq('onboarding_complete', true)
     .neq('id', userId)
 

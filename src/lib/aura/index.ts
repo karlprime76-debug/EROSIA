@@ -41,7 +41,7 @@ export async function getAura(userId?: string): Promise<{ data: AuraState | null
 export async function computeAndSaveAura(userId: string): Promise<{ data: AuraState | null; error?: string }> {
   const { data: profile } = await supabase()
     .from('profiles')
-    .select('id, energy_score, trust_score, mood, last_seen, photos, bio, interests, onboarding_complete')
+    .select('id, energy_score, trust_score, mood, photos, bio, interests, onboarding_complete')
     .eq('id', userId)
     .maybeSingle()
 
@@ -64,7 +64,7 @@ export async function computeAndSaveAura(userId: string): Promise<{ data: AuraSt
     energyScore: profile.energy_score,
     trustScore: profile.trust_score,
     mood: profile.mood,
-    lastActiveAt: profile.last_seen,
+    lastActiveAt: null,
     profileCompleteness: completeness,
   }
 

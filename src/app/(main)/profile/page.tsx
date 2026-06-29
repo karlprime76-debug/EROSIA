@@ -107,7 +107,7 @@ export default function ProfilePage() {
       const { data: { user: u } } = await supabase.auth.getUser()
       if (!u) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, photos, location, video_url').eq('id', u.id).maybeSingle()
-      if (fresh) { p = fresh as Profile } else { p = { id: u.id, name: 'Utilisateur', photos: [], interests: [], age: null, bio: null, occupation: null, location: null, is_verified: false, looking_for: 'friendship', mood: 'discuter', energy_score: 50, trust_score: 50, created_at: new Date().toISOString(), incognito: false, ghost_mode: false, super_likes_remaining: 3, super_likes_reset_at: new Date().toISOString() } as Profile }
+      if (fresh) { p = fresh as Profile } else { toast('Impossible de charger le profil. Recharge la page.', 'error'); setSavingProfile(false); savingRef.current = false; return }
     }
     logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
     try {

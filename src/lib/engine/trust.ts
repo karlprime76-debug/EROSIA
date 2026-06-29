@@ -16,7 +16,7 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_verified, created_at, photos, bio, interests, onboarding_complete, last_seen, subscription_tier')
+    .select('is_verified, created_at, photos, bio, interests, onboarding_complete, subscription_tier, last_active_at')
     .eq('id', userId)
     .maybeSingle()
 
@@ -126,7 +126,7 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
   if (reports > 0) flags.push(`signalé_${reports}_fois`)
 
   // Inactivité récente
-  const lastSeen = profile.last_seen ? new Date(profile.last_seen).getTime() : 0
+  const lastSeen = profile.last_active_at ? new Date(profile.last_active_at).getTime() : 0
   const daysSinceActive = lastSeen > 0 ? (Date.now() - lastSeen) / (1000 * 60 * 60 * 24) : 99
   if (daysSinceActive > 90) {
     score -= 10; flags.push('inactif_+90j')

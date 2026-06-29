@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, energy_score, trust_score, mood, last_seen, photos, bio, interests, onboarding_complete')
+      .select('id, energy_score, trust_score, mood, photos, bio, interests, onboarding_complete')
       .in('id', userIds)
 
     const auras: Record<string, AuraState> = {}
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         energyScore: profile.energy_score,
         trustScore: profile.trust_score,
         mood: profile.mood,
-        lastActiveAt: profile.last_seen,
+        lastActiveAt: null,
         profileCompleteness: completeness,
       }
 
