@@ -12,7 +12,10 @@ export async function GET() {
     let { data: aura, error } = await getAura(user.id, supabase)
     if (error || !aura) {
       const result = await computeAndSaveAura(user.id, supabase)
-      if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
+      if (result.error) {
+        logger.error('computeAndSaveAura failed', { userId: user.id, error: result.error })
+        return NextResponse.json({ error: result.error }, { status: 400 })
+      }
       aura = result.data
     }
 
