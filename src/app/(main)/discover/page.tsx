@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase/client'
 import { TiltCard } from '@/components/3d/TiltCard'
 import { MatchBurst } from '@/components/3d/MatchBurst'
 import { DiscoverSkeleton } from '@/components/Skeleton'
+import type { AuraState } from '@/lib/aura/types'
 
 const SUPER_LIKE_DAILY = 1
 const DISCOVER_PAGE_SIZE = 20
@@ -125,6 +126,7 @@ export default function DiscoverPage() {
   const [swipeAnim, setSwipeAnim] = useState<'idle' | 'left' | 'right'>('idle')
   const [heartBurst, setHeartBurst] = useState(false)
   const [compatScores, setCompatScores] = useState<Record<string, number>>({})
+  const [auraMap, setAuraMap] = useState<Record<string, AuraState>>({})
   const [storiesUserIds, setStoriesUserIds] = useState<Set<string>>(new Set())
   const [swipeCount, setSwipeCount] = useState(0)
   const [swipeLimit, setSwipeLimit] = useState(20)
@@ -227,6 +229,15 @@ export default function DiscoverPage() {
       const scores = await getCompatibilityBatch(current.map(p => p.id))
       if (cancelled) return
       setCompatScores(scores)
+      const auraRes = await fetch('/api/aura/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: current.map(p => p.id) }),
+      })
+      if (!cancelled && auraRes.ok) {
+        const { auras } = await auraRes.json()
+        if (auras) setAuraMap(auras)
+      }
       const sorted = [...current].sort((a, b) => {
         const sa = computeProfileScore(a, myLookingForInternal, myMoodInternal, lat, lng)
         const sb = computeProfileScore(b, myLookingForInternal, myMoodInternal, lat, lng)
@@ -498,6 +509,16 @@ export default function DiscoverPage() {
                     <div className="absolute top-4 left-4 w-11 h-11 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_12px_rgba(217,45,74,0.3)]" />
                   )}
                   <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                    {auraMap[current.id] && (
+                      <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
+                        style={{
+                          background: auraMap[current.id].color + '30',
+                          color: auraMap[current.id].color,
+                          border: `1px solid ${auraMap[current.id].color}40`,
+                        }}>
+                        {auraMap[current.id].label} {auraMap[current.id].level}
+                      </div>
+                    )}
                     {current.trust_score !== undefined && current.trust_score !== null && (
                       <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
                         style={{

@@ -1012,6 +1012,29 @@ export async function getSpacePresence(spaceId: string) {
   }
 }
 
+// ---- FEATURE 21.8: Aura ----
+export async function getAuraState() {
+  try {
+    const res = await fetch('/api/aura')
+    const json = await res.json()
+    if (!res.ok) return { aura: null, error: json.error }
+    return { aura: json.aura as { level: number; color: string; secondaryColor: string; glowIntensity: number; particleCount: number; label: string; factors: Record<string, number>; updatedAt: string }, error: null }
+  } catch {
+    return { aura: null, error: 'Erreur réseau' }
+  }
+}
+
+export async function refreshAura() {
+  try {
+    const res = await fetch('/api/aura', { method: 'POST' })
+    const json = await res.json()
+    if (!res.ok) return { aura: null, error: json.error }
+    return { aura: json.aura, error: null }
+  } catch {
+    return { aura: null, error: 'Erreur réseau' }
+  }
+}
+
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()

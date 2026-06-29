@@ -9,6 +9,7 @@ import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uplo
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
+import { AuraSphere, AuraBadge, useAura } from '@/components/AuraSphere'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -26,6 +27,7 @@ export default function ProfilePage() {
   const [streak, setStreak] = useState(0)
   const [themePicker, setThemePicker] = useState(false)
   const videoRef = useRef<HTMLInputElement>(null)
+  const { aura, recompute: recomputeAura } = useAura()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -133,7 +135,7 @@ export default function ProfilePage() {
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       logger.debug('saveProfile: succès', data)
-      updateEnergyScore(); fetch('/api/engine/trust-score', { method: 'POST' }).catch(() => {})
+      updateEnergyScore(); fetch('/api/engine/trust-score', { method: 'POST' }).catch(() => {}); recomputeAura()
       setProfile({ ...p, ...data } as Profile)
       setNameValue((data.name ?? p.name) || '')
       setBio((data.bio ?? p.bio) || '')
@@ -218,6 +220,11 @@ export default function ProfilePage() {
         <div className="glass-card rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative shrink-0">
+              {aura && (
+                <div className="absolute -top-2 -left-2 z-10">
+                  <AuraSphere aura={aura} size={56} />
+                </div>
+              )}
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
                   {profile?.photos?.[0] ? (
@@ -251,7 +258,8 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              {profile?.location && <p className="text-sm text-[#9E9488]">📍 {profile.location}</p>}
+                {profile?.location && <p className="text-sm text-[#9E9488]">📍 {profile.location}</p>}
+                {aura && <div className="mt-1"><AuraBadge aura={aura} /></div>}
               {profile?.last_seen && <p className="text-xs text-[#9E9488] mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
             </div>
           </div>
