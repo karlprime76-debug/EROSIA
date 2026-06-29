@@ -86,7 +86,9 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
   return { userId: user.id }
 }
 
-export function resetApiClient() {} // kept for compat, no-op
+export function resetApiClient() {
+  supabase().auth.signOut({ scope: 'local' }).catch(() => {})
+}
 
 export async function signUp(email: string, password: string, name: string, age: number) {
   const { data: authData, error: authError } = await supabase().auth.signUp({ email, password })

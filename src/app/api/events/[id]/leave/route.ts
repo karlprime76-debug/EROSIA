@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { leaveEvent } from '@/lib/events'
+import { logger } from '@/lib/logger'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const { error } = await leaveEvent(id)
+  try {
+    const { id } = await params
+    const { error } = await leaveEvent(id)
 
-  if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error }, { status: 500 })
 
-  return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    logger.error('Events leave POST error', { error: String(err) })
+    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+  }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Camera, Loader, X } from 'lucide-react'
 import Image from 'next/image'
 import type { CreateEventInput, EventCategory } from '@/lib/events'
@@ -23,14 +23,20 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const [loading, setLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview) }
+  }, [preview])
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
+    if (preview) URL.revokeObjectURL(preview)
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }
 
   const removeImage = () => {
+    if (preview) URL.revokeObjectURL(preview)
     setFile(null)
     setPreview(null)
     if (fileRef.current) fileRef.current.value = ''

@@ -61,7 +61,9 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // ── Rate Limiting ──
+    // ── Rate Limiting (in-memory) ──
+  // NOTE: In serverless (Vercel), this is per-instance and resets on cold start.
+  // Pour la prod, remplacer par Vercel KV ou Supabase (ex: `SELECT pg_try_advisory_lock`).
   const routeKey = `${ip}:${pathname}`
   if (pathname.startsWith('/api/')) {
     let maxReqs = 30

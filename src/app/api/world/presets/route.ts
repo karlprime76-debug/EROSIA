@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createDefaultPreset } from '@/lib/world'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,16 +14,21 @@ const PRESET_VARIANTS = [
 ]
 
 export async function GET() {
-  const presets = PRESET_VARIANTS.map((v, i) => ({
-    id: `preset-${i + 1}`,
-    ...v,
-    accessories: [],
-  }))
+  try {
+    const presets = PRESET_VARIANTS.map((v, i) => ({
+      id: `preset-${i + 1}`,
+      ...v,
+      accessories: [],
+    }))
 
-  return NextResponse.json({
-    default: createDefaultPreset(),
-    presets,
-  }, {
-    headers: { 'Cache-Control': 'public, s-maxage=300, immutable' },
-  })
+    return NextResponse.json({
+      default: createDefaultPreset(),
+      presets,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, immutable' },
+    })
+  } catch (err) {
+    logger.error('World presets GET error', { error: String(err) })
+    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+  }
 }
