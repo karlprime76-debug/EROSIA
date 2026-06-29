@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getIcebreakerSuggestion, type Message } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getAIIcebreaker, type Message } from '@/lib/api'
 import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
 import { validateFile, sanitizeFilename } from '@/lib/media'
 import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
@@ -115,7 +115,7 @@ export default function ChatPage() {
     if (data) setPlaylist(data)
   }
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (): Promise<Message[]> => {
     const { data } = await getMessages(id)
     if (data) {
       setMessages(data)
@@ -131,7 +131,9 @@ export default function ChatPage() {
           setReactions(r)
         }
       }
+      return data ?? []
     }
+    return []
   }, [id])
 
   const handleIcebreaker = async (text: string) => {
@@ -141,9 +143,9 @@ export default function ChatPage() {
 
   const handleAIIcebreaker = async () => {
     if (!otherProfile) return
-    const { data, error } = await getIcebreakerSuggestion(otherProfile.id)
-    if (data && !error) {
-      setAiSuggestion(data as string)
+    const { suggestion, error } = await getAIIcebreaker(otherProfile.id)
+    if (suggestion && !error) {
+      setAiSuggestion(suggestion)
     }
   }
 
@@ -230,7 +232,12 @@ export default function ChatPage() {
       const { data: other } = await supabase.from('profiles').select('id, name, last_seen').eq('id', otherId).maybeSingle()
       if (other) setOtherProfile(other as { id: string; name: string; last_seen: string })
 
-      await loadMessages()
+      const msgs = await loadMessages()
+      if (msgs.length === 0 && other) {
+        getAIIcebreaker(other.id).then(({ suggestion }) => {
+          if (suggestion) setAiSuggestion(suggestion)
+        }).catch(() => {})
+      }
       setLoading(false)
 
       const presenceCh = supabase.channel(`presence:${otherId}`, {

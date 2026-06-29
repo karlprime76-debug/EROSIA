@@ -917,6 +917,21 @@ export async function getIcebreakerSuggestion(targetId: string) {
   return { data: data as string | null, error: error?.message }
 }
 
+export async function getAIIcebreaker(targetId: string) {
+  try {
+    const res = await fetch('/api/ai/icebreaker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { suggestion: null, error: json.error }
+    return { suggestion: json.suggestion as string, error: null }
+  } catch {
+    return { suggestion: null, error: 'Erreur réseau' }
+  }
+}
+
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()
