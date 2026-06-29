@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, MessageCircle, Eye, X, Flame, Sparkles } from 'lucide-react'
+import { Heart, Eye, X, Flame, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getReceivedFlirts, unmatchUser, getStreak, getDailySwipeCount, type Profile } from '@/lib/api'
 import { MatchesSkeleton } from '@/components/Skeleton'

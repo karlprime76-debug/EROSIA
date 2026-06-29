@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase/client'
 
 export default function SplashPage() {
   const router = useRouter()
-  const [isChecking, setIsChecking] = useState(true)
   const [userSession, setUserSession] = useState<boolean>(false)
   const [animationStep, setAnimationStep] = useState(0) // 0: Enter, 1: Loop, 2: Exit
 
@@ -28,7 +27,6 @@ export default function SplashPage() {
       } finally {
         // Laisser l'animation jouer au moins 2.2 secondes pour un effet premium
         setTimeout(() => {
-          setIsChecking(false)
           setAnimationStep(2)
         }, 2200)
       }

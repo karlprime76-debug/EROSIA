@@ -1,8 +1,6 @@
-import { motion } from 'motion'
+import { motion } from 'motion/react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { Heart, MessageCircle, X } from 'lucide-react'
-import { AuraSphere } from '@/components/AuraSphere'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { logger } from '@/lib/logger'
 import { unmatchUser } from '@/lib/api'
@@ -44,16 +42,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({ matchId, profile, index })
     >
       <div className="relative shrink-0">
         {profile.photos?.[0] ? (
-          <>
-            <AuraSphere aura={profile.id} size={70} className="absolute inset-0" />
-            <Image
-              src={profile.photos[0]}
-              alt={profile.name}
-              width={56}
-              height={56}
-              className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]"
-            />
-          </>
+          <Image
+            src={profile.photos[0]}
+            alt={profile.name}
+            width={56}
+            height={56}
+            className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]"
+          />
         ) : (
           <div className="w-14 h-14 rounded-full bg-[#262628] ring-2 ring-[#2A2826] flex items-center justify-center">
             <Heart size={20} className="text-[#5A5248]" />

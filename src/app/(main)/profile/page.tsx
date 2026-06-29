@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
 import { AuraSphere, AuraBadge, useAura } from '@/components/AuraSphere'
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import 'react-circular-progressbar/dist/styles.css'
 
 export default function ProfilePage() {
@@ -547,5 +547,8 @@ export default function ProfilePage() {
 
     </div>
   )}
-  )
+  </div>
+</div>
+)
 }
+
