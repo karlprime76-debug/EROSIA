@@ -1,14 +1,15 @@
 import type { WeatherType, WeatherState } from '../types'
 
 export function createWeatherState(weather?: WeatherType): WeatherState {
+  const resolved = weather ?? 'clear'
   return {
-    current: weather ?? 'clear',
+    current: resolved,
     intensity: 1,
     transitionProgress: 0,
-    cloudCoverage: weather === 'clear' ? 0.1 : weather === 'cloudy' ? 0.7 : weather === 'light-rain' ? 0.9 : 0.3,
-    windSpeed: weather === 'windy' ? 8 : weather === 'clear' ? 1 : weather === 'light-rain' ? 4 : 2,
-    rainIntensity: weather === 'light-rain' ? 0.4 : 0,
-    fogDensity: weather === 'fog' ? 0.08 : weather === 'clear' ? 0.002 : 0.01,
+    cloudCoverage: resolved === 'clear' ? 0.1 : resolved === 'cloudy' ? 0.7 : resolved === 'light-rain' ? 0.9 : 0.3,
+    windSpeed: resolved === 'windy' ? 8 : resolved === 'clear' ? 1 : resolved === 'light-rain' ? 4 : 2,
+    rainIntensity: resolved === 'light-rain' ? 0.4 : 0,
+    fogDensity: resolved === 'fog' ? 0.08 : resolved === 'clear' ? 0.002 : 0.01,
   }
 }
 
