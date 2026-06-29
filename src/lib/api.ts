@@ -948,6 +948,70 @@ export async function getDateSuggestions(targetId: string) {
   }
 }
 
+// ---- FEATURE 21.75: Social Space 3D ----
+export async function getSocialSpaces() {
+  try {
+    const res = await fetch('/api/social/spaces')
+    const json = await res.json()
+    if (!res.ok) return { spaces: null, error: json.error }
+    return { spaces: json.spaces as Array<{ id: string; name: string; type: string; description: string | null; capacity: number; metadata: Record<string, unknown> }>, error: null }
+  } catch {
+    return { spaces: null, error: 'Erreur réseau' }
+  }
+}
+
+export async function joinSocialSpace(spaceId: string, x?: number, y?: number, z?: number) {
+  try {
+    const res = await fetch('/api/social/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spaceId, x, y, z }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { presence: null, error: json.error }
+    return { presence: json.presence, error: null }
+  } catch {
+    return { presence: null, error: 'Erreur réseau' }
+  }
+}
+
+export async function leaveSocialSpace() {
+  try {
+    const res = await fetch('/api/social/leave', { method: 'POST' })
+    const json = await res.json()
+    if (!res.ok) return { error: json.error }
+    return { error: null }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
+}
+
+export async function updateSpacePosition(x: number, y: number, z: number, rotationY?: number, animation?: string) {
+  try {
+    const res = await fetch('/api/social/position', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x, y, z, rotationY, animation }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { error: json.error }
+    return { error: null }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
+}
+
+export async function getSpacePresence(spaceId: string) {
+  try {
+    const res = await fetch(`/api/social/spaces/${spaceId}`)
+    const json = await res.json()
+    if (!res.ok) return { presence: null, error: json.error }
+    return { presence: json.presence as Array<{ user_id: string; space_id: string; x: number; y: number; z: number; profile: { id: string; name: string; photos: string[]; is_verified: boolean } }>, error: null }
+  } catch {
+    return { presence: null, error: 'Erreur réseau' }
+  }
+}
+
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()
