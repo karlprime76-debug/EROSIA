@@ -10,6 +10,9 @@ import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
 import { AuraSphere, AuraBadge, useAura } from '@/components/AuraSphere'
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
+import { Button } from '@/components/ui/Button'
+import 'react-circular-progressbar/dist/styles.css'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -212,24 +215,29 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
-      <header className="flex items-center justify-between px-5 pt-6 pb-3">
-        <h2 className="text-3xl font-bold">Mon Profil</h2>
-        <button type="button" onClick={() => setEditing(!editing)} className="px-5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 glass-light hover:bg-white/10"
-          style={{ color: editing ? '#9E9488' : '#D92D4A' }}>
-          {editing ? 'Annuler' : 'Modifier'}
-        </button>
-      </header>
+    <div className="relative min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#141414] to-[#1a1a1a] p-4">
+  <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
+      <header className="flex items-center justify-between px-5 pt-6 pb-3 relative">
+          <h2 className="text-3xl font-bold">Mon Profil</h2>
+          {aura && (
+            <div className="absolute -top-4 -left-4 z-10">
+              <AuraSphere aura={aura} size={64} />
+            </div>
+          )}
+          <Button
+  variant="primary"
+  onClick={() => setEditing(!editing)}
+  className="active:scale-95"
+  style={{ color: editing ? '#9E9488' : '#D92D4A' }}
+>
+  {editing ? 'Annuler' : 'Modifier'}
+</Button>
+        </header>
 
       <div className="px-4">
         <div className="glass-card rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative shrink-0">
-              {aura && (
-                <div className="absolute -top-2 -left-2 z-10">
-                  <AuraSphere aura={aura} size={56} />
-                </div>
-              )}
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
                   {profile?.photos?.[0] ? (
@@ -347,7 +355,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Mon mood</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex overflow-x-auto gap-2 pb-2">
                 {([
                   ['discuter', '💬 Discuter'],
                   ['rencontre', '🔥 Rencontre'],
@@ -361,15 +369,22 @@ export default function ProfilePage() {
                       mood === val
                         ? 'border-[#D92D4A] bg-[#D92D4A]/10 text-[#D92D4A]'
                         : 'border-[#2A2826] text-[#9E9488] hover:border-[#5A5248]'
-                    }`}>
+                    }`}
+                  >
                     {label}
                   </button>
                 ))}
               </div>
             </div>
-            <button type="button" onClick={() => { saveProfile().catch(logger.error) }} disabled={savingProfile} className="w-full py-3.5 rounded-full text-white font-semibold disabled:opacity-40" style={{ background: '#D92D4A' }}>
-              {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
-            </button>
+            <Button
+  variant="premium"
+  onClick={() => { saveProfile().catch(logger.error) }}
+  disabled={savingProfile}
+  className="w-full py-3.5 disabled:opacity-40"
+  style={{ background: '#D92D4A' }}
+>
+  {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
+</Button>
           </div>
         ) : (
           <>
@@ -416,42 +431,46 @@ export default function ProfilePage() {
               <div className="glass-card rounded-2xl p-5 mb-4">
                 <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Energy Score</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2.5 rounded-full bg-[#2A2826] overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${profile.energy_score}%`,
-                        background: profile.energy_score >= 70
-                          ? 'linear-gradient(90deg, #34D399, #22C55E)'
-                          : profile.energy_score >= 40
-                          ? 'linear-gradient(90deg, #FBBF24, #F59E0B)'
-                          : 'linear-gradient(90deg, #F87171, #EF4444)',
-                      }} />
-                  </div>
-                  <span className="text-sm font-bold" style={{
-                    color: profile.energy_score >= 70 ? '#34D399' : profile.energy_score >= 40 ? '#FBBF24' : '#F87171',
-                  }}>{profile.energy_score}</span>
+                <div className="w-12 h-12">
+                  <CircularProgressbar
+                    value={profile.energy_score}
+                    text={`${profile.energy_score}`}
+                    styles={buildStyles({
+                      textSize: '32px',
+                      pathColor:
+                        profile.energy_score >= 70 ? '#34D399' :
+                        profile.energy_score >= 40 ? '#FBBF24' :
+                        '#F87171',
+                      trailColor: '#2A2826',
+                      textColor: '#F5F0EB',
+                    })}
+                  />
                 </div>
+                <span className="text-sm font-bold">Energy</span>
+              </div>
               </div>
             )}
             {profile?.trust_score !== undefined && profile?.trust_score !== null && (
               <div className="glass-card rounded-2xl p-5 mb-4">
                 <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Score de Confiance</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2.5 rounded-full bg-[#2A2826] overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${profile.trust_score}%`,
-                        background: profile.trust_score >= 70
-                          ? 'linear-gradient(90deg, #818CF8, #6366F1)'
-                          : profile.trust_score >= 40
-                          ? 'linear-gradient(90deg, #FBBF24, #F59E0B)'
-                          : 'linear-gradient(90deg, #F87171, #EF4444)',
-                      }} />
-                  </div>
-                  <span className="text-sm font-bold" style={{
-                    color: profile.trust_score >= 70 ? '#818CF8' : profile.trust_score >= 40 ? '#FBBF24' : '#F87171',
-                  }}>{profile.trust_score}</span>
+                <div className="w-12 h-12">
+                  <CircularProgressbar
+                    value={profile.trust_score}
+                    text={`${profile.trust_score}`}
+                    styles={buildStyles({
+                      textSize: '32px',
+                      pathColor:
+                        profile.trust_score >= 70 ? '#818CF8' :
+                        profile.trust_score >= 40 ? '#FBBF24' :
+                        '#F87171',
+                      trailColor: '#2A2826',
+                      textColor: '#F5F0EB',
+                    })}
+                  />
                 </div>
+                <span className="text-sm font-bold">Trust</span>
+              </div>
               </div>
             )}
             {profileTraits.length > 0 && (
@@ -513,8 +532,7 @@ export default function ProfilePage() {
                       html.classList.add(mode)
                     }
                     setThemePicker(false)
-                  }}
-                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-[#D92D4A]/10 border border-[#D92D4A]/20' : 'hover:bg-white/5'}`}>
+                  }} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-[#D92D4A]/10 border border-[#D92D4A]/20' : 'hover:bg-white/5'}`}>
                     <div className="flex items-center gap-3">
                       <Icon size={20} className={active ? 'text-[#D92D4A]' : 'text-[#9E9488]'} />
                       <span className={active ? 'text-[#D92D4A] font-medium' : 'text-sm'}>{label}</span>
@@ -525,8 +543,9 @@ export default function ProfilePage() {
               })}
             </div>
           </div>
-        </div>
-      )}
+
+
     </div>
+  )}
   )
 }

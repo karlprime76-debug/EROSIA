@@ -76,7 +76,7 @@ export default function MatchesPage() {
   if (loading) return <MatchesSkeleton />
 
   return (
-    <div className="flex-1 flex flex-col bg-transparent">
+    <div className="flex-1 flex flex-col glass-card bg-transparent p-4 rounded-xl">
       <header className="px-5 pt-6 pb-4">
         <h2 className="text-3xl font-bold">
           Matchs
@@ -142,26 +142,18 @@ export default function MatchesPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {convs.map((c, i) => (
-              <Link key={c.matchId} href={`/chat/${c.matchId}`}
-                className="flex items-center gap-3 p-3 glass-card rounded-2xl transition-all duration-200 hover:border-[#D92D4A]/20 active:scale-[0.98] group animate-slide-up"
-                style={{ animationDelay: `${i * 80}ms` }}>
-                <div className="relative shrink-0">
-                  {c.profile.photos?.[0] ? (
-                    <Image src={c.profile.photos[0]} alt={c.profile.name} width={56} height={56}
-                      className="rounded-full object-cover w-14 h-14 bg-[#262628] ring-2 ring-[#2A2826]" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-[#262628] ring-2 ring-[#2A2826] flex items-center justify-center">
-                      <Heart size={20} className="text-[#5A5248]" />
-                    </div>
+            {convs.map((c) => (
+              <Link key={c.matchId} href={`/chat/${c.matchId}`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-[#1C1C1E] transition-colors group">
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-[#262628]">
+                  {c.profile.photos?.[0] && (
+                    <Image src={c.profile.photos[0]} alt={c.profile.name} width={56} height={56} className="object-cover w-full h-full" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{c.profile.name}</p>
                   <p className="text-xs text-[#9E9488] truncate mt-0.5">Dites bonjour 👋</p>
                 </div>
-                  <MessageCircle size={18} className="text-[#5A5248] group-hover:text-[#D92D4A] transition-colors" />
-                <button type="button" aria-label="Ne plus match" onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 focus:opacity-100 group-hover:opacity-100 transition-opacity">
+                <button type="button" aria-label="Ne plus match" onClick={(e) => handleUnmatch(c.matchId, e)} className="p-2.5 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <X size={14} className="text-[#5A5248] hover:text-red-500 transition-colors" />
                 </button>
               </Link>

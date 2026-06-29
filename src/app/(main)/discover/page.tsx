@@ -405,34 +405,46 @@ export default function DiscoverPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="flex items-center justify-between px-5 pt-6 pb-3">
-        <Link href="/discover">
-          <Image src="/logo.png" alt="Erosia" width={110} height={36} className="drop-shadow-[0_0_10px_rgba(217,45,74,0.2)]" />
+      {/* ─── Header premium ─── */}
+      <header className="relative flex items-center justify-between px-4 pt-5 pb-3">
+        {/* Glow de titre */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+
+        <Link href="/discover" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[0_4px_16px_rgba(217,45,74,0.2)] border border-white/10 transition-transform duration-200 group-hover:scale-105">
+            <Heart size={15} fill="white" className="text-white" />
+          </div>
+          <span className="text-xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
         </Link>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1.5">
+          {/* Swipe counter */}
           {!isPremium && (
-            <span className="text-[10px] text-[#A09890] bg-[#18181A] px-2.5 py-1 rounded-full border border-[#2C2A28]">
-              {swipeLimit - swipeCount} swipes
-            </span>
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-white/6 bg-white/3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_4px_rgba(217,45,74,0.6)]" />
+              <span className="text-[10px] font-semibold text-[var(--text-muted)]">{swipeLimit - swipeCount} left</span>
+            </div>
           )}
+
           {hasSwiped && (
-            <button type="button" onClick={handleRewind} aria-label="Revoir"
-              className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-white/20 active:scale-90">
-              <RotateCcw size={16} className="text-[#A09890]" />
+            <button type="button" onClick={handleRewind} aria-label="Annuler le swipe"
+              className="w-9 h-9 rounded-full border border-white/6 bg-white/3 flex items-center justify-center transition-all duration-200 hover:border-white/15 hover:bg-white/6 active:scale-90">
+              <RotateCcw size={14} className="text-[var(--text-muted)]" />
             </button>
           )}
-          <button type="button" onClick={() => { (async () => { const r = await undoSuperLike(); if (r.error) toast(r.error, 'error'); else { setSuperLikesLeft(s => s + 1); toast('Super like annulé', 'success') } })().catch(logger.error) }}
-            aria-label="Annuler super like"
-            className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-indigo-500/30 active:scale-90">
-            <Star size={14} className="text-indigo-400" />
-          </button>
+
           <button type="button" onClick={() => setShowFilters(!showFilters)} aria-label="Filtres"
-            className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-white/20 active:scale-90">
-            <SlidersHorizontal size={16} className="text-[#A09890]" />
+            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-200 active:scale-90 ${
+              showFilters
+                ? 'border-[var(--primary)]/40 bg-[var(--primary)]/8 text-[var(--primary)]'
+                : 'border-white/6 bg-white/3 text-[var(--text-muted)] hover:border-white/15'
+            }`}>
+            <SlidersHorizontal size={14} />
           </button>
+
           <button type="button" onClick={() => router.push('/matches')} aria-label="Matchs"
-            className="w-10 h-10 rounded-full glass-light flex items-center justify-center transition-all duration-200 hover:border-white/20 active:scale-90">
-            <MessageCircle size={16} className="text-[#A09890]" />
+            className="w-9 h-9 rounded-full border border-white/6 bg-white/3 flex items-center justify-center transition-all duration-200 hover:border-white/15 hover:bg-white/6 active:scale-90">
+            <MessageCircle size={15} className="text-[var(--text-muted)]" />
           </button>
         </div>
       </header>
@@ -498,6 +510,7 @@ export default function DiscoverPage() {
         )}
       </AnimatePresence>
 
+      {/* ─── Zone carte ─── */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 pb-2">
         <AnimatePresence mode="wait">
           {!current ? (
@@ -507,13 +520,23 @@ export default function DiscoverPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="text-center"
+              className="text-center space-y-4"
             >
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-6 flex items-center justify-center border border-[#D92D4A]/10">
-                <Globe size={40} className="text-[#D92D4A]/30" />
+              <div className="relative w-28 h-28 mx-auto">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[var(--primary)]/12 to-transparent border border-[var(--primary)]/10 flex items-center justify-center">
+                  <Globe size={44} className="text-[var(--primary)]/25" />
+                </div>
+                <div className="absolute inset-0 rounded-3xl bg-[var(--primary)]/5 blur-xl" />
               </div>
-              <p className="text-xl font-bold text-[#F5F0EB]">Plus de profils</p>
-              <p className="text-[#6B6560] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens plus tard ou modifie tes filtres</p>
+              <div>
+                <p className="text-xl font-bold text-white">Tu as tout exploré !</p>
+                <p className="text-[var(--text-muted)] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens demain ou élargis tes filtres pour découvrir plus de profils</p>
+              </div>
+              <button type="button" onClick={() => setShowFilters(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/4 text-sm font-semibold text-[var(--text-secondary)] hover:border-white/20 transition-all duration-200">
+                <SlidersHorizontal size={14} />
+                Modifier les filtres
+              </button>
             </motion.div>
           ) : (
             <motion.div
@@ -529,139 +552,213 @@ export default function DiscoverPage() {
               onPointerLeave={handlePointerUp}
               style={dragStart !== null ? { transform: `translateX(${dragX}px) rotate(${dragX * 0.05}deg)`, transition: 'none' } : undefined}
             >
-              <TiltCard className={`w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_16px_64px_rgba(0,0,0,0.5)] bg-[#18181A] border border-[rgba(255,255,255,0.06)] transition-all duration-300 ${
+              {/* Indicateurs de swipe gauche/droite */}
+              <AnimatePresence>
+                {dragStart !== null && dragX > 40 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute top-16 left-6 z-30 px-4 py-2 rounded-full border-2 border-[#34D399] bg-[#34D399]/10 backdrop-blur-md">
+                    <span className="text-[#34D399] font-bold text-sm tracking-wider">LIKE ❤️</span>
+                  </motion.div>
+                )}
+                {dragStart !== null && dragX < -40 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="absolute top-16 right-6 z-30 px-4 py-2 rounded-full border-2 border-[#F87171] bg-[#F87171]/10 backdrop-blur-md">
+                    <span className="text-[#F87171] font-bold text-sm tracking-wider">NOPE ✕</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <TiltCard className={`relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)] bg-[#18181A] border border-white/6 transition-all duration-300 ${
                 swipeAnim === 'left' ? 'opacity-0 -translate-x-48 rotate-12 scale-90' : swipeAnim === 'right' ? 'opacity-0 translate-x-48 -rotate-12 scale-90' : ''
               }`}>
                 <div className="relative w-full h-full">
+                  {/* Heart burst animation */}
                   {heartBurst && (
                     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                       <motion.div
                         initial={{ scale: 0, rotate: -10 }}
-                        animate={{ scale: 1.3, rotate: 5, opacity: 0 }}
-                        transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+                        animate={{ scale: 1.6, rotate: 5, opacity: 0 }}
+                        transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
                       >
-                        <Heart size={80} className="text-white" fill="white" />
+                        <Heart size={90} className="text-[#34D399]" fill="#34D399" />
                       </motion.div>
                     </div>
                   )}
+
+                  {/* Photo */}
                   {current.photos?.[0] ? (
                     <Image src={current.photos[0]} alt={current.name} fill className="object-cover pointer-events-none" />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#262628]">
-                      <Heart size={48} className="text-[#5A5248]" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#1C1C1E]">
+                      <Heart size={48} className="text-[#3A3835]" />
                     </div>
                   )}
+
+                  {/* Stories ring */}
                   {storiesUserIds.has(current.id) && (
-                    <div className="absolute top-4 left-4 w-11 h-11 rounded-full ring-2 ring-[#D92D4A] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_12px_rgba(217,45,74,0.3)]" />
+                    <div className="absolute top-4 left-4 w-12 h-12 rounded-full ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_16px_rgba(217,45,74,0.35)]" />
                   )}
-                  <div className="absolute top-4 right-4 flex items-center gap-1.5">
+
+                  {/* Badges top-left : Aura, Trust, Energy */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-1.5">
                     {auraMap[current.id] && (
-                      <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
+                      <div className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold shadow-lg backdrop-blur-md border"
                         style={{
-                          background: auraMap[current.id].color + '30',
+                          background: auraMap[current.id].color + '22',
                           color: auraMap[current.id].color,
-                          border: `1px solid ${auraMap[current.id].color}40`,
+                          borderColor: auraMap[current.id].color + '35',
                         }}>
-                        {auraMap[current.id].label} {auraMap[current.id].level}
+                        ✦ {auraMap[current.id].label} {auraMap[current.id].level}
                       </div>
                     )}
+                  </div>
+
+                  {/* Badges top-right : Trust, Energy, Compat */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-1.5 items-end">
+                    {/* Block button */}
+                    <button type="button" onClick={() => { (async () => {
+                      if (!current) return
+                      if (await confirm('Bloquer ce profil ?')) {
+                        await blockProfile(current.id)
+                        const { data } = await fetchProfiles([current.id])
+                        if (data) setProfiles(data)
+                        setIdx(0)
+                      }
+                    })().catch(logger.error) }} aria-label="Bloquer"
+                      className="w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/60 transition-all duration-200">
+                      <Shield size={13} className="text-white/40" />
+                    </button>
+
                     {current.trust_score !== undefined && current.trust_score !== null && (
-                      <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
+                      <div className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-lg backdrop-blur-md border"
                         style={{
-                          background: current.trust_score >= 70 ? 'rgba(129,140,248,0.25)' : current.trust_score >= 40 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)',
+                          background: current.trust_score >= 70 ? 'rgba(129,140,248,0.18)' : current.trust_score >= 40 ? 'rgba(251,191,36,0.18)' : 'rgba(248,113,113,0.18)',
                           color: current.trust_score >= 70 ? '#A5B4FC' : current.trust_score >= 40 ? '#FBBF24' : '#F87171',
+                          borderColor: current.trust_score >= 70 ? 'rgba(129,140,248,0.25)' : 'rgba(251,191,36,0.2)',
                         }}>
-                        🛡️{current.trust_score}
+                        🛡 {current.trust_score}
                       </div>
                     )}
                     {current.energy_score !== undefined && current.energy_score !== null && (
-                      <div className="px-2 py-0.5 rounded text-[10px] font-bold shadow-lg backdrop-blur-md"
+                      <div className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-lg backdrop-blur-md border"
                         style={{
-                          background: current.energy_score >= 70 ? 'rgba(52,211,153,0.25)' : current.energy_score >= 40 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)',
-                          color: current.energy_score >= 70 ? '#34D399' : current.energy_score >= 40 ? '#FBBF24' : '#F87171',
+                          background: current.energy_score >= 70 ? 'rgba(52,211,153,0.18)' : 'rgba(251,191,36,0.18)',
+                          color: current.energy_score >= 70 ? '#34D399' : '#FBBF24',
+                          borderColor: 'rgba(52,211,153,0.2)',
                         }}>
-                        ⚡{current.energy_score}
+                        ⚡ {current.energy_score}
                       </div>
                     )}
                     {compatScores[current.id] !== undefined && (
-                      <div className="px-2.5 py-0.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-md"
-                        style={{ background: compatScores[current.id] >= 70 ? '#34D399' : compatScores[current.id] >= 40 ? '#FBBF24' : '#F87171' }}>
-                        {compatScores[current.id]}%
+                      <div className="px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg backdrop-blur-md"
+                        style={{
+                          background: compatScores[current.id] >= 70 ? 'rgba(52,211,153,0.85)' : compatScores[current.id] >= 40 ? 'rgba(251,191,36,0.85)' : 'rgba(248,113,113,0.85)',
+                          color: 'white',
+                        }}>
+                        {compatScores[current.id]}% match
                       </div>
                     )}
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
 
-                  <div className="absolute bottom-24 left-5 right-5 pointer-events-none">
-                    <div className="flex items-center gap-1.5">
-                      <h2 className="text-2xl font-bold text-white flex items-center gap-1.5">{current.name}{current.is_verified && <BadgeCheck size={18} className="text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />}</h2>
-                      {current.age && <span className="text-xl text-white/80">{current.age}</span>}
+                  {/* Dégradé bas */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent pointer-events-none" />
+
+                  {/* Info profil bas */}
+                  <div className="absolute bottom-[6.5rem] left-5 right-5 pointer-events-none space-y-1.5">
+                    <div className="flex items-baseline gap-2">
+                      <h2 className="text-[22px] font-bold text-white leading-tight">
+                        {current.name}
+                        {current.is_verified && <BadgeCheck size={17} className="inline ml-1.5 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />}
+                      </h2>
+                      {current.age && <span className="text-lg text-white/75 font-semibold">{current.age}</span>}
                     </div>
-                    {current.location && <p className="text-white/70 text-sm mt-0.5">{current.location}</p>}
-                  </div>
-
-                  {current.interests && current.interests.length > 0 && (
-                    <div className="absolute bottom-[7.5rem] left-5 flex gap-1.5 pointer-events-none">
-                      {current.interests.slice(0, 3).map((i) => (
-                        <span key={i} className="text-[11px] text-white bg-white/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{i}</span>
+                    {current.location && (
+                      <p className="text-white/60 text-xs flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 rounded-full bg-white/40" />
+                        {current.location}
+                      </p>
+                    )}
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {current.mood && (
+                        <span className="text-[10px] text-white/80 bg-white/12 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/8">{moodLabel(current.mood)}</span>
+                      )}
+                      {current.looking_for && (
+                        <span className="text-[10px] text-[var(--primary)] bg-[var(--primary)]/12 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-[var(--primary)]/15">{lookingForLabel(current.looking_for)}</span>
+                      )}
+                      {current.interests?.slice(0, 2).map((i) => (
+                        <span key={i} className="text-[10px] text-white/65 bg-white/8 backdrop-blur-sm px-2 py-0.5 rounded-full">{i}</span>
                       ))}
                     </div>
-                  )}
-                  {current.looking_for && (
-                    <div className="absolute bottom-[6rem] left-5 pointer-events-none">
-                      <span className="text-[11px] text-[#D92D4A] bg-[#D92D4A]/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{lookingForLabel(current.looking_for)}</span>
-                    </div>
-                  )}
-                  {current.mood && (
-                    <div className="absolute bottom-[4.5rem] left-5 pointer-events-none">
-                      <span className="text-[11px] text-white bg-white/15 backdrop-blur-md px-2.5 py-0.5 rounded-full">{moodLabel(current.mood)}</span>
-                    </div>
-                  )}
-                  <button type="button" onClick={() => { (async () => {
-                    if (!current) return
-                    if (await confirm('Bloquer ce profil ?')) {
-                      await blockProfile(current.id)
-                      const { data } = await fetchProfiles([current.id])
-                      if (data) setProfiles(data)
-                      setIdx(0)
-                    }
-                  })().catch(logger.error) }} aria-label="Bloquer"
-                    className="absolute top-4 right-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full z-10 hover:bg-black/60 transition-all duration-200">
-                    <Shield size={15} className="text-[#6B6560]" />
-                  </button>
-                </div>
-
-                <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3">
-                  <button type="button" onClick={() => swipe('pass')} aria-label="Passer"
-                    className="w-14 h-14 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-red-500/30 hover:shadow-[0_0_20px_rgba(239,68,68,0.1)]">
-                    <X size={24} className="text-[#F87171]" />
-                  </button>
-                  <div className="relative">
-                    <button type="button" onClick={() => swipe('super_like')} aria-label="Super like"
-                      className="w-12 h-12 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-indigo-600/30 shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-indigo-500/50">
-                      <Star size={20} className="text-indigo-400" />
-                    </button>
-                    <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-indigo-400 bg-[#0F0F11] rounded-full px-1.5 border border-indigo-500/40">
-                      {superLikesLeft}/{SUPER_LIKE_DAILY}
-                    </span>
                   </div>
-                  <button type="button" onClick={() => { (async () => {
-                    if (!current || flirtedIds.includes(current.id)) return
-                    await sendFlirt(current.id)
-                    logBehavior('send_flirt', current.id)
-                    setFlirtedIds(ids => [...ids, current.id])
-                  })().catch(logger.error) }} aria-label="Clin d'oeil"
-                    className="w-11 h-11 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-[#D92D4A]/30">
-                    <Eye size={18} className={flirtedIds.includes(current?.id ?? '') ? 'text-[#D92D4A]' : 'text-[#6B6560]'} />
-                  </button>
-                  <button type="button" onClick={() => swipe('like')} aria-label="Like"
-                    className="w-14 h-14 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-[#34D399]/30 hover:shadow-[0_0_20px_rgba(52,211,153,0.1)]">
-                    <Heart size={24} className="text-[#34D399]" />
-                  </button>
-                  <button type="button" onClick={() => setShowReportModal(true)} aria-label="Signaler"
-                    className="w-11 h-11 rounded-full bg-[rgba(15,15,17,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] shadow-lg flex items-center justify-center transition-all duration-200 active:scale-90 hover:border-zinc-500/50">
-                    <Flag size={16} className="text-[#6B6560]" />
-                  </button>
+
+                  {/* ─── Action buttons ─── */}
+                  <div className="absolute bottom-5 left-0 right-0 flex justify-center items-center gap-2.5">
+                    {/* Pass */}
+                    <button type="button" onClick={() => swipe('pass')} aria-label="Passer"
+                      className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
+                      style={{
+                        background: 'rgba(8,8,10,0.75)',
+                        backdropFilter: 'blur(20px)',
+                        borderColor: 'rgba(248,113,113,0.2)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                      }}>
+                      <X size={24} className="text-[#F87171]" />
+                    </button>
+
+                    {/* Super like */}
+                    <div className="relative">
+                      <button type="button" onClick={() => swipe('super_like')} aria-label="Super like"
+                        className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
+                        style={{
+                          background: 'rgba(8,8,10,0.75)',
+                          backdropFilter: 'blur(20px)',
+                          borderColor: 'rgba(129,140,248,0.3)',
+                          boxShadow: superLikesLeft > 0 ? '0 0 16px rgba(129,140,248,0.15), 0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.4)',
+                        }}>
+                        <Star size={19} className="text-indigo-400" fill={superLikesLeft > 0 ? '#818CF8' : 'none'} />
+                      </button>
+                      <span className="absolute -top-1.5 -right-2 text-[9px] font-bold text-indigo-300 bg-[#0D0D12] rounded-full px-1.5 py-0.5 border border-indigo-500/30">
+                        {superLikesLeft}/{SUPER_LIKE_DAILY}
+                      </span>
+                    </div>
+
+                    {/* Flirt / wink */}
+                    <button type="button" onClick={() => { (async () => {
+                      if (!current || flirtedIds.includes(current.id)) return
+                      await sendFlirt(current.id)
+                      logBehavior('send_flirt', current.id)
+                      setFlirtedIds(ids => [...ids, current.id])
+                    })().catch(logger.error) }} aria-label="Clin d'oeil"
+                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
+                      style={{
+                        background: 'rgba(8,8,10,0.75)',
+                        backdropFilter: 'blur(20px)',
+                        borderColor: flirtedIds.includes(current?.id ?? '') ? 'rgba(217,45,74,0.35)' : 'rgba(255,255,255,0.06)',
+                        boxShadow: flirtedIds.includes(current?.id ?? '') ? '0 0 12px rgba(217,45,74,0.15)' : 'none',
+                      }}>
+                      <Eye size={17} className={flirtedIds.includes(current?.id ?? '') ? 'text-[var(--primary)]' : 'text-white/40'} />
+                    </button>
+
+                    {/* Like */}
+                    <button type="button" onClick={() => swipe('like')} aria-label="Like"
+                      className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
+                      style={{
+                        background: 'rgba(8,8,10,0.75)',
+                        backdropFilter: 'blur(20px)',
+                        borderColor: 'rgba(52,211,153,0.2)',
+                        boxShadow: '0 0 20px rgba(52,211,153,0.08), 0 4px 20px rgba(0,0,0,0.4)',
+                      }}>
+                      <Heart size={24} className="text-[#34D399]" />
+                    </button>
+
+                    {/* Signaler */}
+                    <button type="button" onClick={() => setShowReportModal(true)} aria-label="Signaler"
+                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border border-white/5"
+                      style={{ background: 'rgba(8,8,10,0.75)', backdropFilter: 'blur(20px)' }}>
+                      <Flag size={14} className="text-white/25" />
+                    </button>
+                  </div>
                 </div>
               </TiltCard>
             </motion.div>
@@ -711,44 +808,91 @@ export default function DiscoverPage() {
         )}
       </AnimatePresence>
 
+      {/* ─── Match Modal premium ─── */}
       <AnimatePresence>
         {matchModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            aria-hidden="true" role="presentation" className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
+            aria-hidden="true"
+            role="presentation"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
             onClick={() => setMatchModal(null)}
           >
             <MatchBurst />
             <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              role="dialog" aria-modal="true" tabIndex={-1}
-              className="glass rounded-3xl p-8 max-w-sm w-full text-center relative z-10"
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+              role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
+              className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl text-center"
+              style={{
+                background: 'linear-gradient(160deg, rgba(20,20,22,0.97) 0%, rgba(12,12,14,0.99) 100%)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: '0 40px_100px_rgba(0,0,0,0.7), 0 0 0 1px rgba(217,45,74,0.08)',
+              }}
+              onClick={e => e.stopPropagation()}
             >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#A8102A] mx-auto mb-5 flex items-center justify-center shadow-[0_0_40px_rgba(217,45,74,0.3)]">
-                <Heart size={44} className="text-white" fill="white" />
+              {/* Halo de couleur */}
+              <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[var(--primary)]/12 to-transparent pointer-events-none" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-[var(--primary)] blur-3xl opacity-10 pointer-events-none" />
+
+              <div className="relative z-10 p-8 space-y-5">
+                {/* Badge match */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 16, delay: 0.1 }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] mx-auto flex items-center justify-center shadow-[0_0_48px_rgba(217,45,74,0.35)] border-2 border-white/10"
+                >
+                  <Heart size={36} className="text-white" fill="white" />
+                </motion.div>
+
+                <div>
+                  <h2 className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>C&rsquo;est un match !</h2>
+                  <p className="text-[var(--text-secondary)] text-sm mt-1">Vous vous êtes mutuellement likés ✨</p>
+                </div>
+
+                {/* Avatars */}
+                <div className="flex items-center justify-center gap-3 py-2">
+                  {myPhoto
+                    ? <Image src={myPhoto} alt="Vous" width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
+                    : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.3, 1] }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                  >
+                    <Heart size={22} className="text-[var(--primary)]" fill="var(--primary)" />
+                  </motion.div>
+                  {matchModal.profile.photos?.[0]
+                    ? <Image src={matchModal.profile.photos[0]} alt={matchModal.profile.name} width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
+                    : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
+                </div>
+
+                <p className="font-semibold text-white text-lg">{matchModal.profile.name}</p>
+
+                {/* CTA */}
+                <div className="space-y-2 pt-1">
+                  <button type="button" onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
+                    className="w-full py-4 rounded-2xl text-white font-bold text-sm tracking-wide transition-all duration-300 active:scale-[0.97]"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                      boxShadow: '0 8px 32px rgba(217,45,74,0.3)',
+                    }}>
+                    💬 Envoyer un message
+                  </button>
+                  <button type="button" onClick={() => setMatchModal(null)}
+                    className="w-full py-3 text-[var(--text-muted)] text-sm hover:text-white transition-colors duration-200">
+                    Continuer à explorer
+                  </button>
+                </div>
               </div>
-              <h2 className="text-3xl font-bold text-gradient-primary">C&rsquo;est un match !</h2>
-              <p className="text-[#A09890] mt-1">Vous vous êtes mutuellement likés</p>
-              <div className="flex items-center justify-center gap-4 my-6">
-                {myPhoto
-                  ? <Image src={myPhoto} alt="Vous" width={72} height={72} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
-                  : <div className="w-[72px] h-[72px] rounded-full bg-[#18181A] flex items-center justify-center text-[#6B6560] text-2xl border border-[#2C2A28]">?</div>}
-                <Heart size={24} className="text-[#D92D4A]/50" fill="#D92D4A" />
-                <Image src={matchModal.profile.photos?.[0] ?? ''} alt={matchModal.profile.name} width={72} height={72} className="rounded-full border-2 border-[#D92D4A] object-cover ring-2 ring-[#D92D4A]/20" />
-              </div>
-              <p className="font-semibold text-[#F5F0EB] mb-6">{matchModal.profile.name}</p>
-              <button type="button" onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
-                className="w-full py-3.5 rounded-full text-white font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-[#D92D4A] shadow-[0_4px_24px_rgba(217,45,74,0.25)] hover:shadow-[0_8px_32px_rgba(217,45,74,0.4)]">
-                Envoyer un message
-              </button>
-              <button type="button" onClick={() => setMatchModal(null)}
-                className="w-full py-3 mt-2 text-[#A09890] text-sm hover:text-[#F5F0EB] transition-colors duration-200">
-                Continuer à swiper
-              </button>
             </motion.div>
           </motion.div>
         )}

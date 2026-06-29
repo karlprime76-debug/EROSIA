@@ -1,0 +1,19 @@
+/* src/app/design-system/variables.css */
+:root {
+  /* Primary palette */
+  --color-primary: #D92D4A;
+  --color-primary-10: rgba(217, 45, 74, 0.1);
+  --color-primary-20: rgba(217, 45, 74, 0.2);
+  --color-primary-50: rgba(217, 45, 74, 0.5);
+  --color-bg: #0a0a0a;
+  --color-bg-50: rgba(10, 10, 10, 0.5);
+  --color-text: #F5F0EB;
+  --color-muted: #9E9488;
+  --color-accent: #FBBF24; /* gold accent */
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --glass-backdrop: blur(14px);
+  --transition-fast: 0.15s ease;
+  --border-radius: 0.75rem; /* 12px */
+}
