@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { confirmInvoice } from '@/lib/paydunya'
 import { logger } from '@/lib/logger'
 
 const dedupCache = new Set<string>()
