@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
@@ -16,7 +17,9 @@ if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
 export async function POST(request: Request) {
   try {
     const apiKey = request.headers.get('x-api-key')
-    if (apiKey !== process.env.PUSH_API_KEY) {
+    const expectedKey = process.env.PUSH_API_KEY
+    if (!apiKey || !expectedKey || apiKey.length !== expectedKey.length ||
+        !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 

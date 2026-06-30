@@ -1,21 +1,21 @@
-import { supabase } from '@/lib/supabase/client'
-import type { ScoringEngine, CompatInput, CompatOutput } from './types'
+import { supabase as browserClient } from '@/lib/supabase/client'
+import type { ScoringEngine, CompatInput, CompatOutput, SupabaseClientLike } from './types'
 import { registerEngine } from './registry'
 
 export class CompatibilityEngine implements ScoringEngine<CompatInput, CompatOutput> {
   name = 'compatibility'
   version = 1
 
-  async compute(input: CompatInput): Promise<CompatOutput> {
-    const { score, factors } = await computeCompat(input.userId, input.targetId)
+  async compute(input: CompatInput, db?: SupabaseClientLike): Promise<CompatOutput> {
+    const { score, factors } = await computeCompat(input.userId, input.targetId, db ?? browserClient)
     return { score, factors }
   }
 }
 
-async function computeCompat(userId: string, targetId: string): Promise<{ score: number; factors: Record<string, number> }> {
+async function computeCompat(userId: string, targetId: string, db: SupabaseClientLike): Promise<{ score: number; factors: Record<string, number> }> {
   const [user, target] = await Promise.all([
-    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', userId).maybeSingle(),
-    supabase.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', targetId).maybeSingle(),
+    db.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', userId).maybeSingle(),
+    db.from('profiles').select('age, latitude, longitude, looking_for, interests, created_at').eq('id', targetId).maybeSingle(),
   ])
   if (!user.data || !target.data) return { score: 0, factors: {} }
 
@@ -72,8 +72,8 @@ async function computeCompat(userId: string, targetId: string): Promise<{ score:
 
   // Personnalité via quiz (15%)
   const traits = await Promise.all([
-    supabase.rpc('get_user_top_traits', { p_user_id: userId }),
-    supabase.rpc('get_user_top_traits', { p_user_id: targetId }),
+    db.rpc('get_user_top_traits', { p_user_id: userId }),
+    db.rpc('get_user_top_traits', { p_user_id: targetId }),
   ])
   const userTraits = (traits[0].data as { trait: string }[] | null) ?? []
   const targetTraits = (traits[1].data as { trait: string }[] | null) ?? []
@@ -86,8 +86,8 @@ async function computeCompat(userId: string, targetId: string): Promise<{ score:
 
   // Activité (5%) — bonus si les deux sont actifs récemment
   const [uScore, tScore] = await Promise.all([
-    supabase.from('user_scores').select('activity_score').eq('user_id', userId).maybeSingle(),
-    supabase.from('user_scores').select('activity_score').eq('user_id', targetId).maybeSingle(),
+    db.from('user_scores').select('activity_score').eq('user_id', userId).maybeSingle(),
+    db.from('user_scores').select('activity_score').eq('user_id', targetId).maybeSingle(),
   ])
   const uAct = uScore.data?.activity_score ?? 1
   const tAct = tScore.data?.activity_score ?? 1

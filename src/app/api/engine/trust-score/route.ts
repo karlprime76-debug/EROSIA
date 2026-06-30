@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getEngine } from '@/lib/engine'
 import type { TrustInput, TrustOutput } from '@/lib/engine'
 import { logger } from '@/lib/logger'
@@ -16,10 +17,10 @@ export async function POST() {
     const result = await engine.compute({ userId: user.id })
     const score = result.score
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ trust_score: score })
-      .eq('id', user.id)
+    const admin = createAdminClient()
+    const { error: updateError } = await admin
+      .from('user_scores')
+      .upsert({ user_id: user.id, trust_score: score / 100 }, { onConflict: 'user_id' })
 
     if (updateError) {
       logger.error('Trust score update failed', { error: updateError.message, userId: user.id })

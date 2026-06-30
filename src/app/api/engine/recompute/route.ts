@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getEngine } from '@/lib/engine'
 import { logger } from '@/lib/logger'
 
@@ -20,10 +21,12 @@ export async function POST(request: Request) {
     const targetUserId = body.userId as string | undefined
     const engineName = body.engine as string | undefined
 
+    const admin = createAdminClient()
+
     if (engineName) {
       const engine = getEngine(engineName)
       if (!engine) return NextResponse.json({ error: 'Engine inconnu' }, { status: 404 })
-      const result = await engine.compute({ userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id })
+      const result = await engine.compute({ userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id }, admin)
       return NextResponse.json({ engine: engineName, result })
     }
 
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
       const engine = getEngine(name)
       if (engine) {
         const input = { userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id }
-        results[name] = await engine.compute(input)
+        results[name] = await engine.compute(input, admin)
       }
     }
 

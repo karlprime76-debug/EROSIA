@@ -1,20 +1,20 @@
-import { supabase } from '@/lib/supabase/client'
-import type { ScoringEngine, TrustInput, TrustOutput } from './types'
+import { supabase as browserClient } from '@/lib/supabase/client'
+import type { ScoringEngine, TrustInput, TrustOutput, SupabaseClientLike } from './types'
 import { registerEngine } from './registry'
 
 export class TrustEngine implements ScoringEngine<TrustInput, TrustOutput> {
   name = 'trust'
   version = 2
 
-  async compute(input: TrustInput): Promise<TrustOutput> {
-    return computeTrust(input.userId)
+  async compute(input: TrustInput, db?: SupabaseClientLike): Promise<TrustOutput> {
+    return computeTrust(input.userId, db ?? browserClient)
   }
 }
 
-async function computeTrust(userId: string): Promise<TrustOutput> {
+async function computeTrust(userId: string, db: SupabaseClientLike): Promise<TrustOutput> {
   const flags: string[] = []
 
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from('profiles')
     .select('is_verified, created_at, photos, bio, interests, onboarding_complete, subscription_tier, last_active_at')
     .eq('id', userId)
@@ -70,7 +70,7 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
   const sevenDays = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const thirtyDays = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: recentActions } = await supabase
+  const { data: recentActions } = await db
     .from('behavior_log')
     .select('action, created_at')
     .eq('user_id', userId)
@@ -78,20 +78,20 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
     .gte('created_at', sevenDays)
 
   const actions = recentActions ?? []
-  const likes = actions.filter(a => a.action === 'swipe_like' || a.action === 'swipe_super_like').length
+  const likes = actions.filter((a: { action: string }) => a.action === 'swipe_like' || a.action === 'swipe_super_like').length
   const total = actions.length
   const likeRatio = total > 0 ? likes / total : 0.5
 
-  const { data: allActions } = await supabase
+  const { data: allActions } = await db
     .from('behavior_log')
     .select('action, created_at')
     .eq('user_id', userId)
     .gte('created_at', sevenDays)
 
-  const activeDays = new Set((allActions ?? []).map(a => new Date(a.created_at).toISOString().slice(0, 10))).size
+  const activeDays = new Set((allActions ?? []).map((a: { created_at: string }) => new Date(a.created_at).toISOString().slice(0, 10))).size
   const activeDaysPerWeek = activeDays / 7
 
-  const distinctActions = new Set((allActions ?? []).map(a => a.action)).size
+  const distinctActions = new Set((allActions ?? []).map((a: { action: string }) => a.action)).size
   const actionDiversity = Math.min(distinctActions / 10, 1)
 
   const behaviorScore = likeRatio * 5 + activeDaysPerWeek * 5 + actionDiversity * 5
@@ -104,20 +104,20 @@ async function computeTrust(userId: string): Promise<TrustOutput> {
   }
 
   // Taux de réponse aux messages (0-5)
-  const { data: msgActions } = await supabase
+  const { data: msgActions } = await db
     .from('behavior_log')
     .select('action')
     .eq('user_id', userId)
     .in('action', ['send_message', 'reply_message'])
     .gte('created_at', thirtyDays)
 
-  const sent = (msgActions ?? []).filter(a => a.action === 'send_message').length
-  const replied = (msgActions ?? []).filter(a => a.action === 'reply_message').length
+  const sent = (msgActions ?? []).filter((a: { action: string }) => a.action === 'send_message').length
+  const replied = (msgActions ?? []).filter((a: { action: string }) => a.action === 'reply_message').length
   const replyRate = sent > 0 ? replied / sent : 0
   score += replyRate * 5
 
   // Signalements (pénalité -30 max)
-  const { count: reportCount } = await supabase
+  const { count: reportCount } = await db
     .from('reports')
     .select('id', { count: 'exact', head: true })
     .eq('reported_id', userId)

@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase/client'
-import type { ScoringEngine, ConversationInput, ConversationOutput } from './types'
+import { supabase as browserClient } from '@/lib/supabase/client'
+import type { ScoringEngine, ConversationInput, ConversationOutput, SupabaseClientLike } from './types'
 import { registerEngine } from './registry'
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
@@ -8,17 +8,17 @@ export class ConversationEngine implements ScoringEngine<ConversationInput, Conv
   name = 'conversation'
   version = 1
 
-  async compute(input: ConversationInput): Promise<ConversationOutput> {
-    return computeConversation(input.userId)
+  async compute(input: ConversationInput, db?: SupabaseClientLike): Promise<ConversationOutput> {
+    return computeConversation(input.userId, db ?? browserClient)
   }
 }
 
-async function computeConversation(userId: string): Promise<ConversationOutput> {
+async function computeConversation(userId: string, db: SupabaseClientLike): Promise<ConversationOutput> {
   const metrics: Record<string, number> = {}
 
   // Messages envoyés et reçus sur 30 jours
   const since = new Date(Date.now() - THIRTY_DAYS).toISOString()
-  const { data: matches } = await supabase
+  const { data: matches } = await db
     .from('matches')
     .select('id, created_at')
     .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
@@ -27,9 +27,9 @@ async function computeConversation(userId: string): Promise<ConversationOutput> 
     return { score: 0, metrics: {} }
   }
 
-  const matchIds = matches.map(m => m.id)
+  const matchIds = matches.map((m: { id: string }) => m.id)
 
-  const { data: messages } = await supabase
+  const { data: messages } = await db
     .from('messages')
     .select('sender_id, match_id, created_at')
     .in('match_id', matchIds)
@@ -39,14 +39,14 @@ async function computeConversation(userId: string): Promise<ConversationOutput> 
   const msgs = messages ?? []
 
   // Taux de réponse
-  const sentByMe = msgs.filter(m => m.sender_id === userId).length
-  const sentToMe = msgs.filter(m => m.sender_id !== userId).length
+  const sentByMe = msgs.filter((m: { sender_id: string }) => m.sender_id === userId).length
+  const sentToMe = msgs.filter((m: { sender_id: string }) => m.sender_id !== userId).length
   metrics.responseRate = sentToMe > 0 ? Math.min(sentByMe / sentToMe, 1) : 0
 
   // Temps moyen de réponse
   const replyTimes: number[] = []
   for (const matchId of matchIds) {
-    const matchMsgs = msgs.filter(m => m.match_id === matchId)
+    const matchMsgs = msgs.filter((m: { match_id: string }) => m.match_id === matchId)
     for (let i = 1; i < matchMsgs.length; i++) {
       if (matchMsgs[i].sender_id !== matchMsgs[i - 1].sender_id) {
         replyTimes.push(
@@ -64,13 +64,13 @@ async function computeConversation(userId: string): Promise<ConversationOutput> 
     : 0
 
   // Longueur moyenne des conversations (messages par match)
-  const msgsPerMatch = matchIds.map(id => msgs.filter(m => m.match_id === id).length)
-  const avgConversationLength = msgsPerMatch.reduce((a, b) => a + b, 0) / matches.length
+  const msgsPerMatch = matchIds.map((id: string) => msgs.filter((m: { match_id: string }) => m.match_id === id).length)
+  const avgConversationLength = msgsPerMatch.reduce((a: number, b: number) => a + b, 0) / matches.length
   metrics.avgConversationLength = Math.min(avgConversationLength / 20, 1)
 
   // Taux de ghosting (matches sans message après 48h)
-  const ghostedMatches = matches.filter(m => {
-    const matchMsgs = msgs.filter(msg => msg.match_id === m.id)
+  const ghostedMatches = matches.filter((m: { id: string }) => {
+    const matchMsgs = msgs.filter((msg: { match_id: string }) => msg.match_id === m.id)
     if (matchMsgs.length === 0) return true
     const lastMsgTime = new Date(matchMsgs[matchMsgs.length - 1].created_at).getTime()
     if (isNaN(lastMsgTime)) return true

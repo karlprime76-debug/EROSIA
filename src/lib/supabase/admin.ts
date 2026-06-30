@@ -1,11 +1,15 @@
-// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.5), SUPABASE_SERVICE_KEY! (l.6)
-// SUPABASE_SERVICE_KEY est critique — ajouter un guard: if (!key) throw new Error('...')
 import { createClient } from '@supabase/supabase-js'
+
+function requireEnv(name: string): string {
+  const val = process.env[name]
+  if (!val) throw new Error(`Variable d'environnement manquante: ${name}`)
+  return val
+}
 
 export function createAdminClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('SUPABASE_SERVICE_KEY'),
     { auth: { persistSession: false } }
   )
 }

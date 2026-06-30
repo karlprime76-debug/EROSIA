@@ -1,8 +1,15 @@
+// Generic Supabase client type compatible with both browser and admin clients.
+// Using `any` here is intentional to avoid coupling the engine layer to a specific
+// Supabase client import (browser vs server vs admin).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SupabaseClientLike = any
+
 export interface ScoringEngine<TInput, TOutput> {
   name: string
   version: number
-  compute(input: TInput): Promise<TOutput>
+  compute(input: TInput, db?: SupabaseClientLike): Promise<TOutput>
 }
+
 
 export interface CompatInput {
   userId: string

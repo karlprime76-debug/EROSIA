@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { recommendationEngine } from '@/lib/engine'
 import { logger } from '@/lib/logger'
 
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
     const lng = searchParams.get('lng')
     const city = searchParams.get('city')
 
+    const admin = createAdminClient()
     const result = await recommendationEngine.compute({
       userId: user.id,
       excludeIds: [],
@@ -33,7 +35,7 @@ export async function GET(request: Request) {
         ...(lng ? { lng: parseFloat(lng) } : {}),
         ...(city ? { city } : {}),
       },
-    })
+    }, admin)
 
     return NextResponse.json(result)
   } catch (err) {

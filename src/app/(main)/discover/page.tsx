@@ -369,38 +369,6 @@ export default function DiscoverPage() {
     }).catch(() => { toast('Erreur chargement stories', 'error') })
   }, [toast])
 
-  useEffect(() => {
-    const current = profilesRef.current
-    if (!current.length) return
-    let cancelled = false
-    const load = async () => {
-      const scores = await getCompatibilityBatch(current.map(p => p.id))
-      if (cancelled) return
-      setCompatScores(scores)
-      const auraRes = await fetch('/api/aura/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: current.map(p => p.id) }),
-      })
-      if (!cancelled && auraRes.ok) {
-        const { auras } = await auraRes.json()
-        if (auras) setAuraMap(auras)
-      }
-      const sorted = [...current].sort((a, b) => {
-        const sa = computeProfileScore(a, myLookingForInternal, myMoodInternal, lat, lng)
-        const sb = computeProfileScore(b, myLookingForInternal, myMoodInternal, lat, lng)
-        if (sa !== sb) return sb - sa
-        const qa = scores[a.id] ?? 0
-        const qb = scores[b.id] ?? 0
-        if (qa !== qb) return qb - qa
-        return Math.random() - 0.5
-      })
-      setProfiles(sorted)
-    }
-    load()
-    return () => { cancelled = true }
-  }, [profiles.length, myLookingForInternal, myMoodInternal, lat, lng])
-
   if (loading) return <DiscoverSkeleton />
 
   return (

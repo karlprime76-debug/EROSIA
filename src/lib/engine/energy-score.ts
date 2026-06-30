@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client'
+import { supabase as browserClient } from '@/lib/supabase/client'
 import { getEngine } from './registry'
 import type {
   ScoringEngine,
@@ -6,6 +6,7 @@ import type {
   ActivityInput, ActivityOutput,
   ConversationInput, ConversationOutput,
   TrustInput, TrustOutput,
+  SupabaseClientLike,
 } from './types'
 import { registerEngine } from './registry'
 
@@ -22,12 +23,12 @@ export class EnergyScoreEngine implements ScoringEngine<EnergyInput, EnergyOutpu
   name = 'energy-score'
   version = 1
 
-  async compute(input: EnergyInput): Promise<EnergyOutput> {
-    return computeEnergyScore(input.userId)
+  async compute(input: EnergyInput, db?: SupabaseClientLike): Promise<EnergyOutput> {
+    return computeEnergyScore(input.userId, db ?? browserClient)
   }
 }
 
-async function computeEnergyScore(userId: string): Promise<EnergyOutput> {
+async function computeEnergyScore(userId: string, db: SupabaseClientLike): Promise<EnergyOutput> {
   const behaviorEngine = getEngine<BehaviorInput, BehaviorOutput>('behavior')
   const activityEngine = getEngine<ActivityInput, ActivityOutput>('activity')
   const conversationEngine = getEngine<ConversationInput, ConversationOutput>('conversation')
@@ -39,13 +40,13 @@ async function computeEnergyScore(userId: string): Promise<EnergyOutput> {
     conversationResult,
     trustResult,
   ] = await Promise.all([
-    (await activityEngine?.compute({ userId }).catch(() => ({ score: 1 } as ActivityOutput))) ?? { score: 1 } as ActivityOutput,
-    (await behaviorEngine?.compute({ userId }).catch(() => ({ score: 0, signals: {} } as BehaviorOutput))) ?? { score: 0, signals: {} } as BehaviorOutput,
-    (await conversationEngine?.compute({ userId }).catch(() => ({ score: 0, metrics: {} } as ConversationOutput))) ?? { score: 0, metrics: {} } as ConversationOutput,
-    (await trustEngine?.compute({ userId }).catch(() => ({ score: 50, flags: [] } as TrustOutput))) ?? { score: 50, flags: [] } as TrustOutput,
+    (await activityEngine?.compute({ userId }, db).catch(() => ({ score: 1 } as ActivityOutput))) ?? { score: 1 } as ActivityOutput,
+    (await behaviorEngine?.compute({ userId }, db).catch(() => ({ score: 0, signals: {} } as BehaviorOutput))) ?? { score: 0, signals: {} } as BehaviorOutput,
+    (await conversationEngine?.compute({ userId }, db).catch(() => ({ score: 0, metrics: {} } as ConversationOutput))) ?? { score: 0, metrics: {} } as ConversationOutput,
+    (await trustEngine?.compute({ userId }, db).catch(() => ({ score: 50, flags: [] } as TrustOutput))) ?? { score: 50, flags: [] } as TrustOutput,
   ])
 
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from('profiles')
     .select('photos, bio, interests, onboarding_complete')
     .eq('id', userId)

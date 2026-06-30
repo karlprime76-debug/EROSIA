@@ -1,6 +1,7 @@
 import { supabase as sbClient } from './supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
 import type { BehaviorAction } from './engine/types'
+import { sanitize } from './sanitize'
 import { validateFile, sanitizeFilename } from './media'
 import { logger } from './logger'
 
@@ -125,7 +126,23 @@ export async function updatePassword(password: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at'
+
+async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): Promise<Profile[] | null> {
+  if (!profiles || profiles.length === 0) return profiles as Profile[] | null
+  const ids = profiles.map(p => p.id)
+  const { data: scores } = await supabase().from('user_scores').select('user_id, energy_score, trust_score').in('user_id', ids)
+  const scoresMap = new Map(scores?.map(s => [s.user_id, s]) ?? [])
+  return profiles.map(p => {
+    const s = scoresMap.get(p.id)
+    return {
+      ...p,
+      energy_score: s?.energy_score ? Math.round(s.energy_score * 100) : 50,
+      trust_score: s?.trust_score ? Math.round(s.trust_score * 100) : 50,
+      mood: 'discuter',
+    } as Profile
+  })
+}
 
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)
@@ -136,13 +153,15 @@ export async function getProfiles(excludeIds: string[], filters?: { minAge?: num
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
   if (!filters?.showIncognito) q = q.eq('incognito', false)
   const { data, error } = await q
-  return { data: data as Profile[] | null, error: error?.message }
+  const attached = await attachScoresAndMood(data)
+  return { data: attached, error: error?.message }
 }
 
 export async function getProfile(id: string) {
   const { data } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).maybeSingle()
   if (!data) return { data: null, error: 'Profil introuvable' }
-  return { data: data as Profile, error: null }
+  const attached = await attachScoresAndMood([data])
+  return { data: attached?.[0] ?? null, error: null }
 }
 
 export async function updateProfile(id: string, updates: Partial<Profile>) {
@@ -151,10 +170,10 @@ export async function updateProfile(id: string, updates: Partial<Profile>) {
   if (!user) { logger.warn('updateProfile: non authentifié'); return { error: 'Not authenticated' } }
   if (user.id !== id) { logger.warn('updateProfile: accès non autorisé', { userId: user.id, profileId: id }); return { error: 'Non autorisé' } }
   const sanitized = { ...updates }
-  if (typeof sanitized.bio === 'string') sanitized.bio = sanitized.bio.replace(/<[^>]*>/g, '').slice(0, 500)
-  if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.replace(/<[^>]*>/g, '').slice(0, 80)
-  if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitized.occupation.replace(/<[^>]*>/g, '').slice(0, 100)
-  if (typeof sanitized.location === 'string') sanitized.location = sanitized.location.replace(/<[^>]*>/g, '').slice(0, 100)
+  if (typeof sanitized.bio === 'string') sanitized.bio = sanitize(sanitized.bio, 500)
+  if (typeof sanitized.name === 'string') sanitized.name = sanitize(sanitized.name, 80)
+  if (typeof sanitized.occupation === 'string') sanitized.occupation = sanitize(sanitized.occupation, 100)
+  if (typeof sanitized.location === 'string') sanitized.location = sanitize(sanitized.location, 100)
   logger.debug('updateProfile: appel Supabase', { sanitized, id })
   const { data, error } = await supabase().from('profiles').update(sanitized).eq('id', id).select().maybeSingle()
   if (error) { logger.error('updateProfile: erreur Supabase', error); return { error: error.message } }
@@ -383,7 +402,8 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
   const { data, error } = await q
-  return { data: data as Profile[] | null, error: error?.message }
+  const attached = await attachScoresAndMood(data)
+  return { data: attached, error: error?.message }
 }
 
 // 2. Super like limit
@@ -1040,7 +1060,8 @@ export async function getDailyProfile() {
   const { data: rpcData, error: rpcError } = await supabase().rpc('select_daily_profile')
   if (!rpcData || rpcError) return { data: null, error: rpcError?.message }
   const { data: profile } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', rpcData as string).maybeSingle()
-  return { data: profile as Profile | null, error: null }
+  const attached = await attachScoresAndMood(profile ? [profile] : null)
+  return { data: attached?.[0] ?? null, error: null }
 }
 
 // ---- DAILY SWIPE LIMIT ----
@@ -1075,7 +1096,8 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   if (!filters?.showIncognito) q = q.eq('incognito', false)
   q = q.range(from, to)
   const { data, error } = await q
-  return { data: data as Profile[] | null, error: error?.message }
+  const attached = await attachScoresAndMood(data)
+  return { data: attached, error: error?.message }
 }
 
 // ---- UNDO SUPER LIKE ----
@@ -1112,7 +1134,8 @@ export async function searchProfilesByCity(city: string, excludeIds: string[], f
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
   q = q.eq('incognito', false)
   const { data, error } = await q
-  return { data: data as Profile[] | null, error: error?.message }
+  const attached = await attachScoresAndMood(data)
+  return { data: attached, error: error?.message }
 }
 
 // ---- EME: Behavior Tracking ----

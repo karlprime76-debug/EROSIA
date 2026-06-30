@@ -45,8 +45,10 @@ export default function NotificationsPage() {
 
   const handleClick = async (n: Notification) => {
     if (!n.read) await markNotificationRead(n.id)
-    if (n.type === 'message' || n.type === 'match') {
+    if (n.type === 'match') {
       router.push('/matches')
+    } else if (n.type === 'message') {
+      router.push(`/chat/${n.actor_id}`)
     } else {
       router.push('/profile')
     }

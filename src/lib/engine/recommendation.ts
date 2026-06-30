@@ -1,6 +1,6 @@
-import { supabase } from '@/lib/supabase/client'
+import { supabase as browserClient } from '@/lib/supabase/client'
 import { getEngine, registerEngine } from './registry'
-import type { ScoringEngine, RecommendInput, RecommendOutput, SparkInput, SparkOutput } from './types'
+import type { ScoringEngine, RecommendInput, RecommendOutput, SparkInput, SparkOutput, SupabaseClientLike } from './types'
 
 const PAGE_SIZE = 20
 
@@ -8,34 +8,34 @@ export class RecommendationEngine implements ScoringEngine<RecommendInput, Recom
   name = 'recommendation'
   version = 1
 
-  async compute(input: RecommendInput): Promise<RecommendOutput> {
-    return getRecommendations(input)
+  async compute(input: RecommendInput, db?: SupabaseClientLike): Promise<RecommendOutput> {
+    return getRecommendations(input, db ?? browserClient)
   }
 }
 
-async function getRecommendations(input: RecommendInput): Promise<RecommendOutput> {
+async function getRecommendations(input: RecommendInput, db: SupabaseClientLike): Promise<RecommendOutput> {
   const { userId, excludeIds: extraExclude, page = 0, limit = PAGE_SIZE } = input
   const filters = input.filters ?? {}
 
   // 1. Construire la requête de base
-  let query = supabase
+  let query = db
     .from('profiles')
     .select('id, name, age, photos, looking_for, created_at, location, latitude, longitude, bio, interests, is_verified', { count: 'exact' })
     .eq('onboarding_complete', true)
     .neq('id', userId)
 
   // Exclure les déjà swipés/bloqués
-  const { data: swiped } = await supabase
+  const { data: swiped } = await db
     .from('swipes')
     .select('swiped_id')
     .eq('swiper_id', userId)
-  const swipedIds = (swiped ?? []).map(s => s.swiped_id)
+  const swipedIds = (swiped ?? []).map((s: { swiped_id: string }) => s.swiped_id)
 
-  const { data: blocked } = await supabase
+  const { data: blocked } = await db
     .from('blocks')
     .select('blocked_id')
     .eq('blocker_id', userId)
-  const blockedIds = (blocked ?? []).map(b => b.blocked_id)
+  const blockedIds = (blocked ?? []).map((b: { blocked_id: string }) => b.blocked_id)
 
   const allExclude = [...new Set([...extraExclude, ...swipedIds, ...blockedIds, userId])]
   if (allExclude.length > 0) {
@@ -82,9 +82,9 @@ async function getRecommendations(input: RecommendInput): Promise<RecommendOutpu
   for (let i = 0; i < profiles.length; i += batchSize) {
     const batch = profiles.slice(i, i + batchSize)
     const results = await Promise.allSettled(
-      batch.map(async (profile) => {
+      batch.map(async (profile: { id: string }) => {
         if (sparkEngine) {
-          const result = await sparkEngine.compute({ userId, targetId: profile.id })
+          const result = await sparkEngine.compute({ userId, targetId: profile.id }, db)
           return {
             id: profile.id,
             score: result.score,

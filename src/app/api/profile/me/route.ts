@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié', userId: null }, { status: 401 })
     }
 
-    const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at'
+    const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at'
     const { data, error: selErr } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
 
     if (selErr) {
@@ -34,7 +34,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors du chargement du profil', userId: user.id }, { status: 500 })
     }
 
-    const response = NextResponse.json({ profile: data, userId: user.id })
+    const { data: userScore } = await supabase
+      .from('user_scores')
+      .select('energy_score, trust_score')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const profile = {
+      ...data,
+      energy_score: userScore?.energy_score ? Math.round(userScore.energy_score * 100) : 50,
+      trust_score: userScore?.trust_score ? Math.round(userScore.trust_score * 100) : 50,
+      mood: 'discuter',
+    }
+
+    const response = NextResponse.json({ profile, userId: user.id })
     request.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
     return response
   } catch (err) {

@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase/client'
-import type { ScoringEngine, InterestGraphInput, InterestGraphOutput } from './types'
+import { supabase as browserClient } from '@/lib/supabase/client'
+import type { ScoringEngine, InterestGraphInput, InterestGraphOutput, SupabaseClientLike } from './types'
 import { registerEngine } from './registry'
 
 const INTEREST_CATEGORIES: Record<string, string[]> = {
@@ -42,20 +42,20 @@ export class InterestGraphEngine implements ScoringEngine<InterestGraphInput, In
   name = 'interest-graph'
   version = 1
 
-  async compute(input: InterestGraphInput): Promise<InterestGraphOutput> {
-    return computeInterestBoost(input.userId, input.targetId)
+  async compute(input: InterestGraphInput, db?: SupabaseClientLike): Promise<InterestGraphOutput> {
+    return computeInterestBoost(input.userId, input.targetId, db ?? browserClient)
   }
 }
 
-async function ensureInterest(name: string, category: string): Promise<string | null> {
-  const { data: existing } = await supabase
+async function ensureInterest(name: string, category: string, db: SupabaseClientLike): Promise<string | null> {
+  const { data: existing } = await db
     .from('interest_graph')
     .select('id')
     .eq('name', name)
     .maybeSingle()
   if (existing) return existing.id
 
-  const { data: inserted } = await supabase
+  const { data: inserted } = await db
     .from('interest_graph')
     .insert({ name, category })
     .select('id')
@@ -63,31 +63,31 @@ async function ensureInterest(name: string, category: string): Promise<string | 
   return inserted?.id ?? null
 }
 
-async function syncProfileInterests(profileId: string, interests: string[]): Promise<void> {
+async function syncProfileInterests(profileId: string, interests: string[], db: SupabaseClientLike): Promise<void> {
   const mapped = interests.map(categorizeInterest)
   const interestIds: string[] = []
   for (const { name, category } of mapped) {
-    const id = await ensureInterest(name, category)
+    const id = await ensureInterest(name, category, db)
     if (id) interestIds.push(id)
   }
 
   if (interestIds.length > 0) {
-    const existing = await supabase
+    const existing = await db
       .from('profile_interests')
       .select('interest_id')
       .eq('profile_id', profileId)
-    const existingIds = new Set((existing.data ?? []).map(e => e.interest_id))
+    const existingIds = new Set((existing.data ?? []).map((e: { interest_id: string }) => e.interest_id))
     const toInsert = interestIds.filter(id => !existingIds.has(id)).map(id => ({ profile_id: profileId, interest_id: id, level: 1 }))
     if (toInsert.length > 0) {
-      await supabase.from('profile_interests').upsert(toInsert, { onConflict: 'profile_id, interest_id' })
+      await db.from('profile_interests').upsert(toInsert, { onConflict: 'profile_id, interest_id' })
     }
   }
 }
 
-async function computeInterestBoost(userId: string, targetId: string): Promise<InterestGraphOutput> {
+async function computeInterestBoost(userId: string, targetId: string, db: SupabaseClientLike): Promise<InterestGraphOutput> {
   const [userProfile, targetProfile] = await Promise.all([
-    supabase.from('profiles').select('interests').eq('id', userId).maybeSingle(),
-    supabase.from('profiles').select('interests').eq('id', targetId).maybeSingle(),
+    db.from('profiles').select('interests').eq('id', userId).maybeSingle(),
+    db.from('profiles').select('interests').eq('id', targetId).maybeSingle(),
   ])
 
   const userInterests: string[] = userProfile.data?.interests ?? []
@@ -95,8 +95,8 @@ async function computeInterestBoost(userId: string, targetId: string): Promise<I
 
   // Sync interests to graph
   await Promise.all([
-    syncProfileInterests(userId, userInterests),
-    syncProfileInterests(targetId, targetInterests),
+    syncProfileInterests(userId, userInterests, db),
+    syncProfileInterests(targetId, targetInterests, db),
   ])
 
   const details: string[] = []

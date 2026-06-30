@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       type: 'payout',
       amount_cents: amountCents,
-      payment_details: JSON.stringify({ type: account.type, identifier, paydunya_token: invoice.token, withdraw_mode: withdrawMode }),
+      payment_details: JSON.stringify({ type: account.type, identifier, invoice_token: invoice.token, withdraw_mode: withdrawMode }),
       status: 'pending',
     }).select().single()
 

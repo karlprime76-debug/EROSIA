@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client'
+import { supabase as browserClient } from '@/lib/supabase/client'
 import { getEngine } from './registry'
 import type {
   ScoringEngine, SparkInput, SparkOutput,
@@ -8,6 +8,7 @@ import type {
   ActivityInput, ActivityOutput,
   ConversationInput, ConversationOutput,
   InterestGraphInput, InterestGraphOutput,
+  SupabaseClientLike,
 } from './types'
 import type { Mood, LookingFor } from '@/lib/api'
 import { registerEngine } from './registry'
@@ -16,8 +17,8 @@ export class SparkScoreEngine implements ScoringEngine<SparkInput, SparkOutput> 
   name = 'spark-score'
   version = 3
 
-  async compute(input: SparkInput): Promise<SparkOutput> {
-    return computeSparkScore(input.userId, input.targetId)
+  async compute(input: SparkInput, db?: SupabaseClientLike): Promise<SparkOutput> {
+    return computeSparkScore(input.userId, input.targetId, db ?? browserClient)
   }
 }
 
@@ -38,7 +39,7 @@ const LOOKING_FOR_COMPAT: Record<LookingFor, LookingFor[]> = {
   open: ['open', 'casual', 'fwb', 'friendship'],
 }
 
-async function computeSparkScore(userId: string, targetId: string): Promise<SparkOutput> {
+async function computeSparkScore(userId: string, targetId: string, db: SupabaseClientLike): Promise<SparkOutput> {
   const compatEngine = getEngine<CompatInput, CompatOutput>('compatibility')
   const behaviorEngine = getEngine<BehaviorInput, BehaviorOutput>('behavior')
   const trustEngine = getEngine<TrustInput, TrustOutput>('trust')
@@ -55,16 +56,16 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
     interestResult,
     profilePair,
   ] = await Promise.all([
-    (await compatEngine?.compute({ userId, targetId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
-    (await compatEngine?.compute({ userId: targetId, targetId: userId }).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
-    (await behaviorEngine?.compute({ userId }).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
-    (await behaviorEngine?.compute({ userId: targetId }).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
-    (await trustEngine?.compute({ userId: targetId }).catch(() => ({ score: 50, flags: [] }))) ?? { score: 50, flags: [] },
-    (await activityEngine?.compute({ userId }).catch(() => ({ score: 1 }))) ?? { score: 1 },
-    (await activityEngine?.compute({ userId: targetId }).catch(() => ({ score: 1 }))) ?? { score: 1 },
-    (await conversationEngine?.compute({ userId }).catch(() => ({ score: 0, metrics: {} }))) ?? { score: 0, metrics: {} },
-    (await interestEngine?.compute({ userId, targetId }).catch(() => ({ shared: 0, related: 0, boost: 0, details: [] }))) ?? { shared: 0, related: 0, boost: 0, details: [] },
-    getProfilePair(userId, targetId),
+    (await compatEngine?.compute({ userId, targetId }, db).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
+    (await compatEngine?.compute({ userId: targetId, targetId: userId }, db).catch(() => ({ score: 0, factors: {} }))) ?? { score: 0, factors: {} },
+    (await behaviorEngine?.compute({ userId }, db).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
+    (await behaviorEngine?.compute({ userId: targetId }, db).catch(() => ({ score: 0, signals: {} }))) ?? { score: 0, signals: {} },
+    (await trustEngine?.compute({ userId: targetId }, db).catch(() => ({ score: 50, flags: [] }))) ?? { score: 50, flags: [] },
+    (await activityEngine?.compute({ userId }, db).catch(() => ({ score: 1 }))) ?? { score: 1 },
+    (await activityEngine?.compute({ userId: targetId }, db).catch(() => ({ score: 1 }))) ?? { score: 1 },
+    (await conversationEngine?.compute({ userId }, db).catch(() => ({ score: 0, metrics: {} }))) ?? { score: 0, metrics: {} },
+    (await interestEngine?.compute({ userId, targetId }, db).catch(() => ({ shared: 0, related: 0, boost: 0, details: [] }))) ?? { shared: 0, related: 0, boost: 0, details: [] },
+    getProfilePair(userId, targetId, db),
   ])
 
   // Facteurs additionnels
@@ -141,14 +142,14 @@ async function computeSparkScore(userId: string, targetId: string): Promise<Spar
   }
 }
 
-async function getProfilePair(userId: string, targetId: string) {
-  const { data: profiles } = await supabase
+async function getProfilePair(userId: string, targetId: string, db: SupabaseClientLike) {
+  const { data: profiles } = await db
     .from('profiles')
     .select('id, mood, looking_for, latitude, longitude, last_active_at')
     .in('id', [userId, targetId])
 
-  const myProfile = profiles?.find(p => p.id === userId)
-  const theirProfile = profiles?.find(p => p.id === targetId)
+  const myProfile = profiles?.find((p: { id: string }) => p.id === userId)
+  const theirProfile = profiles?.find((p: { id: string }) => p.id === targetId)
 
   return {
     myMood: (myProfile?.mood ?? 'discuter') as Mood,

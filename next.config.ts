@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const cspScriptSrc = process.env.NODE_ENV === 'development'
+  ? "'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live"
+  : "'self' 'unsafe-inline' https://vercel.live"
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
@@ -19,9 +23,9 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=()' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(self)' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
-          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://vxycbjwmovfzywyvrjql.supabase.co wss://vxycbjwmovfzywyvrjql.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" },
+          { key: 'Content-Security-Policy', value: `default-src 'self'; script-src ${cspScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://vxycbjwmovfzywyvrjql.supabase.co wss://vxycbjwmovfzywyvrjql.supabase.co https://vercel.live wss://*.vercel.live; frame-src 'self' https://vercel.live; object-src 'none'; base-uri 'self'; form-action 'self'` },
         ],
       },
       {

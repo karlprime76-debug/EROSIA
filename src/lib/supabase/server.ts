@@ -1,14 +1,18 @@
-// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.8), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.9)
-// Ces vars sont vérifiées au build — ajouter un guard: if (!url) throw new Error('...')
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+
+function requireEnv(name: string): string {
+  const val = process.env[name]
+  if (!val) throw new Error(`Variable d'environnement manquante: ${name}`)
+  return val
+}
 
 export async function createClient() {
   const cookieStore = await cookies()
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
     {
       cookies: {
         getAll() {

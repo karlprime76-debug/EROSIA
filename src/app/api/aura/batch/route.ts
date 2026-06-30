@@ -17,9 +17,15 @@ export async function POST(request: Request) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, energy_score, trust_score, mood, photos, bio, interests, onboarding_complete')
+      .select('id, photos, bio, interests, onboarding_complete')
       .in('id', userIds)
 
+    const { data: scores } = await supabase
+      .from('user_scores')
+      .select('user_id, energy_score, trust_score')
+      .in('user_id', userIds)
+
+    const scoresMap = new Map(scores?.map(s => [s.user_id, s]) ?? [])
     const auras: Record<string, AuraState> = {}
 
     for (const profile of profiles ?? []) {
@@ -35,11 +41,15 @@ export async function POST(request: Request) {
       else if (interestCount >= 1) completeness += 2
       if (profile.onboarding_complete) completeness += 2
 
+      const userScore = scoresMap.get(profile.id)
+      const energyScore = userScore?.energy_score ? Math.round(userScore.energy_score * 100) : 50
+      const trustScore = userScore?.trust_score ? Math.round(userScore.trust_score * 100) : 50
+
       const config: AuraConfig = {
         userId: profile.id,
-        energyScore: profile.energy_score,
-        trustScore: profile.trust_score,
-        mood: profile.mood,
+        energyScore,
+        trustScore,
+        mood: 'discuter',
         lastActiveAt: null,
         profileCompleteness: completeness,
       }

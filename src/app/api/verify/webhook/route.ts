@@ -9,7 +9,7 @@ const dedupCache = new Set<string>()
 async function isProcessed(eventId: string): Promise<boolean> {
   if (dedupCache.has(eventId)) return true
   try {
-    const admin = await createAdminClient()
+    const admin = createAdminClient()
     const { data } = await admin.from('webhook_events').select('id').eq('event_id', eventId).maybeSingle()
     if (data) { dedupCache.add(eventId); return true }
   } catch {
@@ -21,7 +21,7 @@ async function isProcessed(eventId: string): Promise<boolean> {
 async function markProcessed(eventId: string) {
   dedupCache.add(eventId)
   try {
-    const admin = await createAdminClient()
+    const admin = createAdminClient()
     await admin.from('webhook_events').insert({ event_id: eventId, source: 'didit' })
   } catch {
     // table may not exist yet; in-memory cache is the fallback
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    const admin = await createAdminClient()
+    const admin = createAdminClient()
 
     const { data: existing } = await admin
       .from('verification_requests')

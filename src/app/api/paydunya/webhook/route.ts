@@ -41,7 +41,12 @@ export async function POST(request: NextRequest) {
     const invoiceToken = data.invoice?.invoice_token
     if (!invoiceToken) return NextResponse.json({ error: 'Missing invoice_token' }, { status: 400 })
 
-    const expectedHash = crypto.createHash('sha512').update(process.env.PAYDUNYA_MASTER_KEY! + invoiceToken).digest('hex')
+    const masterKey = process.env.PAYDUNYA_MASTER_KEY
+    if (!masterKey) {
+      logger.error('PAYDUNYA_MASTER_KEY is not configured')
+      return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
+    }
+    const expectedHash = crypto.createHash('sha512').update(masterKey + invoiceToken).digest('hex')
     if (data.hash !== expectedHash) return NextResponse.json({ error: 'Invalid hash' }, { status: 403 })
 
     if (await isProcessed(invoiceToken)) {

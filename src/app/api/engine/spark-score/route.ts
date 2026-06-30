@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getEngine } from '@/lib/engine'
 import { logger } from '@/lib/logger'
 
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
     const engine = getEngine('spark-score')
     if (!engine) return NextResponse.json({ error: 'Engine non trouvé' }, { status: 404 })
 
-    const result = await engine.compute({ userId: user.id, targetId })
+    const admin = createAdminClient()
+    const result = await engine.compute({ userId: user.id, targetId }, admin)
     return NextResponse.json(result)
   } catch (err) {
     logger.error('Route error', { error: String(err) })

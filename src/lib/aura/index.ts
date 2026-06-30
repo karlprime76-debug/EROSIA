@@ -45,11 +45,17 @@ export async function computeAndSaveAura(userId: string, supabase?: SupabaseClie
 
   const { data: profile } = await client
     .from('profiles')
-    .select('id, energy_score, trust_score, mood, photos, bio, interests, onboarding_complete')
+    .select('id, photos, bio, interests, onboarding_complete')
     .eq('id', userId)
     .maybeSingle()
 
   if (!profile) return { data: null, error: 'Profil introuvable' }
+
+  const { data: userScore } = await client
+    .from('user_scores')
+    .select('energy_score, trust_score')
+    .eq('user_id', userId)
+    .maybeSingle()
 
   const photoCount = (profile.photos ?? []).length
   const hasBio = (profile.bio?.trim().length ?? 0) > 20
@@ -63,11 +69,14 @@ export async function computeAndSaveAura(userId: string, supabase?: SupabaseClie
   else if (interestCount >= 1) completeness += 2
   if (profile.onboarding_complete) completeness += 2
 
+  const energyScore = userScore?.energy_score ? Math.round(userScore.energy_score * 100) : 50
+  const trustScore = userScore?.trust_score ? Math.round(userScore.trust_score * 100) : 50
+
   const config: AuraConfig = {
     userId,
-    energyScore: profile.energy_score,
-    trustScore: profile.trust_score,
-    mood: profile.mood,
+    energyScore,
+    trustScore,
+    mood: 'discuter',
     lastActiveAt: null,
     profileCompleteness: completeness,
   }

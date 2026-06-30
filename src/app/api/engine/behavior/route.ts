@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import type { BehaviorAction } from '@/lib/engine'
+import { z } from 'zod'
+
+const behaviorSchema = z.object({
+  action: z.enum([
+    'swipe_like', 'swipe_pass', 'swipe_super_like',
+    'view_profile', 'send_message', 'start_chat',
+    'report_user', 'block_user', 'share_profile',
+    'call_start', 'call_end',
+  ]),
+  targetId: z.string().uuid().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
 
 export async function POST(request: Request) {
   try {
@@ -10,13 +21,12 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const body = await request.json()
-    const { action, targetId, metadata } = body as {
-      action: BehaviorAction
-      targetId?: string
-      metadata?: Record<string, unknown>
+    const parsed = behaviorSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
     }
 
-    if (!action) return NextResponse.json({ error: 'action requis' }, { status: 400 })
+    const { action, targetId, metadata } = parsed.data
 
     const { error } = await supabase.from('behavior_log').insert({
       user_id: user.id,

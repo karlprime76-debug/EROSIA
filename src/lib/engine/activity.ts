@@ -1,18 +1,18 @@
-import { supabase } from '@/lib/supabase/client'
-import type { ScoringEngine, ActivityInput, ActivityOutput } from './types'
+import { supabase as browserClient } from '@/lib/supabase/client'
+import type { ScoringEngine, ActivityInput, ActivityOutput, SupabaseClientLike } from './types'
 import { registerEngine } from './registry'
 
 export class ActivityEngine implements ScoringEngine<ActivityInput, ActivityOutput> {
   name = 'activity'
   version = 1
 
-  async compute(input: ActivityInput): Promise<ActivityOutput> {
-    return computeActivity(input.userId)
+  async compute(input: ActivityInput, db?: SupabaseClientLike): Promise<ActivityOutput> {
+    return computeActivity(input.userId, db ?? browserClient)
   }
 }
 
-async function computeActivity(userId: string): Promise<ActivityOutput> {
-  const { data: profile } = await supabase
+async function computeActivity(userId: string, db: SupabaseClientLike): Promise<ActivityOutput> {
+  const { data: profile } = await db
     .from('profiles')
     .select('created_at, last_active_at')
     .eq('id', userId)
@@ -41,7 +41,7 @@ async function computeActivity(userId: string): Promise<ActivityOutput> {
   }
 
   // Connexion quotidienne = reset partiel du decay
-  const { count: recentActions } = await supabase
+  const { count: recentActions } = await db
     .from('behavior_log')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)

@@ -152,7 +152,7 @@ export default function WelcomePage() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
             className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3"
           >
-            {features.map(({ icon: Icon, title, desc, color, glow, badge }, i) => (
+            {features.map(({ icon: Icon, title, desc, color, badge }, i) => (
               <motion.div
                 key={title}
                 initial={{ opacity: 0, y: 15 }}
