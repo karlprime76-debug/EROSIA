@@ -77,7 +77,7 @@ export default function ConversationsPage() {
             matchId: m.id,
             profile: {
               id: p.id, name: p.name, age: p.age, photos: p.photos || [],
-              mood: p.mood || null, trust_score: p.trust_score, energy_score: p.energy_score,
+              mood: p.mood || null, trust_score: p.trust_score ?? undefined, energy_score: p.energy_score ?? undefined,
             },
             lastMessage: lastMsg || null,
             unreadCount: 0,

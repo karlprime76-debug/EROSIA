@@ -17,16 +17,23 @@ function checkRateLimitLocal(key: string, maxRequests: number, windowMs: number)
 }
 
 async function checkRateLimit(supabase: ReturnType<typeof createServerClient>, key: string, maxRequests: number, windowMs: number): Promise<boolean> {
-  const { data, error } = await supabase.rpc('increment_rate_limit', {
-    key,
-    max_requests: maxRequests,
-    window_ms: windowMs,
-  })
-  if (error || data == null) {
-    console.warn('Rate limit RPC fallback to local limiter', { key, maxRequests, windowMs, error })
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    const { data, error } = await supabase.rpc('increment_rate_limit', {
+      key,
+      max_requests: maxRequests,
+      window_ms: windowMs,
+    }, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    if (error || data == null) {
+      console.warn('Rate limit RPC fallback to local limiter', { key, maxRequests, windowMs, error })
+      return checkRateLimitLocal(key, maxRequests, windowMs)
+    }
+    return data === true || data === 't' || data === 1
+  } catch {
     return checkRateLimitLocal(key, maxRequests, windowMs)
   }
-  return data === true || data === 't' || data === 1
 }
 
 const ALLOWED_ORIGINS = [
