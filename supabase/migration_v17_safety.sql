@@ -55,14 +55,14 @@ CREATE TABLE IF NOT EXISTS safety_tips (
 -- Seed safety tips
 INSERT INTO safety_tips (category, icon, title, content, priority) VALUES
   ('dating', 'Heart', 'Rencontres dans un lieu public', 'Pour les premiers rendez-vous, privilégie toujours un endroit public et fréquenté. Préviens un ami ou un proche du lieu et de l heure de ton rendez-vous.', 10),
-  ('dating', 'User', 'Ne partage pas tes coordonnées trop vite', 'Prends le temps de connaître la personne avant de partager ton numéro de téléphone, ton adresse ou tes réseaux sociaux. Utilise la messagerie Erosia.'),
-  ('privacy', 'Shield', 'Protège tes photos', 'Évite d envoyer des photos intimes ou compromettantes. Une fois partagées, tu perds le contrôle sur leur diffusion.'),
-  ('privacy', 'Lock', 'Vérifie tes paramètres de confidentialité', 'Rends-toi régulièrement dans tes paramètres de confidentialité pour vérifier qui peut voir ton profil, ta localisation et ton statut en ligne.'),
-  ('security', 'Eye', 'Signale les comportements suspects', 'Si quelqu un te met mal à l aise, te demande de l argent ou insiste après un refus, signale-le immédiatement depuis la conversation.'),
-  ('security', 'Shield', 'Ne réponds pas aux demandes d argent', 'Erosia ne demande jamais d argent en dehors des abonnements Premium officiels. Méfie-toi des demandes de virement, carte cadeau ou aide financière.'),
-  ('consent', 'Heart', 'Le consentement est essentiel', 'Chaque interaction doit être basée sur un consentement mutuel et enthousiaste. Tu peux retirer ton consentement à tout moment, sans justification.'),
-  ('consent', 'MessageCircle', 'Communique tes limites', 'Sois clair·e sur tes limites et attentes dès le début. Une personne qui les respecte est une personne de confiance.'),
-  ('dating', 'Sun', 'Écoute ton intuition', 'Si quelque chose te semble étrange ou trop beau pour être vrai, écoute ton instinct. Tu peux mettre fin à une conversation ou bloquer un utilisateur à tout moment.')
+  ('dating', 'User', 'Ne partage pas tes coordonnées trop vite', 'Prends le temps de connaître la personne avant de partager ton numéro de téléphone, ton adresse ou tes réseaux sociaux. Utilise la messagerie Erosia.', 0),
+  ('privacy', 'Shield', 'Protège tes photos', 'Évite d envoyer des photos intimes ou compromettantes. Une fois partagées, tu perds le contrôle sur leur diffusion.', 0),
+  ('privacy', 'Lock', 'Vérifie tes paramètres de confidentialité', 'Rends-toi régulièrement dans tes paramètres de confidentialité pour vérifier qui peut voir ton profil, ta localisation et ton statut en ligne.', 0),
+  ('security', 'Eye', 'Signale les comportements suspects', 'Si quelqu un te met mal à l aise, te demande de l argent ou insiste après un refus, signale-le immédiatement depuis la conversation.', 0),
+  ('security', 'Shield', 'Ne réponds pas aux demandes d argent', 'Erosia ne demande jamais d argent en dehors des abonnements Premium officiels. Méfie-toi des demandes de virement, carte cadeau ou aide financière.', 0),
+  ('consent', 'Heart', 'Le consentement est essentiel', 'Chaque interaction doit être basée sur un consentement mutuel et enthousiaste. Tu peux retirer ton consentement à tout moment, sans justification.', 0),
+  ('consent', 'MessageCircle', 'Communique tes limites', 'Sois clair·e sur tes limites et attentes dès le début. Une personne qui les respecte est une personne de confiance.', 0),
+  ('dating', 'Sun', 'Écoute ton intuition', 'Si quelque chose te semble étrange ou trop beau pour être vrai, écoute ton instinct. Tu peux mettre fin à une conversation ou bloquer un utilisateur à tout moment.', 0)
 ON CONFLICT DO NOTHING;
 
 -- Ensure RLS
