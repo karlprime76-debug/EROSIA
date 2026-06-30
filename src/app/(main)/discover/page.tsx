@@ -11,9 +11,12 @@ import { getActiveStories } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { supabase } from '@/lib/supabase/client'
-import { TiltCard } from '@/components/3d/TiltCard'
-import { MatchBurst } from '@/components/3d/MatchBurst'
+import dynamic from 'next/dynamic'
+import { FocusTrap } from '@/components/FocusTrap'
 import { DiscoverSkeleton } from '@/components/Skeleton'
+import { MatchModal } from '@/components/MatchModal'
+
+const TiltCard = dynamic(() => import('@/components/3d/TiltCard').then(m => ({ default: m.TiltCard })), { ssr: false })
 import { logger } from '@/lib/logger'
 import type { AuraState } from '@/lib/aura/types'
 
@@ -743,6 +746,7 @@ export default function DiscoverPage() {
             aria-hidden="true" role="presentation" className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
             onClick={() => setShowReportModal(false)}
           >
+            <FocusTrap>
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -772,98 +776,13 @@ export default function DiscoverPage() {
                 Annuler
               </button>
             </motion.div>
+            </FocusTrap>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ─── Match Modal premium ─── */}
       <AnimatePresence>
-        {matchModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            aria-hidden="true"
-            role="presentation"
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setMatchModal(null)}
-          >
-            <MatchBurst />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 40 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 40 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 22 }}
-              role="dialog"
-              aria-modal="true"
-              tabIndex={-1}
-              className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl text-center"
-              style={{
-                background: 'linear-gradient(160deg, rgba(20,20,22,0.97) 0%, rgba(12,12,14,0.99) 100%)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                boxShadow: '0 40px_100px_rgba(0,0,0,0.7), 0 0 0 1px rgba(217,45,74,0.08)',
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Halo de couleur */}
-              <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[var(--primary)]/12 to-transparent pointer-events-none" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-[var(--primary)] blur-3xl opacity-10 pointer-events-none" />
-
-              <div className="relative z-10 p-8 space-y-5">
-                {/* Badge match */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 16, delay: 0.1 }}
-                  className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] mx-auto flex items-center justify-center shadow-[0_0_48px_rgba(217,45,74,0.35)] border-2 border-white/10"
-                >
-                  <Heart size={36} className="text-white" fill="white" />
-                </motion.div>
-
-                <div>
-                  <h2 className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>C&rsquo;est un match !</h2>
-                  <p className="text-[var(--text-secondary)] text-sm mt-1">Vous vous êtes mutuellement likés ✨</p>
-                </div>
-
-                {/* Avatars */}
-                <div className="flex items-center justify-center gap-3 py-2">
-                  {myPhoto
-                    ? <Image src={myPhoto} alt="Vous" width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
-                    : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.3, 1] }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                  >
-                    <Heart size={22} className="text-[var(--primary)]" fill="var(--primary)" />
-                  </motion.div>
-                  {matchModal.profile.photos?.[0]
-                    ? <Image src={matchModal.profile.photos[0]} alt={matchModal.profile.name} width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
-                    : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
-                </div>
-
-                <p className="font-semibold text-white text-lg">{matchModal.profile.name}</p>
-
-                {/* CTA */}
-                <div className="space-y-2 pt-1">
-                  <button type="button" onClick={() => { router.push(`/chat/${matchModal.matchId}`); setMatchModal(null) }}
-                    className="w-full py-4 rounded-2xl text-white font-bold text-sm tracking-wide transition-all duration-300 active:scale-[0.97]"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-                      boxShadow: '0 8px 32px rgba(217,45,74,0.3)',
-                    }}>
-                    💬 Envoyer un message
-                  </button>
-                  <button type="button" onClick={() => setMatchModal(null)}
-                    className="w-full py-3 text-[var(--text-muted)] text-sm hover:text-white transition-colors duration-200">
-                    Continuer à explorer
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {matchModal && <MatchModal matchModal={matchModal} myPhoto={myPhoto} onClose={() => setMatchModal(null)} />}
       </AnimatePresence>
     </div>
   )

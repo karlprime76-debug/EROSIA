@@ -1,6 +1,8 @@
 'use client'
 
-import { FloatingHearts } from '@/components/3d/FloatingHearts'
+import dynamic from 'next/dynamic'
+
+const FloatingHearts = dynamic(() => import('@/components/3d/FloatingHearts').then(m => ({ default: m.FloatingHearts })), { ssr: false })
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

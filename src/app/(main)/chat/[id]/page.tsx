@@ -773,7 +773,7 @@ export default function ChatPage() {
       )}
 
       {typingUserId && (
-        <div className="text-xs text-[#9E9488] px-4 py-2 italic animate-pulse flex items-center gap-2">
+        <div aria-live="polite" aria-atomic="true" className="text-xs text-[#9E9488] px-4 py-2 italic animate-pulse flex items-center gap-2">
           <div className="flex gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '0ms' }} />
             <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '150ms' }} />

@@ -9,7 +9,10 @@ import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uplo
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
-import { AuraSphere, AuraBadge, useAura } from '@/components/AuraSphere'
+import dynamic from 'next/dynamic'
+import { AuraBadge, useAura } from '@/components/AuraSphere'
+
+const AuraSphere = dynamic(() => import('@/components/AuraSphere').then(m => ({ default: m.AuraSphere })), { ssr: false })
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import { Button } from '@/components/ui/button'
 import 'react-circular-progressbar/dist/styles.css'
