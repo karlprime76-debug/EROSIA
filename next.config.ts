@@ -37,10 +37,6 @@ const nextConfig: NextConfig = {
         headers: [{ key: 'Cache-Control', value: 'public, max-age=3600' }],
       },
       {
-        source: '/_next/static/media/:path*',
-        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
-      },
-      {
         source: '/:all+(svg|png|jpg|jpeg|gif|webp|avif|ico)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000, immutable' }],
       },

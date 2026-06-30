@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getActiveStories } from '@/lib/stories'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 30
 
 export async function GET(request: Request) {
