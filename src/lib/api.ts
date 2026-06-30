@@ -36,6 +36,7 @@ export interface Profile {
   mood?: Mood
   energy_score?: number
   trust_score?: number
+  profile_visible?: boolean
 }
 
 export interface Swipe {
@@ -147,6 +148,7 @@ async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): 
 export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)
   q = q.eq('onboarding_complete', true)
+  q = q.eq('profile_visible', true)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
@@ -235,6 +237,29 @@ export async function getMessages(matchId: string) {
 export async function sendMessage(matchId: string, text: string) {
   const { userId, error: authErr } = await assertMatchParticipant(matchId)
   if (authErr || !userId) return { error: authErr }
+
+  const { data: match } = await supabase().from('matches').select('user1_id, user2_id').eq('id', matchId).maybeSingle()
+  if (!match) return { error: 'Match introuvable' }
+  const targetId = match.user1_id === userId ? match.user2_id : match.user1_id
+
+  const { data: msgCount } = await supabase()
+    .from('messages').select('id', { count: 'exact', head: true })
+    .eq('match_id', matchId)
+
+  if (!msgCount || msgCount.length === 0) {
+    const { data: targetPrivacy } = await supabase()
+      .from('privacy_settings').select('first_message_permission').eq('user_id', targetId).maybeSingle()
+    if (targetPrivacy) {
+      const perm = targetPrivacy.first_message_permission as string
+      if (perm === 'nobody') return { error: "Cette personne n'accepte pas de nouveaux messages" }
+      if (perm === 'verified_only') {
+        const { data: sender } = await supabase()
+          .from('profiles').select('is_verified').eq('id', userId).maybeSingle()
+        if (!sender?.is_verified) return { error: 'Seuls les comptes vérifiés peuvent envoyer un message' }
+      }
+    }
+  }
+
   const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
   if (!clean.trim()) return { error: 'Message vide' }
   const { data, error } = await supabase().from('messages').insert({
@@ -347,16 +372,22 @@ export async function sendPhotoMessage(matchId: string, file: File) {
 }
 
 export async function unmatchUser(matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data: match } = await supabase().from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()
-  if (!match) return { error: 'Match introuvable' }
-  if (match.user1_id !== user.id && match.user2_id !== user.id) return { error: 'Non autorisé' }
-  const otherId = match.user1_id === user.id ? match.user2_id : match.user1_id
-  await supabase().from('swipes').delete().or(`and(swiper_id.eq.${user.id},swiped_id.eq.${otherId}),and(swiper_id.eq.${otherId},swiped_id.eq.${user.id})`)
-  await supabase().from('messages').delete().eq('match_id', matchId)
-  const { error } = await supabase().from('matches').delete().eq('id', matchId)
-  return { error: error?.message }
+  try {
+    const { data: { user } } = await supabase().auth.getUser()
+    if (!user) return { error: 'Non authentifié' }
+    const res = await fetch('/api/delete-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      return { error: body.error || 'Erreur lors de la suppression' }
+    }
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Erreur réseau' }
+  }
 }
 
 export async function getLastSwipe() {
@@ -393,6 +424,7 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
     .from('profiles')
     .select(PUBLIC_PROFILE_FIELDS)
     .eq('onboarding_complete', true)
+    .eq('profile_visible', true)
     .gte('latitude', lat - latDelta)
     .lte('latitude', lat + latDelta)
     .gte('longitude', lng - lngDelta)
@@ -493,6 +525,16 @@ export async function getCompatibilityBatch(otherUserIds: string[]) {
     if (r.data !== undefined) scores[otherUserIds[i]] = Number(r.data) || 0
   })
   return scores
+}
+
+export async function getCompatibilityReport(matchId: string) {
+  const res = await fetch(`/api/compatibility/${matchId}`)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Erreur réseau' }))
+    return { data: null, error: err.error }
+  }
+  const data = await res.json()
+  return { data, error: null }
 }
 
 // 9. Typing indicator (no SQL, uses Realtime channels)
@@ -853,6 +895,9 @@ export async function getProfileQuizSummary(userId: string) {
 export async function markAsRead(matchId: string) {
   const { userId, error: authErr } = await assertMatchParticipant(matchId)
   if (authErr || !userId) return { error: authErr }
+  const { data: privacy } = await supabase()
+    .from('privacy_settings').select('read_receipts').eq('user_id', userId).maybeSingle()
+  if (privacy && !privacy.read_receipts) return { data: 0, error: undefined }
   const { data, error } = await supabase().rpc('mark_messages_read', { p_match_id: matchId, p_reader_id: userId })
   return { data: data as number | null, error: error?.message }
 }
@@ -1088,7 +1133,7 @@ const PAGE_SIZE = 20
 export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
-  let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('onboarding_complete', true)
+  let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('onboarding_complete', true).eq('profile_visible', true)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
@@ -1127,6 +1172,7 @@ export async function searchProfilesByCity(city: string, excludeIds: string[], f
     .from('profiles')
     .select(PUBLIC_PROFILE_FIELDS)
     .eq('onboarding_complete', true)
+    .eq('profile_visible', true)
     .ilike('location', `%${city.replace(/[%_]/g, '')}%`)
   if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)

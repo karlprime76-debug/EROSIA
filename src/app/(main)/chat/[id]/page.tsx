@@ -3,829 +3,600 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff } from 'lucide-react'
+
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, unmatchUser, getIcebreakers, addReaction, removeReaction, uploadAudio, sendAudioMessage, toggleEphemeral, startCall, endCall, markAsRead, getPlaylist, addPlaylistItem, removePlaylistItem, getAIIcebreaker, getDateSuggestions, type Message } from '@/lib/api'
-import type { RealtimePostgresChangesPayload } from '@supabase/realtime-js'
-import { validateFile, sanitizeFilename } from '@/lib/media'
-import { Send, Camera, X, Mic, Play, Square, Video, Music, PhoneOff, ChevronDown } from 'lucide-react'
-import { logger } from '@/lib/logger'
-import { useConfirm } from '@/components/ConfirmDialog'
+import { getMessages, sendMessage, sendPhotoMessage, markAsRead, getAIIcebreaker, createDuel } from '@/lib/api'
+import { useToast } from '@/components/Toast'
+import { MessageBubble } from '@/components/chat/MessageBubble'
+import { TypingIndicator } from '@/components/chat/TypingIndicator'
+import { OnlineStatus, OnlineBadge } from '@/components/chat/OnlineStatus'
+import type { DateSuggestion } from '@/lib/date-suggestions'
+import ConsentDialog from '@/components/safety/ConsentDialog'
+import SafetyReminder from '@/components/safety/SafetyReminder'
+import ReportSheet from '@/components/safety/ReportSheet'
+import { reportUser, blockUser, logConsent } from '@/lib/safety/api'
 
-interface Icebreaker {
-  id: string
-  question: string
-  category: string | null
-}
+import { motion, AnimatePresence } from 'motion/react'
+import type { ChatMessage } from '@/lib/chat/types'
 
-interface Reaction {
-  id: string
-  message_id: string
-  user_id: string
-  emoji: string
-  created_at: string
-  profile: { name: string } | null
-}
-
-function AudioPlayer({ src }: { src: string }) {
-  const [playing, setPlaying] = useState(false)
-  const [duration, setDuration] = useState(0)
-  const [currentTime, setCurrentTime] = useState(0)
-  const audioRef = useRef<HTMLAudioElement>(null)
-
-  const toggle = () => {
-    if (!audioRef.current) return
-    if (playing) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play()
-    }
-    setPlaying(!playing)
-  }
-
-  useEffect(() => {
-    const a = audioRef.current
-    if (!a) return
-    const onLoaded = () => setDuration(a.duration)
-    const onTime = () => setCurrentTime(a.currentTime)
-    const onEnd = () => setPlaying(false)
-    a.addEventListener('loadedmetadata', onLoaded)
-    a.addEventListener('timeupdate', onTime)
-    a.addEventListener('ended', onEnd)
-    return () => { a.removeEventListener('loadedmetadata', onLoaded); a.removeEventListener('timeupdate', onTime); a.removeEventListener('ended', onEnd) }
-  }, [])
-
-  return (
-    <div className="flex items-center gap-2">
-      <audio ref={audioRef} src={src} preload="metadata" />
-      <button type="button" onClick={toggle} aria-label={playing ? 'Pause' : 'Lecture'} className="w-8 h-8 rounded-full bg-[#D92D4A]/20 flex items-center justify-center">
-        {playing ? <Square size={12} /> : <Play size={12} fill="currentColor" />}
-      </button>
-      <span className="text-xs text-[#9E9488] tabular-nums">
-        {Math.floor(currentTime)}s / {Math.floor(duration)}s
-      </span>
-      <div className="flex-1 h-1 bg-[#2A2826] rounded-full overflow-hidden">
-        <div className="h-full bg-[#D92D4A] transition-all" style={{ width: duration ? `${(currentTime / duration) * 100}%` : 0 }} />
-      </div>
-    </div>
-  )
-}
+const EMOJI_LIST = ['❤️', '😂', '😍', '🔥', '😮', '😢', '👍', '👎', '👏', '💀', '✨', '🥰']
 
 export default function ChatPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id: matchId } = useParams<{ id: string }>()
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [text, setText] = useState('')
+  const { toast } = useToast()
+
+  const [myId, setMyId] = useState('')
+  const [profile, setProfile] = useState<{ id: string; name: string; photos: string[]; age: number | null; mood: string | null } | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [otherProfile, setOtherProfile] = useState<{ id: string; name: string } | null>(null)
-  const [now, setNow] = useState(0)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [isOnline, setIsOnline] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const [showEmoji, setShowEmoji] = useState(false)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [showAi, setShowAi] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [dateSuggestions, setDateSuggestions] = useState<DateSuggestion[]>([])
+  const [loadingDates, setLoadingDates] = useState(false)
+  const [otherId, setOtherId] = useState('')
+  const [showConsent, setShowConsent] = useState(false)
+  const [showSafety, setShowSafety] = useState(false)
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null)
+  const [showReport, setShowReport] = useState(false)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const [isNearBottom, setIsNearBottom] = useState(true)
-  const [typingUserId, setTypingUserId] = useState<string | null>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout>(undefined)
-  const lastTypingBroadcast = useRef(0)
-  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null)
-  const { confirm } = useConfirm()
-  const [isSelfChat, setIsSelfChat] = useState(false)
-  const [icebreakers, setIcebreakers] = useState<Icebreaker[]>([])
-  const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
-  const [reactingMessageId, setReactingMessageId] = useState<string | null>(null)
-  const [match, setMatch] = useState<{ ephemeral?: boolean } | null>(null)
-  const [recording, setRecording] = useState(false)
-  const [recordingTime, setRecordingTime] = useState(0)
-  const [showEphemeralOpts, setShowEphemeralOpts] = useState(false)
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
-  const [callStatus, setCallStatus] = useState<string | null>(null)
-  const [callId, setCallId] = useState<string | null>(null)
-  const localVideoRef = useRef<HTMLVideoElement>(null)
-  const remoteVideoRef = useRef<HTMLVideoElement>(null)
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
-  const [showPlaylist, setShowPlaylist] = useState(false)
-  const [playlist, setPlaylist] = useState<Array<{ id: string; title: string; artist?: string; url?: string }>>([])
-  const [newSongTitle, setNewSongTitle] = useState('')
-  const [newSongUrl, setNewSongUrl] = useState('')
-  const [viewOnce, setViewOnce] = useState(false)
-  const [revealedOnce, setRevealedOnce] = useState<Record<string, boolean>>({})
-  const [otherOnline, setOtherOnline] = useState(false)
-  const [showDateSuggestions, setShowDateSuggestions] = useState(false)
-  const [dateSuggestions, setDateSuggestions] = useState<Array<{ type: string; budget: string; distance: string; description: string }> | null>(null)
-  const [loadingDateSuggestions, setLoadingDateSuggestions] = useState(false)
+  const chunksRef = useRef<Blob[]>([])
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const loadPlaylist = async () => {
-    const { data } = await getPlaylist(id)
-    if (data) setPlaylist(data)
-  }
-
-  const loadMessages = useCallback(async (): Promise<Message[]> => {
-    const { data } = await getMessages(id)
-    if (data) {
-      setMessages(data)
-      const msgIds = data.map(m => m.id).filter(Boolean)
-      if (msgIds.length > 0) {
-        const { data: allReactions } = await supabase.from('message_reactions').select('*').in('message_id', msgIds)
-        if (allReactions) {
-          const r: Record<string, Reaction[]> = {}
-          for (const react of allReactions as Reaction[]) {
-            if (!r[react.message_id]) r[react.message_id] = []
-            r[react.message_id].push(react)
-          }
-          setReactions(r)
-        }
-      }
-      return data ?? []
-    }
-    return []
-  }, [id])
-
-  const handleIcebreaker = async (text: string) => {
-    const { data: sent } = await sendMessage(id, text)
-    if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
-  }
-
-  const handleAIIcebreaker = async () => {
-    if (!otherProfile) return
-    const { suggestion, error } = await getAIIcebreaker(otherProfile.id)
-    if (suggestion && !error) {
-      setAiSuggestion(suggestion)
-    }
-  }
-
-  const handleReact = async (messageId: string, emoji: string) => {
-    const existing = reactions[messageId]?.find(r => r.user_id === currentUser?.id)
-    if (existing && existing.emoji === emoji) {
-      await removeReaction(messageId)
-    } else {
-      await addReaction(messageId, emoji)
-    }
-    setReactingMessageId(null)
-    loadMessages()
-  }
-
-  const handleStartCall = async () => {
-    if (!otherProfile?.id) return
-    const { data, error } = await startCall(id, otherProfile.id)
-    if (error || !data) return
-    setCallId(data[0]?.id ?? null)
-    setCallStatus('ringing')
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
-      peerConnectionRef.current = pc
-      stream.getTracks().forEach(t => pc.addTrack(t, stream))
-      pc.ontrack = (e) => {
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
-      }
-      const offer = await pc.createOffer()
-      await pc.setLocalDescription(offer)
-      const signalCh = supabase.channel(`call:${id}`)
-      signalCh.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          signalCh.send({ type: 'broadcast', event: 'offer', payload: { offer } })
-          setTimeout(() => supabase.removeChannel(signalCh), 2000)
-        }
-      })
-      setCallStatus('connected')
-    } catch (e) {
-      logger.error('Call failed', e)
-      setCallStatus(null)
-    }
-  }
-
-  const handleEndCall = async () => {
-    if (callId) { const r = await endCall(callId); void r }
-    peerConnectionRef.current?.close()
-    const stream = localVideoRef.current?.srcObject as MediaStream | null
-    stream?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
-    setCallStatus(null)
-    setCallId(null)
-  }
-
-  const handleDateSuggestions = async () => {
-    if (!otherProfile) return
-    setShowDateSuggestions(!showDateSuggestions)
-    if (dateSuggestions) return
-    setLoadingDateSuggestions(true)
-    const { suggestions, error } = await getDateSuggestions(otherProfile.id)
-    if (suggestions && !error) {
-      setDateSuggestions(suggestions)
-    }
-    setLoadingDateSuggestions(false)
-  }
-
-  const sendDateSuggestion = async (suggestion: { type: string; budget: string; description: string }) => {
-    const msg = `📅 On se fait un ${suggestion.type} (${suggestion.budget}) ? ${suggestion.description}`
-    const { data: sent } = await sendMessage(id, msg)
-    if (sent) {
-      setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
-      setShowDateSuggestions(false)
-    }
-  }
-
-  const handleAddPlaylist = async () => {
-    if (!newSongTitle) return
-    await addPlaylistItem(id, newSongTitle, undefined, newSongUrl || undefined)
-    setNewSongTitle('')
-    setNewSongUrl('')
-    loadPlaylist()
-  }
-
-  const handleRemovePlaylist = async (itemId: string) => {
-    await removePlaylistItem(itemId)
-    loadPlaylist()
-  }
+  const scrollToBottom = useCallback((smooth = true) => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' })
+    }, 50)
+  }, [])
 
   useEffect(() => {
-    let profileChannel: ReturnType<typeof supabase.channel> | undefined
-    let presenceChannel: ReturnType<typeof supabase.channel> | undefined
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { router.push('/login'); return }
+      setMyId(data.user.id)
+      const uid = data.user.id
 
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-      setCurrentUser(user)
-
-      const { data: matchData } = await supabase.from('matches').select('*').eq('id', id).maybeSingle()
-      if (!matchData) { setLoading(false); return }
-      setMatch(matchData)
-      const otherId = matchData.user1_id === user.id ? matchData.user2_id : matchData.user1_id
-
-      if (otherId === user.id) { setIsSelfChat(true); setLoading(false); return }
-
-      const { data: other } = await supabase.from('profiles').select('id, name').eq('id', otherId).maybeSingle()
-      if (other) setOtherProfile(other as { id: string; name: string })
-
-      const msgs = await loadMessages()
-      if (msgs.length === 0 && other) {
-        getAIIcebreaker(other.id).then(({ suggestion }) => {
-          if (suggestion) setAiSuggestion(suggestion)
-        }).catch(() => {})
+      const { data: match } = await supabase.from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()
+      if (!match || (match.user1_id !== uid && match.user2_id !== uid)) {
+        toast('Match introuvable', 'error')
+        router.push('/matches')
+        return
       }
+
+      const oId = match.user1_id === uid ? match.user2_id : match.user1_id
+      setOtherId(oId)
+      const { data: p } = await supabase.from('profiles').select('id,name,photos,age,mood').eq('id', oId).single()
+      if (p) setProfile(p)
+
+      const { data: msgs } = await getMessages(matchId)
+      if (msgs) setMessages(msgs as ChatMessage[])
       setLoading(false)
+      scrollToBottom(false)
 
-      const presenceCh = supabase.channel(`presence:${otherId}`, {
-        config: { presence: { key: otherId } },
-      })
-      presenceCh.on('presence', { event: 'sync' }, () => {
-        setOtherOnline(Object.keys(presenceCh.presenceState()).length > 0)
-      })
-      presenceCh.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceCh.track({ online: true })
-        }
-      })
-      presenceChannel = presenceCh
+      markAsRead(matchId)
 
-      profileChannel = supabase
-        .channel(`profile:${otherId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${otherId}` }, (payload) => {
-          const p = payload.new as Record<string, unknown>
-          setOtherProfile((prev) => prev ? { ...prev, last_seen: p.last_seen as string } : null)
+      const msgChannel = supabase.channel(`messages:${matchId}`)
+      msgChannel.on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+      }, (payload: { new: Record<string, unknown> }) => {
+        const m = payload.new as unknown as ChatMessage
+        setMessages(prev => {
+          if (prev.some(p => p.id === m.id)) return prev
+          return [...prev, m]
         })
-        .subscribe()
-    })().catch(logger.error)
-    
-    const channel = supabase
-      .channel(`messages:${id}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages',
-        filter: `match_id=eq.${id}`,
-      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        const newMsg = payload.new as Message
-        setMessages((prev) => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg])
+        scrollToBottom()
+        if (m.sender_id !== uid) markAsRead(matchId)
       })
-      .subscribe()
+      msgChannel.on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+      }, (payload: { new: Record<string, unknown> }) => {
+        const m = payload.new as unknown as ChatMessage
+        setMessages(prev => prev.map(p => p.id === m.id ? m : p))
+      })
+      msgChannel.on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+      }, (payload: { old: Record<string, unknown> }) => {
+        setMessages(prev => prev.filter(p => p.id !== payload.old.id))
+      })
+      msgChannel.subscribe()
 
-    return () => {
-      channel.unsubscribe()
-      profileChannel?.unsubscribe()
-      presenceChannel?.unsubscribe()
-    }
-  }, [id, loadMessages])
-
-  useEffect(() => {
-    getIcebreakers().then(({ data }) => {
-      if (data) setIcebreakers(data.slice(0, 5))
-    })
-  }, [])
-
-  useEffect(() => {
-    let typingSentChannel: ReturnType<typeof supabase.channel> | undefined
-    ;(async () => {
-      typingSentChannel = supabase.channel(`typing:match-${id}`)
-      typingSentChannel.subscribe()
-    })().catch(logger.error)
-    
-    const typingRecvChannel = supabase.channel(`typing:match-${id}`)
-    typingRecvChannel.on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string } }) => {
-      if (payload.payload.userId !== currentUser?.id) {
-        setTypingUserId(payload.payload.userId)
-        clearTimeout(typingTimeoutRef.current)
-        typingTimeoutRef.current = setTimeout(() => setTypingUserId(null), 2000)
-      }
-    })
-    typingRecvChannel.subscribe()
-
-    return () => {
-      if (typingSentChannel) supabase.removeChannel(typingSentChannel)
-      supabase.removeChannel(typingRecvChannel)
-      clearTimeout(typingTimeoutRef.current)
-    }
-  }, [id, currentUser?.id])
-
-  useEffect(() => {
-    if (isNearBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isNearBottom])
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000)
-    const el = bottomRef.current
-    if (!el) return () => clearInterval(t)
-    const obs = new IntersectionObserver(([entry]) => setIsNearBottom(entry.isIntersecting), { rootMargin: '100px' })
-    obs.observe(el)
-    return () => { clearInterval(t); obs.disconnect() }
-  }, [])
-
-  useEffect(() => {
-    const channel = supabase.channel(`call:${id}`)
-    channel.on('broadcast', { event: 'offer' }, (payload: { payload: { offer: RTCSessionDescriptionInit } }) => {
-      const handleOffer = async () => {
-        setCallStatus('connected')
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
-        peerConnectionRef.current = pc
-        stream.getTracks().forEach(t => pc.addTrack(t, stream))
-        pc.ontrack = (e) => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0] }
-        pc.onicecandidate = (e) => {
-          if (e.candidate) {
-            channel.send({ type: 'broadcast', event: 'ice-candidate', payload: { candidate: e.candidate } })
-          }
+      const typingChannel = supabase.channel(`typing:match-${matchId}`)
+      typingChannel.on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
+        setIsTyping(payload.payload?.userId === oId)
+        if (payload.payload?.userId === oId) {
+          clearTimeout(typingTimeoutRef.current)
+          typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
         }
-        await pc.setRemoteDescription(new RTCSessionDescription(payload.payload.offer))
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        channel.send({ type: 'broadcast', event: 'answer', payload: { answer } })
+      })
+      typingChannel.subscribe()
+
+      const presenceChannel = supabase.channel(`presence:${oId}`, { config: { presence: { key: '' } } })
+      presenceChannel.on('presence', { event: 'sync' }, () => {
+        setIsOnline(Object.keys(presenceChannel.presenceState()).length > 0)
+      })
+      presenceChannel.subscribe()
+
+      return () => {
+        supabase.removeChannel(msgChannel)
+        supabase.removeChannel(typingChannel)
+        supabase.removeChannel(presenceChannel)
       }
-      handleOffer()
     })
-    channel.on('broadcast', { event: 'ice-candidate' }, async (payload: { payload: { candidate: RTCIceCandidateInit } }) => {
-      try {
-        await peerConnectionRef.current?.addIceCandidate(new RTCIceCandidate(payload.payload.candidate))
-      } catch {}
-    })
-    channel.subscribe()
-
-    const videoEl = localVideoRef.current
-    return () => {
-      supabase.removeChannel(channel)
-      peerConnectionRef.current?.close()
-      const stream = videoEl?.srcObject as MediaStream | null
-      stream?.getTracks().forEach(t => t.stop())
-      if (videoEl) videoEl.srcObject = null
-    }
-  }, [id])
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      markAsRead(id)
-    }, 1000)
-    return () => clearTimeout(t)
-  }, [id, messages.length])
-
-  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current)
-    }
-  }, [])
-
-  const broadcastTyping = useCallback(() => {
-    const now = Date.now()
-    if (now - lastTypingBroadcast.current > 300) {
-      lastTypingBroadcast.current = now
-      if (!typingChannelRef.current) {
-        const ch = supabase.channel(`typing:match-${id}`)
-        typingChannelRef.current = ch
-        ch.subscribe()
-      }
-      typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: currentUser?.id, matchId: id } })
-    }
-  }, [id, currentUser?.id])
+  }, [matchId, router, toast, scrollToBottom])
 
   const handleSend = async () => {
-    if (!text.trim()) return
-    const msg = text.trim()
-    setText('')
-    try { navigator.vibrate(5) } catch {}
-    const { data: sent } = await sendMessage(id, msg)
-    if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent])
+    const text = input.trim()
+    if (!text || sending) return
+    setSending(true)
+    setInput('')
+    setReplyTo(null)
+    setShowEmoji(false)
+    setShowAi(false)
+    const { error } = await sendMessage(matchId, text)
+    if (error) toast("Erreur d'envoi", 'error')
+    setSending(false)
+    scrollToBottom()
   }
 
-  const handlePhoto = () => fileRef.current?.click()
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const err = validateFile(file, 'chat_photo')
-    if (err) { console.error(err); return }
-    if (viewOnce) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const fileName = `chat/${id}/${Date.now()}_${user.id}_once_${sanitizeFilename(file.name)}`
-      const { error: uploadError } = await supabase.storage.from('chat_photos').upload(fileName, file)
-      if (uploadError) return
-      const { data: urlData } = supabase.storage.from('chat_photos').getPublicUrl(fileName)
-      await supabase.from('messages').insert({
-        match_id: id, sender_id: user.id, image_url: urlData.publicUrl, view_once: true,
-      })
-    } else {
-      await sendPhotoMessage(id, file)
-    }
-    e.target.value = ''
-    setViewOnce(false)
+    setPendingPhoto(file)
+    setShowConsent(true)
+    if (fileRef.current) fileRef.current.value = ''
   }
 
-  const startRecording = async () => {
+  const confirmPhotoSend = async () => {
+    if (!pendingPhoto) return
+    setShowConsent(false)
+    setShowSafety(true)
+  }
+
+  const proceedPhotoSend = async () => {
+    if (!pendingPhoto) return
+    setShowSafety(false)
+    const { error } = await sendPhotoMessage(matchId, pendingPhoto)
+    if (error) toast("Erreur d'envoi", 'error')
+    else {
+      logConsent(myId, 'share_photo', otherId, { content_type: 'photo' })
+      scrollToBottom()
+    }
+    setPendingPhoto(null)
+  }
+
+  const cancelPhotoSend = () => {
+    setShowConsent(false)
+    setShowSafety(false)
+    setPendingPhoto(null)
+  }
+
+  const handleVoiceToggle = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      const chunks: BlobPart[] = []
-
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' })
-        const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' })
-        const { url } = await uploadAudio(file, id)
-        if (url) await sendAudioMessage(id, url)
+      const recorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+      chunksRef.current = []
+      recorder.ondataavailable = e => chunksRef.current.push(e.data)
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const path = `chat_audio/${matchId}/${Date.now()}-${user.id}.webm`
+        const { error: uploadErr } = await supabase.storage.from('chat_audio').upload(path, blob)
+        if (uploadErr) { toast("Erreur d'envoi vocal", 'error'); return }
+        const { data: { publicUrl } } = supabase.storage.from('chat_audio').getPublicUrl(path)
+        await supabase.from('messages').insert({
+          match_id: matchId, sender_id: user.id, audio_url: publicUrl,
+        })
+        scrollToBottom()
         stream.getTracks().forEach(t => t.stop())
       }
-
-      mediaRecorder.start()
-      setRecording(true)
-      setRecordingTime(0)
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(t => {
-          const next = t + 1
-          if (next >= 60) setTimeout(stopRecording, 0)
-          return next
-        })
-      }, 1000)
-    } catch {}
+      recorder.start()
+      setIsRecording(true)
+      let dur = 0
+      const interval = setInterval(() => { dur++; setRecordingDuration(dur) }, 1000)
+      setTimeout(() => {
+        if (recorder.state === 'recording') { recorder.stop(); clearInterval(interval); setRecordingDuration(0) }
+      }, 30000)
+      recorder.onstop = () => { clearInterval(interval); setRecordingDuration(0); setIsRecording(false) }
+    } catch {
+      toast('Microphone non accessible', 'error')
+    }
   }
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop()
-    setRecording(false)
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
+  const handleReply = (msg: ChatMessage) => {
+    setReplyTo(msg)
+    inputRef.current?.focus()
+  }
+
+  const handleEdit = async (msg: ChatMessage) => {
+    const diff = Date.now() - new Date(msg.created_at).getTime()
+    if (diff > 900000) { toast('Délai de modification expiré (15 min)', 'error'); return }
+    const { error } = await supabase.from('messages').update({ text: msg.text, edited_at: new Date().toISOString() }).eq('id', msg.id)
+    if (error) toast('Erreur de modification', 'error')
+  }
+
+  const handleDelete = async (msg: ChatMessage) => {
+    const diff = Date.now() - new Date(msg.created_at).getTime()
+    if (diff > 3600000) { toast('Délai de suppression expiré (60 min)', 'error'); return }
+    const { error } = await supabase.from('messages').update({ deleted_for_all: true }).eq('id', msg.id)
+    if (error) toast('Erreur de suppression', 'error')
   }
 
   const handleUnmatch = async () => {
-    if (await confirm('Êtes-vous sûr de vouloir supprimer ce match ?')) {
-      await unmatchUser(id)
-      router.push('/matches')
+    const { unmatchUser } = await import('@/lib/api')
+    const { error } = await unmatchUser(matchId)
+    if (error) { toast("Erreur lors de la suppression", 'error'); return }
+    router.push('/matches')
+  }
+
+  const loadAiSuggestions = async () => {
+    if (!profile) return
+    const result = await getAIIcebreaker(profile.id)
+    if (result.suggestion) setAiSuggestions([result.suggestion])
+    setShowAi(true)
+  }
+
+  const loadDateIdeas = async () => {
+    if (!otherId || loadingDates) return
+    setLoadingDates(true)
+    try {
+      const res = await fetch('/api/ai/date-suggestions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId: otherId }),
+      })
+      const json = await res.json()
+      if (json.suggestions) setDateSuggestions(json.suggestions)
+    } catch {
+      toast('Erreur de suggestion', 'error')
+    } finally {
+      setLoadingDates(false)
     }
   }
 
-  const isOnline = otherOnline
+  const sendDateSuggestion = async (s: DateSuggestion) => {
+    const text = `💌 Idée de date : ${s.type}\n${s.description}\nBudget : ${s.budget} · ${s.distance}`
+    setInput(text)
+    setDateSuggestions([])
+    inputRef.current?.focus()
+  }
+
+  const handleDuelChallenge = async () => {
+    if (!otherId || !myId) return
+    setMenuOpen(false)
+    const { data: profiles } = await supabase
+      .from('profiles').select('id').neq('id', myId).neq('id', otherId).limit(2)
+    if (!profiles || profiles.length < 2) {
+      toast('Pas assez de profils pour un duel', 'error')
+      return
+    }
+    const { data: duel } = await createDuel(profiles[0].id, profiles[1].id)
+    if (!duel) { toast('Erreur de création du duel', 'error'); return }
+    const text = `⚔️ Duel lancé ! Qui est ton choix ? ${duel.id}`
+    await supabase.from('messages').insert({
+      match_id: matchId, sender_id: myId, text,
+    })
+    scrollToBottom()
+    toast('Duel créé !', 'success')
+  }
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-transparent">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
-    </div>
-  )
-
-  if (isSelfChat) return (
-    <div className="flex-1 flex items-center justify-center bg-transparent px-6">
-      <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#D92D4A]/20 to-transparent mx-auto mb-4 flex items-center justify-center">
-          <span className="text-3xl">🙅</span>
-        </div>
-        <h2 className="text-xl font-bold mb-1">Chat indisponible</h2>
-        <p className="text-[#9E9488] text-sm mb-6">Tu ne peux pas t&rsquo;envoyer des messages à toi-même.</p>
-        <button type="button" onClick={() => router.push('/matches')}
-          className="w-full py-3.5 rounded-full text-white font-semibold transition active:scale-95" style={{ background: '#D92D4A' }}>
-          Retour aux matchs
-        </button>
-      </div>
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   return (
-    <div className="flex-1 flex flex-col w-full relative bg-transparent">
-
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/20 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#4A4238]'}`} />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">{otherProfile?.name || 'Match'}</p>
-            {isOnline && <p className="text-[10px] text-green-400">En ligne</p>}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button type="button" aria-label="Suggestion de date" onClick={handleDateSuggestions}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showDateSuggestions ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:bg-white/5'}`}>
-            <span className="text-base">📅</span>
-          </button>
-          <button type="button" aria-label="Playlist" onClick={() => { setShowPlaylist(!showPlaylist); if (!showPlaylist) loadPlaylist() }}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${showPlaylist ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:bg-white/5'}`}>
-            <Music size={16} />
-          </button>
-          <button type="button" onClick={() => setShowEphemeralOpts(!showEphemeralOpts)}
-            className={`text-[10px] px-2.5 py-1 rounded-full transition-all ${match?.ephemeral ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'text-[#9E9488] border border-transparent hover:border-white/10'}`}>
-            {match?.ephemeral ? 'Éphémère' : 'Permanent'}
-          </button>
-          <button type="button" aria-label="Appel vidéo" onClick={handleStartCall} disabled={callStatus === 'ringing' || callStatus === 'connected'}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[#9E9488] hover:bg-white/5 disabled:opacity-30 transition-all">
-            <Video size={16} />
-          </button>
-          <button type="button" aria-label="Supprimer le match" onClick={handleUnmatch} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/5 transition-all">
-            <X size={16} className="text-[#9E9488]" />
-          </button>
-        </div>
-      </div>
-
-      {callStatus && (
-        <div className="absolute inset-0 z-50 bg-black flex flex-col">
-          <div className="flex-1 relative bg-zinc-900">
-            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            <video ref={localVideoRef} autoPlay playsInline muted className="absolute bottom-4 right-4 w-24 h-36 rounded-lg object-cover bg-zinc-800 border-2 border-white/20" />
-          </div>
-          <div className="px-8 py-6 flex items-center justify-center gap-6">
-            <p className="text-sm text-white/60 absolute left-8">
-              {callStatus === 'ringing' ? 'Appel en cours...' : callStatus === 'connected' ? 'En communication' : ''}
-            </p>
-            <button type="button" aria-label="Raccrocher" onClick={handleEndCall}
-              className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center">
-              <PhoneOff size={24} fill="white" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showEphemeralOpts && (
-        <div className="px-4 py-2 bg-[#1C1C1E] border-b border-[#2A2826]">
-          <p className="text-xs text-[#9E9488] mb-2">Messages éphémères</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { toggleEphemeral(id, false); setShowEphemeralOpts(false) }}
-              className="text-xs px-3 py-1.5 rounded-lg bg-[#262628] text-white">
-              Désactivé
-            </button>
-            <button type="button" onClick={() => { toggleEphemeral(id, true); setShowEphemeralOpts(false) }}
-              className="text-xs px-3 py-1.5 rounded-lg bg-[#D92D4A]/20 text-[#D92D4A]">
-              Activé (24h)
-            </button>
-          </div>
-          <p className="text-[10px] text-[#9E9488] mt-1">Les messages disparaîtront après 24h</p>
-        </div>
-      )}
-
-      {showDateSuggestions && (
-        <div className="border-b border-[#2A2826] bg-[#1C1C1E] px-4 py-3 max-h-64 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-[#9E9488] font-medium uppercase tracking-wider">Suggestions de date</p>
-            <button type="button" aria-label="Fermer" onClick={() => setShowDateSuggestions(false)} className="text-[#9E9488] hover:text-white">
-              <X size={14} />
-            </button>
-          </div>
-          {loadingDateSuggestions ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin w-5 h-5 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+    <div className="flex-1 flex flex-col bg-transparent h-full">
+      <header className="flex items-center gap-3 px-3 py-3 border-b border-[#2A2826]/50 bg-[#070708]/80 backdrop-blur-xl z-10">
+        <button onClick={() => router.push('/matches')} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-[#1C1C1E] transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-[#262628] ring-2 ring-[#2A2826]">
+              {profile?.photos?.[0] ? (
+                <Image src={profile.photos[0]} alt={profile.name} width={40} height={40} className="object-cover w-full h-full" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-sm">?</div>
+              )}
             </div>
-          ) : dateSuggestions && dateSuggestions.length > 0 ? (
-            <div className="space-y-2">
-              {dateSuggestions.map((s, i) => (
-                <button type="button" key={i} onClick={() => sendDateSuggestion(s)}
-                  className="w-full text-left px-3 py-2.5 rounded-xl glass-card border border-[#2A2826] hover:border-[#D92D4A]/30 transition-all active:scale-95 group">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-white capitalize">{s.type}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2A2826] text-[#9E9488]">{s.budget}</span>
-                  </div>
-                  <p className="text-xs text-[#9E9488]">{s.description}</p>
-                  <p className="text-[10px] text-[#6B6258] mt-1">{s.distance}</p>
+            <div className="absolute -bottom-0.5 -right-0.5"><OnlineStatus isOnline={isOnline} size="sm" /></div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm truncate">{profile?.name || 'Chat'}</h3>
+              {profile?.age && <span className="text-xs text-[#9E9488]">{profile.age} ans</span>}
+            </div>
+            <OnlineBadge isOnline={isOnline} />
+          </div>
+        </div>
+
+        <div className="relative">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-[#1C1C1E] transition-colors">
+            <MoreHorizontal size={18} />
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-[#1C1C1E] rounded-xl border border-[#2A2826] shadow-xl overflow-hidden py-1">
+                <button onClick={() => { setMenuOpen(false); router.push(`/compatibility/${matchId}`) }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
+                  <BarChart3 size={14} className="text-[#34D399]" /> Compatibilité
                 </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-[#9E9488] py-2">Aucune suggestion disponible</p>
+                <button onClick={() => { setMenuOpen(false); loadAiSuggestions() }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
+                  <Sparkles size={14} className="text-[#EAB308]" /> Suggestions IA
+                </button>
+                <button onClick={() => { setMenuOpen(false); loadDateIdeas() }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
+                  <Heart size={14} className="text-[#D92D4A]" /> Idée de date
+                </button>
+                <button onClick={handleDuelChallenge}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
+                  <Swords size={14} className="text-[#9E9488]" /> Lancer un duel
+                </button>
+                <button onClick={() => { setMenuOpen(false); (async () => {
+                  const { error } = await blockUser(otherId)
+                  if (error) toast(error, 'error')
+                  else { toast('Utilisateur bloqué', 'success'); logConsent(myId, 'user_blocked', otherId) }
+                })() }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5 text-red-400">
+                  <ShieldOff size={14} /> Bloquer
+                </button>
+                <button onClick={() => { setMenuOpen(false); handleUnmatch() }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5 text-red-400">
+                  <UserMinus size={14} /> Ne plus match
+                </button>
+                <button onClick={() => { setMenuOpen(false); setShowReport(true) }}
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
+                  <Flag size={14} className="text-[#9E9488]" /> Signaler
+                </button>
+              </div>
+            </>
           )}
         </div>
-      )}
+      </header>
 
-      {showPlaylist && (
-        <div className="border-b border-[#2A2826] bg-[#1C1C1E] px-4 py-3 max-h-48 overflow-y-auto">
-          <p className="text-xs text-[#9E9488] font-medium mb-2 uppercase tracking-wider">Playlist partagée</p>
-          {playlist.length === 0 ? (
-            <p className="text-xs text-[#9E9488]">Ajoutez des musiques à votre playlist</p>
-          ) : playlist.map(item => (
-            <div key={item.id} className="flex items-center justify-between py-1.5">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{item.title}</p>
-                {item.artist && <p className="text-[10px] text-[#9E9488]">{item.artist}</p>}
-              </div>
-              <button type="button" aria-label="Retirer de la playlist" onClick={() => handleRemovePlaylist(item.id)} className="text-[#9E9488] hover:text-white ml-2">
-                <X size={14} />
-              </button>
+      <ReportSheet
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        onSubmit={async (reason, description) => {
+          const { error } = await reportUser({
+            reported_id: otherId,
+            reason,
+            description,
+            match_id: matchId,
+          })
+          if (error) toast(error, 'error')
+          else toast('Signalement envoyé', 'success')
+        }}
+        reportedName={profile?.name || 'cet utilisateur'}
+      />
+
+      <ConsentDialog
+        open={showConsent}
+        title="Partager une photo ?"
+        description="Tu t'apprêtes à partager une photo avec ton match. Assure-toi d'être à l'aise avec ce partage."
+        contentLabel="Une fois partagée, tu ne peux pas contrôler sa diffusion. Ne partage que ce avec quoi tu es à l'aise."
+        onConfirm={confirmPhotoSend}
+        onCancel={cancelPhotoSend}
+        onRevoke={() => { logConsent(myId, 'consent_revoked'); toast('Consentement retiré', 'success'); cancelPhotoSend() }}
+      />
+
+      <SafetyReminder
+        open={showSafety}
+        type="photo"
+        onDismiss={cancelPhotoSend}
+        onProceed={proceedPhotoSend}
+      />
+
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin">
+        {messages.length === 0 && !isTyping ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+              <Smile size={28} className="text-[#D92D4A]/40" />
             </div>
-          ))}
-          <div className="flex gap-2 mt-2">
-            <input value={newSongTitle} onChange={e => setNewSongTitle(e.target.value)} placeholder="Titre..." aria-label="Titre de la musique"
-              className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
-            <input value={newSongUrl} onChange={e => setNewSongUrl(e.target.value)} placeholder="URL..." aria-label="URL"
-              className="flex-1 px-3 py-1.5 rounded-lg bg-[#262628] text-xs text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
-            <button type="button" onClick={handleAddPlaylist}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ background: '#D92D4A' }}>
-              +
-            </button>
+            <h3 className="font-semibold text-lg">C&apos;est le début de votre histoire</h3>
+            <p className="text-[#9E9488] text-sm mt-1 max-w-xs">
+              Envoyez un message à {profile?.name?.split(' ')[0] || 'votre match'} pour briser la glace.
+            </p>
+            {profile && aiSuggestions.length === 0 && (
+              <button onClick={loadAiSuggestions}
+                className="mt-4 px-4 py-2 rounded-full text-xs font-medium text-white flex items-center gap-1.5 transition-all active:scale-95"
+                style={{ background: '#D92D4A' }}>
+                <Sparkles size={14} /> Suggestion de message
+              </button>
+            )}
           </div>
-        </div>
-      )}
+        ) : (
+          <>
+            <DateSeparator messages={messages} />
+            {messages.map(msg => (
+              <MessageBubble key={msg.id} msg={msg} isOwn={msg.sender_id === myId}
+                onReply={handleReply} onEdit={handleEdit} onDelete={handleDelete} />
+            ))}
+          </>
+        )}
 
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {messages.length === 0 && icebreakers.length > 0 && (
-          <div className="px-4 py-4 animate-fade-up">
-            <p className="text-xs text-[#9E9488] mb-3 font-medium uppercase tracking-wider">Pour briser la glace</p>
+        {isTyping && profile && <TypingIndicator name={profile.name.split(' ')[0]} />}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <AnimatePresence>
+        {showAi && aiSuggestions.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={14} className="text-[#EAB308]" />
+              <span className="text-xs font-medium text-[#EAB308]">Suggestions</span>
+              <button onClick={() => setShowAi(false)} className="ml-auto p-1"><X size={14} className="text-[#5A5248]" /></button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {icebreakers.map((ib, i) => (
-                <button type="button" key={i} onClick={() => handleIcebreaker(ib.question)}
-                  className="px-4 py-2.5 rounded-full text-sm glass-card border border-[#2A2826] text-[#E8E0D8] hover:border-[#D92D4A]/30 transition-all active:scale-95">
-                  {ib.question}
+              {aiSuggestions.map((s, i) => (
+                <button key={i} onClick={() => { setInput(s); setShowAi(false); inputRef.current?.focus() }}
+                  className="px-3 py-1.5 rounded-full text-xs bg-[#1C1C1E] border border-[#2A2826] text-[#9E9488] hover:border-[#D92D4A]/30 transition-colors">
+                  {s}
                 </button>
               ))}
             </div>
-            <button type="button" onClick={handleAIIcebreaker}
-              className="mt-2 text-xs px-3 py-1.5 rounded-full bg-[#D92D4A]/10 text-[#D92D4A] border border-[#D92D4A]/20 hover:bg-[#D92D4A]/20 transition">
-              Générer une suggestion IA
-            </button>
-            {aiSuggestion && (
-              <div className="mt-2">
-                <button type="button" onClick={() => { (async () => { const { data: sent } = await sendMessage(id, aiSuggestion); if (sent) setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]); setAiSuggestion(null); })().catch(logger.error) }}
-                  className="px-4 py-2.5 rounded-full text-sm bg-[#D92D4A]/10 border border-[#D92D4A] text-[#D92D4A] hover:bg-[#D92D4A]/20 transition animate-pulse">
-                  ✨ {aiSuggestion}
-                </button>
-              </div>
-            )}
-          </div>
+          </motion.div>
         )}
-        {messages.map((m, i) => {
-          const showDateSep = i === 0 || new Date(m.created_at).toDateString() !== new Date(messages[i - 1].created_at).toDateString()
-          const mDate = new Date(m.created_at).toDateString()
-          let dateLabel = ''
-          if (showDateSep) {
-            const today = new Date(now).toDateString()
-            const yesterday = new Date(now - 864e5).toDateString()
-            if (mDate === today) dateLabel = 'Aujourd\'hui'
-            else if (mDate === yesterday) dateLabel = 'Hier'
-            else dateLabel = new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-          }
-          return (
-          <div key={m.id} className="w-full">
-            {showDateSep && (
-              <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-[#2A2826]" />
-                <span className="text-[10px] font-medium text-[#9E9488] uppercase tracking-wider">{dateLabel}</span>
-                <div className="flex-1 h-px bg-[#2A2826]" />
-              </div>
-            )}
-            {m.audio_url ? (
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${m.sender_id === currentUser?.id ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
-              <AudioPlayer src={m.audio_url} />
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {dateSuggestions.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+            <div className="flex items-center gap-2 mb-2">
+              <Heart size={14} className="text-[#D92D4A]" />
+              <span className="text-xs font-medium text-[#D92D4A]">Idées de date</span>
+              <button onClick={() => setDateSuggestions([])} className="ml-auto p-1"><X size={14} className="text-[#5A5248]" /></button>
             </div>
-          ) : m.image_url ? (
-            <div className={`max-w-[80%] rounded-2xl overflow-hidden relative ${m.sender_id === currentUser?.id ? 'self-end border border-[#D92D4A]/10' : 'glass-card self-start'}`}>
-              {m.view_once && m.sender_id !== currentUser?.id ? (
-                <div className="relative">
-                  {revealedOnce[m.id] ? (
-                    <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
-                  ) : (
-                    <button type="button" aria-label="Révéler la photo" onClick={() => setRevealedOnce(r => ({ ...r, [m.id]: true }))} className="block w-full">
-                      <Image src={m.image_url} alt="Photo à vue unique" width={300} height={400} className="w-full object-cover blur-xl brightness-50" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-white text-xs font-medium bg-black/50 px-3 py-1.5 rounded-full">Appuie pour voir 👁️</span>
-                      </div>
-                    </button>
-                  )}
+            <div className="flex flex-col gap-2">
+              {loadingDates ? (
+                <div className="flex items-center gap-2 text-xs text-[#5A5248]">
+                  <div className="w-3 h-3 border border-[#D92D4A] border-t-transparent rounded-full animate-spin" />
+                  Génération d&apos;idées...
                 </div>
-              ) : (
-                <Image src={m.image_url} alt="Photo" width={300} height={400} className="w-full object-cover" />
-              )}
-              {m.sender_id === currentUser?.id && m.view_once && (
-                <span className="absolute top-1 right-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">👁️ 1x</span>
-              )}
-            </div>
-              ) : (
-                <div className={`max-w-[80%] px-4 py-3 rounded-2xl animate-fade-up ${m.sender_id === currentUser?.id
-                  ? 'self-end bg-gradient-to-r from-[#D92D4A]/20 to-[#D92D4A]/10 border border-[#D92D4A]/10'
-                  : 'glass-card self-start'
-                }`}>
-                  <p className="text-sm leading-relaxed">{m.text}</p>
-                  {m.sender_id === currentUser?.id && (
-                    <span className="text-[10px] ml-1">
-                      {m.view_once && <span className="text-[#D92D4A] mr-0.5">👁️</span>}
-                      {m.read_at ? (
-                    <span className="text-[#D92D4A]">✓✓</span>
-                  ) : (
-                    <span className="text-[#9E9488]">✓</span>
-                  )}
-                </span>
-              )}
-              <div className="flex items-center gap-1 mt-1.5">
-                {reactions[m.id]?.length > 0 && (
-                  <div className="flex gap-0.5">
-                    {reactions[m.id].map((r: Reaction, i: number) => (
-                      <span key={i} className="text-sm">{r.emoji}</span>
-                    ))}
+              ) : dateSuggestions.map((s, i) => (
+                <button key={i} onClick={() => sendDateSuggestion(s)}
+                  className="text-left px-3 py-2 rounded-xl bg-[#1C1C1E] border border-[#2A2826] hover:border-[#D92D4A]/30 transition-colors">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-medium text-white capitalize">{s.type}</span>
+                    <span className="text-[10px] text-[#5A5248]">{s.budget} · {s.distance}</span>
                   </div>
-                )}
-                <button type="button" onClick={() => setReactingMessageId(reactingMessageId === m.id ? null : m.id)}
-                  className="text-[#9E9488] hover:text-white text-xs ml-1 transition">
-                  +
+                  <p className="text-[11px] text-[#9E9488]">{s.description}</p>
                 </button>
-              </div>
-              {reactingMessageId === m.id && (
-                <div className="flex gap-1.5 mt-1.5">
-                  {['❤️', '😂', '😮', '😢', '🔥', '👍'].map(emoji => (
-                    <button type="button" key={emoji} onClick={() => handleReact(m.id, emoji)}
-                      className="text-lg hover:scale-125 transition-all active:scale-150">
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {replyTo && (
+        <div className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-medium text-[#D92D4A]">En réponse</p>
+            <p className="text-xs text-[#9E9488] truncate">{replyTo.text || '📎 Pièce jointe'}</p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="p-1"><X size={14} className="text-[#5A5248]" /></button>
+        </div>
+      )}
+
+      <div className="px-3 pb-3 pt-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+        <div className="flex items-end gap-2">
+          <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-[#1C1C1E] transition-colors shrink-0">
+            <ImageIcon size={18} className="text-[#9E9488]" />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+
+          <button onClick={() => setShowEmoji(!showEmoji)} className="p-2.5 rounded-xl hover:bg-[#1C1C1E] transition-colors shrink-0">
+            <Smile size={18} className="text-[#9E9488]" />
+          </button>
+
+          <div className="flex-1 flex items-end gap-2 bg-[#1C1C1E] rounded-2xl px-3 py-1 border border-[#2A2826] focus-within:border-[#D92D4A]/30 transition-colors">
+            <input
+              ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+              placeholder="Écrivez un message..."
+              className="flex-1 bg-transparent text-sm py-2 outline-none text-white placeholder:text-[#5A5248] min-w-0"
+              maxLength={5000}
+            />
+            {input.trim() ? (
+              <button onClick={handleSend} disabled={sending}
+                className="p-2 shrink-0 text-white disabled:opacity-30 transition-all active:scale-90"
+                style={{ color: '#D92D4A' }}>
+                <Send size={18} />
+              </button>
+            ) : (
+              <button onClick={handleVoiceToggle}
+                className="p-2 shrink-0 transition-all active:scale-90"
+                style={{ color: isRecording ? '#EF4444' : '#9E9488' }}>
+                {isRecording ? <Square size={18} /> : <Mic size={18} />}
+              </button>
             )}
           </div>
-          )
-        })}
-        <div ref={bottomRef} />
-      </div>
-
-      {!isNearBottom && (
-        <button type="button" aria-label="Aller en bas" onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="fixed bottom-24 right-6 w-10 h-10 rounded-full bg-[#D92D4A] shadow-lg shadow-black/40 flex items-center justify-center z-20 animate-scale-in active:scale-90 transition-all">
-          <ChevronDown size={20} />
-        </button>
-      )}
-
-      {typingUserId && (
-        <div aria-live="polite" aria-atomic="true" className="text-xs text-[#9E9488] px-4 py-2 italic animate-pulse flex items-center gap-2">
-          <div className="flex gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-1.5 h-1.5 rounded-full bg-[#9E9488] animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          est en train d&rsquo;écrire...
         </div>
-      )}
 
-      {recording && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#D92D4A]/10 border-t border-[#D92D4A]/10">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#D92D4A] animate-glow" />
-          <span className="text-xs text-[#D92D4A] font-medium tabular-nums">
-            {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
-          </span>
-          <div className="flex-1 h-1 bg-[#2A2826] rounded-full overflow-hidden max-w-[120px]">
-            <div className="h-full bg-[#D92D4A] rounded-full animate-pulse" style={{ width: `${(recordingTime / 60) * 100}%` }} />
-          </div>
-        </div>
-      )}
+        <AnimatePresence>
+          {isRecording && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="flex items-center gap-2 mt-2 px-1">
+              <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-red-500" />
+              <span className="text-xs text-[#9E9488]">Enregistrement... {recordingDuration}s</span>
+              <span className="text-[10px] text-[#5A5248]">(max 30s)</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[#2A2826]/60 bg-[#141414]/80 backdrop-blur-md">
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        <button type="button" aria-label="Photo" onClick={handlePhoto} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 glass-light transition-all hover:border-white/20 active:scale-90">
-          <Camera size={16} className="text-[#9E9488]" />
-        </button>
-        <button type="button" aria-label="Vue unique" onClick={() => setViewOnce(!viewOnce)}
-          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${viewOnce ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/20' : 'glass-light text-[#9E9488] hover:border-white/20'}`}>
-          <span className="text-xs font-bold">1x</span>
-        </button>
-        <div className="flex-1 relative">
-          <input value={text} onChange={(e) => { setText(e.target.value.slice(0, 1000)); broadcastTyping() }} onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Écris un message..." maxLength={1000} aria-label="Message" className="w-full px-4 py-2.5 rounded-full bg-[#1A1A1C]/80 border border-[#2A2826]/50 text-sm outline-none focus:border-[#D92D4A]/30 transition-all pr-12" />
-          <p className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-[#9E9488] pointer-events-none">{text.length}/1000</p>
-        </div>
-        <button type="button" aria-label="Message vocal" onClick={startRecording} disabled={recording}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[#9E9488] hover:text-white hover:bg-white/5 disabled:opacity-30 transition-all active:scale-90">
-          <Mic size={18} />
-        </button>
-        {recording ? (
-          <button type="button" aria-label="Arrêter l'enregistrement" onClick={stopRecording}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-[#D92D4A] hover:shadow-[0_0_15px_rgba(217,45,74,0.3)] active:scale-90 transition-all">
-            <Square size={16} fill="white" />
-          </button>
-        ) : (
-          <button type="button" aria-label="Envoyer" onClick={handleSend} disabled={!text.trim()}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30 active:scale-90 transition-all"
-            style={{ background: '#D92D4A' }}>
-            <Send size={16} />
-          </button>
-        )}
+        <AnimatePresence>
+          {showEmoji && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              className="mt-2 p-2 bg-[#1C1C1E] rounded-xl border border-[#2A2826]">
+              <div className="flex flex-wrap gap-1">
+                {EMOJI_LIST.map(e => (
+                  <button key={e} onClick={() => { setInput(prev => prev + e); inputRef.current?.focus() }}
+                    className="w-9 h-9 flex items-center justify-center text-lg hover:bg-[#262628] rounded-lg transition-colors">
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
 }
+
+function DateSeparator({ messages }: { messages: ChatMessage[] }) {
+  const seen = new Set<string>()
+  const separators: { date: string; label: string }[] = []
+  for (const msg of messages) {
+    const d = new Date(msg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    if (!seen.has(d)) {
+      seen.add(d)
+      separators.push({ date: d, label: d })
+    }
+  }
+  return (
+    <>
+      {separators.map(s => (
+        <div key={s.date} className="flex items-center gap-3 py-2">
+          <div className="flex-1 h-px bg-[#2A2826]" />
+          <span className="text-[10px] text-[#5A5248] font-medium">{s.label}</span>
+          <div className="flex-1 h-px bg-[#2A2826]" />
+        </div>
+      ))}
+    </>
+  )
+}
+
+

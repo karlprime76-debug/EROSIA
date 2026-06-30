@@ -2,9 +2,9 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Shield as ShieldIcon, Crown, MapPin, Lock, LogOut, User, Check, X } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi, signOut } from '@/lib/api'
+import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { logger } from '@/lib/logger'
@@ -69,11 +69,6 @@ export default function SettingsPage() {
     }, 2000)
     return () => clearInterval(id)
   }, [upgradeSuccess])
-
-  const handleLogout = async () => {
-    await signOut()
-    router.push('/')
-  }
 
   const handleDelete = async () => {
     if (!(await confirm('Supprimer définitivement ton compte ? Cette action est irréversible.'))) return
@@ -186,6 +181,16 @@ export default function SettingsPage() {
       ],
     },
     {
+      title: 'Sécurité & Confidentialité',
+      items: [
+        {
+          icon: Shield, label: 'Centre de sécurité',
+          desc: 'Conseils, consentement, blocages et signalements',
+          onClick: () => router.push('/safety'),
+        },
+      ],
+    },
+    {
       title: 'Compte',
       items: [
         {
@@ -235,15 +240,6 @@ export default function SettingsPage() {
             <button type="button" onClick={() => setEditingName(true)}
               className="mt-1 text-xs text-[#D92D4A] font-medium">Modifier</button>
           ),
-        },
-        {
-          icon: ShieldIcon, label: 'Centre d\'aide',
-          onClick: () => window.open('mailto:support@erosia.app', '_blank'),
-          desc: 'support@erosia.app',
-        },
-        {
-          icon: LogOut, label: 'Se déconnecter',
-          onClick: handleLogout,
         },
         {
           icon: Trash2, label: 'Supprimer mon compte', desc: 'Irréversible', danger: true,
@@ -309,20 +305,20 @@ export default function SettingsPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
-        <h2 className="text-2xl font-bold">Paramètres</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
         {[1, 2, 3].map(i => (
           <div key={i}>
-            <div className="h-3 w-20 bg-[#2A2826] rounded mb-2 animate-pulse" />
-            <div className="bg-[#1C1C1E] rounded-xl border border-[#2A2826] overflow-hidden">
+            <div className="h-3 w-20 bg-[var(--border)] rounded mb-2 animate-pulse" />
+            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
               {[1, 2].map(j => (
-                <div key={j} className="px-4 py-3.5 border-b border-[#2A2826] last:border-0">
+                <div key={j} className="px-4 py-3.5 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded bg-[#2A2826] animate-pulse" />
+                    <div className="w-5 h-5 rounded bg-[var(--border)] animate-pulse" />
                     <div className="flex-1">
-                      <div className="h-4 w-32 bg-[#2A2826] rounded animate-pulse" />
-                      <div className="h-3 w-24 bg-[#2A2826] rounded mt-1 animate-pulse" />
+                      <div className="h-4 w-32 bg-[var(--border)] rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-[var(--border)] rounded mt-1 animate-pulse" />
                     </div>
                   </div>
                 </div>
@@ -338,31 +334,31 @@ export default function SettingsPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
-        <h2 className="text-2xl font-bold">Paramètres</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
         {sections.map(section => (
           <div key={section.title}>
-            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 px-1">{section.title}</h3>
-            <div className="bg-[#1C1C1E] rounded-xl border border-[#2A2826] overflow-hidden">
+            <h3 className="text-sm font-semibold tracking-wider mb-2 px-1" style={{ color: 'var(--text-secondary)' }}>{section.title}</h3>
+            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
               {section.items.map(({ icon: Icon, label, desc, danger, onClick, render }) => (
                 <div key={label}
-                  className="px-4 py-3.5 border-b border-[#2A2826] last:border-0">
+                  className="px-4 py-3.5 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                   <div className="flex items-center gap-3">
-                    <Icon size={20} className={danger ? 'text-[#D92D4A]' : 'text-[#9E9488] shrink-0'} />
+                    <Icon size={20} className={`shrink-0 ${danger ? 'text-[#D92D4A]' : 'text-[var(--text-muted)]'}`} />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${danger ? 'text-[#D92D4A]' : ''}`}>{label}</p>
-                      {desc && <p className="text-xs text-[#9E9488]">{desc}</p>}
+                      <p className={`text-sm font-medium ${danger ? 'text-[#D92D4A]' : ''}`} style={{ color: danger ? undefined : 'var(--text)' }}>{label}</p>
+                      {desc && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</p>}
                     </div>
-                    {onClick && !danger && label !== 'Se déconnecter' && label !== 'Centre d\'aide' && (
+                    {onClick && !danger && (
                       <button type="button" onClick={onClick}
-                        className="text-xs text-[#D92D4A] font-medium shrink-0">Modifier</button>
+                        className="text-xs font-medium shrink-0" style={{ color: 'var(--primary)' }}>Modifier</button>
                     )}
                   </div>
                   {render?.()}
                   {danger && (
                     <button type="button" onClick={onClick} disabled={deleting}
-                      className="mt-2 px-4 py-2 rounded-lg text-xs font-medium bg-[#D92D4A]/10 text-[#D92D4A]">
+                      className="mt-2 px-4 py-2 rounded-lg text-xs font-medium" style={{ background: 'var(--error-bg)', color: 'var(--error)' }}>
                       {deleting ? 'Suppression...' : 'Supprimer mon compte'}
                     </button>
                   )}

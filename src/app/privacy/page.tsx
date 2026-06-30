@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         <h2 className="text-white font-semibold text-base">Suppression</h2>
         <p>Vous pouvez supprimer votre compte à tout moment depuis les paramètres. Toutes vos données seront effacées.</p>
         <h2 className="text-white font-semibold text-base">Contact</h2>
-        <p>Pour toute question : contact@erosia.app</p>
+        <p>Pour toute question : <a href="mailto:erosiahelp@hotmail.com" className="text-[#D92D4A] underline">erosiahelp@hotmail.com</a></p>
         <p className="text-xs mt-8">Dernière mise à jour : juin 2026</p>
       </div>
     </div>

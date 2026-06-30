@@ -31,6 +31,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `src/lib/paydunya-disburse.ts` — paiements sortants
 - `src/lib/didit.ts` — vérification identité Didit
 - `src/lib/engine/` — moteur de recommandation (compatibilité, spark score)
-- `src/app/api/` — routes API REST
+- `src/lib/privacy.ts` — types, helpers, API wrapper pour privacy settings
+- `src/app/api/privacy/` — API REST GET/PUT privacy settings
+- `src/app/api/` — autres routes API REST
+- `src/app/(main)/settings/privacy/` — UI paramètres confidentialité
 - `src/app/(main)/chat/[id]/` — page de chat + error boundary
+- `supabase/migration_v16_privacy_mode.sql` — migration DB privacy
+## URLs
+- **Production** : https://erosia-app.vercel.app
+- **Supabase Studio** : https://supabase.com/dashboard/project/vxycbjwmovfzywyvrjql
 <!-- END:erosia-summary -->

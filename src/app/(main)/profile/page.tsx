@@ -1,9 +1,40 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { Component, useState, useEffect, useRef } from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
+
+class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('ProfilePage error:', error, info.componentStack)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#D92D4A]/10 flex items-center justify-center mb-4">
+            <span className="text-2xl">😵</span>
+          </div>
+          <h3 className="font-semibold text-lg">Oups, quelque chose a planté</h3>
+          <p className="text-[#9E9488] text-sm mt-1 max-w-xs">Un problème est survenu. Recharge la page.</p>
+          <button onClick={() => window.location.reload()}
+            className="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium text-white"
+            style={{ background: '#D92D4A' }}>
+            Recharger
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, ChevronRight, Shield, HelpCircle, Palette, Trash2, Star, BadgeCheck, Swords, Heart, Gift, Check, Sun, Moon, Monitor } from 'lucide-react'
+import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -15,9 +46,8 @@ import { AuraBadge, useAura } from '@/components/AuraSphere'
 const AuraSphere = dynamic(() => import('@/components/AuraSphere').then(m => ({ default: m.AuraSphere })), { ssr: false })
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import { Button } from '@/components/ui/button'
-import 'react-circular-progressbar/dist/styles.css'
 
-export default function ProfilePage() {
+function ProfilePageInner() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -164,7 +194,7 @@ export default function ProfilePage() {
     }
   }
 
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t) }, [])
   useEffect(() => { logger.debug('profile state', profile ? `id=${profile.id} name=${profile.name} photos=${profile.photos?.length}` : 'null') }, [profile])
 
   const formatLastSeen = (date: string) => {
@@ -206,15 +236,12 @@ export default function ProfilePage() {
   )
 
   const menu = [
-    { icon: BadgeCheck, label: 'Vérification', action: () => router.push('/verify') },
-    { icon: Shield, label: 'Paramètres', action: () => router.push('/settings') },
-    { icon: Gift, label: 'Boutique cadeaux', action: () => router.push('/gifts') },
-    { icon: Palette, label: 'Apparence', action: () => setThemePicker(true) },
-    { icon: Swords, label: 'Duel', action: () => router.push('/duels') },
-    { icon: Heart, label: 'Idées de date', action: () => router.push('/date-ideas') },
-    { icon: Star, label: 'Profil du jour', action: () => router.push('/daily-profile') },
-    { icon: HelpCircle, label: 'Aide', action: () => window.open('mailto:support@erosia.app', '_blank') },
-    { icon: LogOut, label: 'Déconnexion', danger: true, action: handleLogout },
+    { icon: BadgeCheck, label: 'Vérification', desc: 'Identité certifiée', action: () => router.push('/verify') },
+    { icon: Shield, label: 'Paramètres', desc: 'Confidentialité, notifications', action: () => router.push('/settings') },
+    { icon: Lock, label: 'Confidentialité', desc: 'Mode privé, visibilité', action: () => router.push('/settings/privacy') },
+    { icon: Palette, label: 'Apparence', desc: 'Thème sombre/clair', action: () => setThemePicker(true) },
+    { icon: HelpCircle, label: 'Aide', desc: 'Support & FAQ', action: () => router.push('/faq') },
+    { icon: LogOut, label: 'Déconnexion', desc: '', danger: true, action: handleLogout },
   ]
 
   return (
@@ -245,7 +272,7 @@ export default function ProfilePage() {
                 <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
                   {profile?.photos?.[0] ? (
                     <button type="button" onClick={() => setLightboxIdx(0)} className="w-full h-full">
-                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" />
+                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" loading="lazy" />
                     </button>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-3xl">?</div>
@@ -285,7 +312,7 @@ export default function ProfilePage() {
               {profile.photos.map((photo, idx) => (
                 <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#262628]">
                   <button type="button" onClick={() => setLightboxIdx(idx)} className="w-full h-full">
-                    <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" />
+                    <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" loading="lazy" />
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
@@ -491,14 +518,39 @@ export default function ProfilePage() {
           </>
         )}
 
-        <div className="glass-card rounded-2xl overflow-hidden mb-8 divide-y divide-[#2A2826]/50">
-          {menu.map(({ icon: Icon, label, danger, action }) => (
-            <button type="button" key={label} onClick={action} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-              <div className="flex items-center gap-3">
-                <Icon size={20} className={danger ? 'text-red-500' : 'text-[#9E9488]'} />
-                <span className={danger ? 'text-red-500 text-sm font-medium' : 'text-sm'}>{label}</span>
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          {menu.map(({ icon: Icon, label, desc, danger, action }) => (
+            <button type="button" key={label} onClick={action}
+              onMouseMove={e => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                e.currentTarget.style.setProperty('--mouse-x', `${((e.clientX - rect.left) / rect.width) * 100}%`)
+                e.currentTarget.style.setProperty('--mouse-y', `${((e.clientY - rect.top) / rect.height) * 100}%`)
+              }}
+              className="relative group flex flex-col items-start gap-2 p-4 rounded-2xl text-left transition-all duration-200 active:scale-[0.97] border"
+              style={{
+                background: danger
+                  ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.02) 100%)'
+                  : 'linear-gradient(135deg, rgba(217,45,74,0.06) 0%, rgba(255,255,255,0.02) 100%)',
+                borderColor: danger ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)',
+              }}>
+              <div className="flex items-center gap-3 w-full">
+                <div className="p-2 rounded-xl transition-colors shrink-0"
+                  style={{
+                    background: danger
+                      ? 'rgba(239,68,68,0.12)'
+                      : 'linear-gradient(135deg, rgba(217,45,74,0.15) 0%, rgba(217,45,74,0.05) 100%)',
+                  }}>
+                  <Icon size={18} className={danger ? 'text-red-400' : ''} style={{ color: danger ? undefined : '#D92D4A' }} />
+                </div>
+                <span className={`text-sm font-semibold ${danger ? 'text-red-400' : 'text-white'}`}>{label}</span>
               </div>
-              <ChevronRight size={18} className="text-[#5A5248]" />
+              {desc && <span className="text-[11px] text-[#5A5248] leading-tight">{desc}</span>}
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{
+                  background: danger
+                    ? 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(239,68,68,0.06), transparent 40%)'
+                    : 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(217,45,74,0.08), transparent 40%)',
+                }} />
             </button>
           ))}
         </div>
@@ -553,5 +605,13 @@ export default function ProfilePage() {
   </div>
 </div>
 )
+}
+
+export default function ProfilePage() {
+  return (
+    <ProfileErrorBoundary>
+      <ProfilePageInner />
+    </ProfileErrorBoundary>
+  )
 }
 

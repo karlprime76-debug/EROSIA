@@ -30,6 +30,24 @@ export async function getActiveStories(page = 1): Promise<{ data: StoryGroup[]; 
 
   if (error) return { data: [], error: error.message }
 
+  const userIds = [...new Set((data ?? []).map(s => s.user_id))]
+  const { data: privacyRows } = await supabase()
+    .from('privacy_settings')
+    .select('user_id, story_visibility')
+    .in('user_id', userIds)
+
+  const privacyMap = new Map((privacyRows ?? []).map(r => [r.user_id, r.story_visibility as string]))
+
+  const { data: myMatchIds } = await supabase()
+    .from('matches')
+    .select('user1_id, user2_id')
+    .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+
+  const matchedIds = new Set<string>()
+  for (const m of myMatchIds ?? []) {
+    matchedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id)
+  }
+
   const { data: views } = await supabase()
     .from('story_views')
     .select('story_id, user_id')
@@ -52,6 +70,10 @@ export async function getActiveStories(page = 1): Promise<{ data: StoryGroup[]; 
   const groupMap = new Map<string, StoryGroup>()
   for (const s of data ?? []) {
     const sid = s.user_id
+    const visibility = privacyMap.get(sid) ?? 'everyone'
+    if (visibility === 'nobody') continue
+    if (visibility === 'matches' && !matchedIds.has(sid)) continue
+
     if (!groupMap.has(sid)) {
       groupMap.set(sid, {
         userId: sid,

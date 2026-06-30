@@ -22,7 +22,7 @@ export default function CguPage() {
         <h2 className="text-white font-semibold text-base">5. Abonnement Premium</h2>
         <p>Le paiement de l&rsquo;abonnement Premium est non remboursable sauf disposition légale contraire. L&rsquo;abonnement est valable 30 jours à compter de l&rsquo;activation.</p>
         <h2 className="text-white font-semibold text-base">6. Contact</h2>
-        <p>Pour toute question : <a href="mailto:support@erosia.app" className="text-[#D92D4A] underline">support@erosia.app</a></p>
+        <p>Pour toute question : <a href="mailto:erosiahelp@hotmail.com" className="text-[#D92D4A] underline">erosiahelp@hotmail.com</a></p>
       </div>
     </div>
   )
