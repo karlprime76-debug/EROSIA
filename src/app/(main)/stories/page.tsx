@@ -178,7 +178,7 @@ export default function StoriesPage() {
                         {story.type === 'video' ? (
                           <video src={story.media_url} className="w-full h-full object-cover" muted playsInline />
                         ) : (
-                          <Image src={story.media_url} alt="" width={200} height={355} className="w-full h-full object-cover" />
+                          <Image src={story.media_url} alt="Contenu de la story" width={200} height={355} className="w-full h-full object-cover" />
                         )}
                       </button>
                       <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 to-transparent pointer-events-none" />
@@ -217,7 +217,7 @@ export default function StoriesPage() {
                           <div key={v.id} className="flex items-center gap-2">
                             {v.profile?.photos?.[0] && (
                               <div className="w-5 h-5 rounded-full overflow-hidden bg-[var(--surfaceElevated)]">
-                                <Image src={v.profile.photos[0]} alt="" width={20} height={20} className="object-cover" />
+                                <Image src={v.profile.photos[0]} alt={v.profile.name ?? 'Photo de profil'} width={20} height={20} className="object-cover" />
                               </div>
                             )}
                             <p className="text-xs">{v.profile?.name ?? 'Inconnu'}</p>

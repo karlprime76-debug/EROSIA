@@ -74,7 +74,7 @@ export function EventCard({ event, joined, participantCount, onToggle }: EventCa
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-5 rounded-full bg-[var(--surfaceElevated)] overflow-hidden">
                 {event.creator.photos?.[0] && (
-                  <Image src={event.creator.photos[0]} alt="" width={20} height={20} className="object-cover w-full h-full" />
+                  <Image src={event.creator.photos[0]} alt={event.creator.name} width={20} height={20} className="object-cover w-full h-full" />
                 )}
               </div>
               <span className="text-[10px] text-[var(--textSecondary)]">{event.creator.name}</span>

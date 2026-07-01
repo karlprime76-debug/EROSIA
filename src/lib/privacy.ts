@@ -76,7 +76,7 @@ export function getVisibleDistance(km: number, settings: PrivacySettings): strin
 }
 
 export function canSendFirstMessage(
-  senderId: string,
+  _senderId: string,
   isMatch: boolean,
   isVerified: boolean,
   targetSettings: PrivacySettings,
@@ -90,7 +90,7 @@ export function canSendFirstMessage(
 }
 
 export function canViewStory(
-  viewerId: string,
+  _viewerId: string,
   isMatch: boolean,
   targetSettings: PrivacySettings,
 ): boolean {
@@ -102,7 +102,7 @@ export function canViewStory(
 }
 
 export function canSeeOnlineStatus(
-  viewerId: string,
+  _viewerId: string,
   isMatch: boolean,
   targetSettings: PrivacySettings,
 ): boolean {

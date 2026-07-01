@@ -199,7 +199,7 @@ export default function SafetyPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center overflow-hidden">
                           {bu.photo ? (
-                            <Image src={bu.photo} alt="" width={36} height={36} className="w-full h-full object-cover" />
+                            <Image src={bu.photo} alt={`Photo de ${bu.name}`} width={36} height={36} className="w-full h-full object-cover" />
                           ) : (
                             <User className="w-4 h-4 text-[var(--textMuted)]" />
                           )}

@@ -89,42 +89,15 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
   return { userId: user.id }
 }
 
-export function resetApiClient() {
-  supabase().auth.signOut({ scope: 'local' }).catch(() => {})
-}
-
-export async function signUp(email: string, password: string, name: string, age: number) {
-  const { data: authData, error: authError } = await supabase().auth.signUp({ email, password })
-  if (authError || !authData.user) return { error: authError?.message ?? 'Signup failed' }
-
-  const { error: profileError } = await supabase().from('profiles').insert({
-    id: authData.user.id, name, age, photos: [], interests: [],
-  })
-
-  if (profileError) return { error: profileError.message }
-  return { data: authData.user }
-}
-
-export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase().auth.signInWithPassword({ email, password })
-  if (error) return { error: error.message }
-  return { data: data.user }
-}
-
 export async function signOut() {
   const { error } = await supabase().auth.signOut()
-  resetApiClient()
+  supabase().auth.signOut({ scope: 'local' }).catch(() => {})
   return { error: error?.message ?? null }
 }
 
 export async function resetPassword(email: string) {
   const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia.app'
   const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
-  return { error: error?.message ?? null }
-}
-
-export async function updatePassword(password: string) {
-  const { error } = await supabase().auth.updateUser({ password })
   return { error: error?.message ?? null }
 }
 
@@ -312,20 +285,6 @@ export async function sendFlirt(receiverId: string) {
   return { error: error?.message }
 }
 
-export async function getReceivedFlirts() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [], count: 0 }
-  const { data, error } = await supabase()
-    .from('flirts').select(`
-      sender_id,
-      created_at,
-      sender:profiles!flirts_sender_id_fkey(name, photos)
-    `)
-    .eq('receiver_id', user.id)
-    .order('created_at', { ascending: false })
-  return { data: data ?? [], count: data?.length ?? 0, error: error?.message }
-}
-
 export async function getSentFlirtIds() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return []
@@ -474,25 +433,6 @@ export async function useSuperLike() {
   return {}
 }
 
-// 3. Incognito mode
-export async function getIncognito() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return false
-  const { data, error } = await supabase().from('profiles').select('incognito').eq('id', user.id).maybeSingle()
-  if (error || !data) return false
-  return (data as { incognito: boolean }).incognito
-}
-
-// 4. Push subscriptions
-export async function savePushSubscription(endpoint: string, p256dh: string, auth: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('push_subscriptions').insert({
-    user_id: user.id, endpoint, p256dh, auth,
-  })
-  return { error: error?.message }
-}
-
 // 5. Quiz
 export async function getQuizQuestions() {
   const { data, error } = await supabase().from('quiz_questions').select('*')
@@ -585,14 +525,6 @@ export async function getVerificationStatus() {
   return { status: (data?.status as 'pending' | 'approved' | 'rejected' | null) ?? null }
 }
 
-// ---- FEATURE 3: Icebreakers ----
-export async function getIcebreakers(category?: string) {
-  let q = supabase().from('icebreakers').select('*')
-  if (category) q = q.eq('category', category)
-  const { data, error } = await q
-  return { data: data as Array<{ id: string; question: string; category: string | null }> | null, error: error?.message }
-}
-
 // ---- FEATURE 4: Stories (legacy wrappers, use src/lib/stories for new code) ----
 
 // ---- FEATURE 5: Travel mode ----
@@ -608,23 +540,6 @@ export async function getTravelMode() {
   if (!user) return { city: null, active: false }
   const { data } = await supabase().from('profiles').select('travel_city, travel_active').eq('id', user.id).maybeSingle()
   return { city: data?.travel_city ?? null, active: data?.travel_active ?? false }
-}
-
-// ---- FEATURE 6: Message reactions ----
-export async function addReaction(messageId: string, emoji: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().from('message_reactions').insert({
-    message_id: messageId, user_id: user.id, emoji,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
-export async function removeReaction(messageId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('message_reactions').delete().eq('message_id', messageId).eq('user_id', user.id)
-  return { error: error?.message }
 }
 
 // ---- FEATURE 7: Notifications ----
@@ -659,28 +574,6 @@ export async function getNotificationUnreadCount() {
 
 // ---- FEATURE 8: Compatibility ----
 // Already has getCompatibilityWith() above (line 405)
-
-// ---- FEATURE 9: Audio messages ----
-export async function uploadAudio(file: File, matchId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const err = validateFile(file, 'audio')
-  if (err) return { error: err }
-  const fileName = `chat_audio/${matchId}/${Date.now()}_${user.id}_${sanitizeFilename(file.name, 'mp3')}`
-  const { error: uploadError } = await supabase().storage.from('chat_audio').upload(fileName, file)
-  if (uploadError) return { error: uploadError.message }
-  const { data: urlData } = supabase().storage.from('chat_audio').getPublicUrl(fileName)
-  return { url: urlData.publicUrl }
-}
-
-export async function sendAudioMessage(matchId: string, audioUrl: string) {
-  const { userId, error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr || !userId) return { error: authErr }
-  const { data, error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: userId, audio_url: audioUrl,
-  }).select().single()
-  return { data: data as Message | null, error: error?.message }
-}
 
 // ---- FEATURE 10: Video profile ----
 export async function uploadProfileVideo(file: File) {
@@ -727,41 +620,12 @@ export async function reviewContent(id: string, approved: boolean) {
   return { error: error?.message ?? null }
 }
 
-// ---- FEATURE 12: Events ----
-export async function createEvent(eventData: {
-  title: string; description?: string; location?: string; latitude?: number; longitude?: number;
-  event_date?: string; max_participants?: number; type: 'date_night' | 'meetup' | 'party' | 'other'
-}) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().from('events').insert({
-    ...eventData, creator_id: user.id,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
 export async function getEvents() {
   const { data, error } = await supabase()
     .from('events')
     .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
     .order('event_date', { ascending: true })
   return { data: data ?? [], error: error?.message }
-}
-
-export async function joinEvent(eventId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().from('event_participants').insert({
-    event_id: eventId, user_id: user.id, status: 'accepted',
-  }).select().single()
-  return { data, error: error?.message }
-}
-
-export async function leaveEvent(eventId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id)
-  return { error: error?.message }
 }
 
 // ---- FEATURE 13: Duels ----
@@ -825,14 +689,6 @@ export async function getMyDateIdeas() {
   return { data: data ?? [], error: error?.message }
 }
 
-// ---- FEATURE 15: Ephemeral chat ----
-export async function toggleEphemeral(matchId: string, enabled: boolean) {
-  const { error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr) return { error: authErr }
-  const { error } = await supabase().from('matches').update({ ephemeral: enabled }).eq('id', matchId)
-  return { error: error?.message }
-}
-
 // ---- FEATURE 16: Gifts ----
 export async function getGifts() {
   const { data, error } = await supabase().from('gifts').select('*')
@@ -850,46 +706,10 @@ export async function getReceivedGifts() {
   return { data: data ?? [], error: error?.message }
 }
 
-// ---- FEATURE 17: Visio-Chat ----
-export async function startCall(matchId: string, calleeId: string) {
-  const { userId, error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr || !userId) return { error: authErr }
-  const { data, error } = await supabase().from('calls').insert({
-    match_id: matchId, caller_id: userId, callee_id: calleeId, status: 'ringing',
-  }).select().single()
-  return { data: data ?? null, error: error?.message }
-}
-
-export async function endCall(callId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data: call } = await supabase().from('calls').select('caller_id,callee_id').eq('id', callId).maybeSingle()
-  if (!call) return { error: 'Appel introuvable' }
-  if (call.caller_id !== user.id && call.callee_id !== user.id) return { error: 'Non autorisé' }
-  const { data, error } = await supabase().from('calls').update({
-    status: 'ended', ended_at: new Date().toISOString(),
-  }).eq('id', callId).select().single()
-  return { data: data ?? null, error: error?.message }
-}
-
-export async function getCallStatus(matchId: string) {
-  const { error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr) return { data: null, error: authErr }
-  const { data, error } = await supabase()
-    .from('calls').select('*').eq('match_id', matchId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
-  return { data: data ?? null, error: error?.message }
-}
-
 // ---- FEATURE 18: Quiz Profile Display ----
 export async function getProfileTraits(userId: string) {
   const { data, error } = await supabase().rpc('get_user_top_traits', { p_user_id: userId })
   return { data: data as Array<{ trait: string; count: number }> | null, error: error?.message }
-}
-
-export async function getProfileQuizSummary(userId: string) {
-  const { data, error } = await supabase().rpc('get_profile_quiz_summary', { p_user_id: userId })
-  return { data: data as Array<{ question: string; answer: string; trait: string }> | null, error: error?.message }
 }
 
 // ---- FEATURE 19: Read Receipts ----
@@ -901,22 +721,6 @@ export async function markAsRead(matchId: string) {
   if (privacy && !privacy.read_receipts) return { data: 0, error: undefined }
   const { data, error } = await supabase().rpc('mark_messages_read', { p_match_id: matchId, p_reader_id: userId })
   return { data: data as number | null, error: error?.message }
-}
-
-export async function getUnreadCount(matchId: string) {
-  const { userId, error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr || !userId) return 0
-  const { data } = await supabase().rpc('get_unread_count', { p_match_id: matchId, p_user_id: userId })
-  return Number(data) || 0
-}
-
-export async function getLastReadAt(matchId: string) {
-  const { error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr) return null
-  const { data } = await supabase()
-    .from('messages').select('read_at').eq('match_id', matchId)
-    .not('read_at', 'is', null).order('read_at', { ascending: false }).limit(1).maybeSingle()
-  return data?.read_at ?? null
 }
 
 // ---- FEATURE 20: Ghost Mode ----
@@ -937,14 +741,6 @@ export async function getGhostMode() {
   return (data as { ghost_mode: boolean }).ghost_mode
 }
 
-// ---- FEATURE 21: Icebreaker AI ----
-export async function getIcebreakerSuggestion(targetId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().rpc('generate_icebreaker', { p_user_id: user.id, p_target_id: targetId })
-  return { data: data as string | null, error: error?.message }
-}
-
 export async function getAIIcebreaker(targetId: string) {
   try {
     const res = await fetch('/api/ai/icebreaker', {
@@ -960,143 +756,12 @@ export async function getAIIcebreaker(targetId: string) {
   }
 }
 
-// ---- FEATURE 21.5: Date Suggestions AI ----
-export async function getDateSuggestions(targetId: string) {
-  try {
-    const res = await fetch('/api/ai/date-suggestions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetId }),
-    })
-    const json = await res.json()
-    if (!res.ok) return { suggestions: null, error: json.error }
-    return { suggestions: json.suggestions as Array<{ type: string; budget: string; distance: string; description: string }>, error: null }
-  } catch {
-    return { suggestions: null, error: 'Erreur réseau' }
-  }
-}
-
-// ---- FEATURE 21.75: Social Space 3D ----
-export async function getSocialSpaces() {
-  try {
-    const res = await fetch('/api/social/spaces')
-    const json = await res.json()
-    if (!res.ok) return { spaces: null, error: json.error }
-    return { spaces: json.spaces as Array<{ id: string; name: string; type: string; description: string | null; capacity: number; metadata: Record<string, unknown> }>, error: null }
-  } catch {
-    return { spaces: null, error: 'Erreur réseau' }
-  }
-}
-
-export async function joinSocialSpace(spaceId: string, x?: number, y?: number, z?: number) {
-  try {
-    const res = await fetch('/api/social/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ spaceId, x, y, z }),
-    })
-    const json = await res.json()
-    if (!res.ok) return { presence: null, error: json.error }
-    return { presence: json.presence, error: null }
-  } catch {
-    return { presence: null, error: 'Erreur réseau' }
-  }
-}
-
-export async function leaveSocialSpace() {
-  try {
-    const res = await fetch('/api/social/leave', { method: 'POST' })
-    const json = await res.json()
-    if (!res.ok) return { error: json.error }
-    return { error: null }
-  } catch {
-    return { error: 'Erreur réseau' }
-  }
-}
-
-export async function updateSpacePosition(x: number, y: number, z: number, rotationY?: number, animation?: string) {
-  try {
-    const res = await fetch('/api/social/position', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ x, y, z, rotationY, animation }),
-    })
-    const json = await res.json()
-    if (!res.ok) return { error: json.error }
-    return { error: null }
-  } catch {
-    return { error: 'Erreur réseau' }
-  }
-}
-
-export async function getSpacePresence(spaceId: string) {
-  try {
-    const res = await fetch(`/api/social/spaces/${spaceId}`)
-    const json = await res.json()
-    if (!res.ok) return { presence: null, error: json.error }
-    return { presence: json.presence as Array<{ user_id: string; space_id: string; x: number; y: number; z: number; profile: { id: string; name: string; photos: string[]; is_verified: boolean } }>, error: null }
-  } catch {
-    return { presence: null, error: 'Erreur réseau' }
-  }
-}
-
-// ---- FEATURE 21.8: Aura ----
-export async function getAuraState() {
-  try {
-    const res = await fetch('/api/aura')
-    const json = await res.json()
-    if (!res.ok) return { aura: null, error: json.error }
-    return { aura: json.aura as { level: number; color: string; secondaryColor: string; glowIntensity: number; particleCount: number; label: string; factors: Record<string, number>; updatedAt: string }, error: null }
-  } catch {
-    return { aura: null, error: 'Erreur réseau' }
-  }
-}
-
-export async function refreshAura() {
-  try {
-    const res = await fetch('/api/aura', { method: 'POST' })
-    const json = await res.json()
-    if (!res.ok) return { aura: null, error: json.error }
-    return { aura: json.aura, error: null }
-  } catch {
-    return { aura: null, error: 'Erreur réseau' }
-  }
-}
-
 // ---- FEATURE 22: Streaks ----
 export async function getStreak() {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { data: null }
   const { data, error } = await supabase().from('streaks').select('*').eq('user_id', user.id).maybeSingle()
   return { data: data as { current_streak: number; longest_streak: number; last_message_date: string } | null, error: error?.message }
-}
-
-// ---- FEATURE 23: Shared Playlist ----
-export async function addPlaylistItem(matchId: string, title: string, artist?: string, url?: string, platform?: string) {
-  const { userId, error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr || !userId) return { error: authErr }
-  const { data, error } = await supabase().from('playlist_items').insert({
-    match_id: matchId, user_id: userId, title, artist: artist ?? null, url: url ?? null, platform: platform ?? 'spotify',
-  }).select().single()
-  return { data: data ?? null, error: error?.message }
-}
-
-export async function removePlaylistItem(itemId: string) {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { error } = await supabase().from('playlist_items').delete().eq('id', itemId).eq('user_id', user.id)
-  return { error: error?.message }
-}
-
-export async function getPlaylist(matchId: string) {
-  const { error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr) return { data: [], error: authErr }
-  const { data, error } = await supabase()
-    .from('playlist_items')
-    .select('*, user:profiles!playlist_items_user_id_fkey(name)')
-    .eq('match_id', matchId)
-    .order('created_at', { ascending: false })
-  return { data: data ?? [], error: error?.message }
 }
 
 // ---- FEATURE 24: Daily Profile ----
@@ -1144,27 +809,6 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   const { data, error } = await q
   const attached = await attachScoresAndMood(data)
   return { data: attached, error: error?.message }
-}
-
-// ---- UNDO SUPER LIKE ----
-export async function undoSuperLike() {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-  const { data } = await supabase()
-    .from('swipes')
-    .select('*')
-    .eq('swiper_id', user.id)
-    .eq('direction', 'super_like')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle() as PostgrestMaybeSingleResponse<Swipe>
-  if (!data) return { error: 'Aucun super like à annuler' }
-  const { error: delErr } = await supabase().from('swipes').delete().eq('id', data.id)
-  if (delErr) return { error: delErr.message }
-  const remaining = await getSuperLikesRemaining()
-  const { error: updErr } = await supabase().from('profiles').update({ super_likes_remaining: remaining + 1 }).eq('id', user.id)
-  if (updErr) return { error: updErr.message }
-  return { error: null }
 }
 
 // ---- CITY SEARCH ----

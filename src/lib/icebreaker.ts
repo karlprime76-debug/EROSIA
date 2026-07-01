@@ -100,7 +100,7 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Location
-  (myInterests: string[], theirInterests: string[], myMood: Mood, theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, location: string | null): string | null => {
+  (_myInterests: string[], _theirInterests: string[], _myMood: Mood, _theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, location: string | null): string | null => {
     if (location) {
       const questions = [
         `Tu es à ${location} ! Tu connais des bons plans dans le coin ?`,

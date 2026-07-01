@@ -21,7 +21,7 @@
     "postcss": "^8.5.15"
   },
   "dependencies": {
-    "@didit-protocol/sdk-web": "^0.2.1",
+
     "@hookform/resolvers": "^5.4.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
@@ -57,7 +57,7 @@
     "eslint-config-next": "16.2.9",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
-    "lint-staged": "^17.0.8",
+    "lint-staged": "^15.5.1",
     "tailwindcss": "^4",
     "typescript": "^6",
     "vitest": "^4.1.9"

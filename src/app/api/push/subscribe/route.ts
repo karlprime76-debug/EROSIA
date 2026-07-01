@@ -24,10 +24,10 @@ export async function POST(request: Request) {
       auth: body.keys.auth,
     })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur lors de l\'inscription aux notifications' }, { status: 500 })
     return NextResponse.json({ ok: true })
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }
 
@@ -46,9 +46,9 @@ export async function DELETE(request: Request) {
 
     const admin = createAdminClient()
     const { error } = await admin.from('push_subscriptions').delete().eq('endpoint', body.endpoint)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur lors du désabonnement' }, { status: 500 })
     return NextResponse.json({ ok: true })
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

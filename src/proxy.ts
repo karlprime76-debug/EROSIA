@@ -133,6 +133,21 @@ export default async function proxy(request: NextRequest) {
     if (user && isPublic && pathname !== '/') return NextResponse.redirect(new URL('/discover', origin))
   }
 
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paydunya.com https://api.didit.me https://*.vercel.app",
+    "frame-src 'self' https://challenges.cloudflare.com https://www.google.com",
+    "media-src 'self' https:",
+    "worker-src 'self' blob:",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ')
+  supabaseResponse.headers.set('Content-Security-Policy', csp)
+
   return supabaseResponse
 }
 

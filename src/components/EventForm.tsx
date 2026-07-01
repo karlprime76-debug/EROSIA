@@ -77,7 +77,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
           <div>
             {preview ? (
               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[var(--surfaceElevated)]">
-                <Image src={preview} alt="" fill className="object-cover" sizes="500px" />
+                <Image src={preview} alt="Aperçu de l'événement" fill className="object-cover" sizes="500px" />
                 <button type="button" onClick={removeImage} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                   <X size={14} />
                 </button>
