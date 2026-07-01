@@ -1,21 +1,21 @@
--- Erosia Consolidated Final Migration (safe à ré-exécuter — tout IF NOT EXISTS / OR REPLACE)
--- À copier-coller dans Supabase SQL Editor et exécuter une seule fois
+-- =============================================================================
+-- Étape 1: is_admin column (exécute d'abord si pas déjà fait)
+-- =============================================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+UPDATE profiles SET is_admin = false WHERE is_admin IS NULL;
 
 -- =============================================================================
--- PARTIE 1: v16 — profile_visible column
+-- Étape 2: Migration consolidée v14→v18 (tout le reste)
 -- =============================================================================
+
+-- PARTIE 1: v16 — profile_visible column
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_visible BOOLEAN NOT NULL DEFAULT true;
 CREATE INDEX IF NOT EXISTS idx_profiles_profile_visible ON profiles(profile_visible) WHERE profile_visible = true;
 
--- =============================================================================
 -- PARTIE 2: v15 — Colonnes, tables et RPCs manquants
--- =============================================================================
-
--- 2a. onboarding_complete
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_profiles_onboarding ON profiles(onboarding_complete) WHERE onboarding_complete = true;
 
--- 2b. user_scores
 CREATE TABLE IF NOT EXISTS user_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
@@ -35,7 +35,6 @@ DROP POLICY IF EXISTS "Service role can manage user_scores" ON user_scores;
 CREATE POLICY "Service role can manage user_scores" ON user_scores FOR ALL USING (auth.role() = 'service_role');
 CREATE INDEX IF NOT EXISTS idx_user_scores_user ON user_scores(user_id);
 
--- 2c. quiz_questions + seed
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question TEXT NOT NULL,
@@ -57,7 +56,6 @@ INSERT INTO quiz_questions (question, options, category) VALUES
   ('Quel est ton langage d''amour principal ?', '[{"text":"Les paroles valorisantes","trait":"romantique"},{"text":"Les moments de qualité","trait":"attentif"},{"text":"Les cadeaux","trait":"généreux"},{"text":"Le contact physique","trait":"passionné"}]', 'relation')
 ON CONFLICT DO NOTHING;
 
--- 2d. quiz_answers
 CREATE TABLE IF NOT EXISTS quiz_answers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -77,7 +75,6 @@ DROP POLICY IF EXISTS "Users can update own quiz answers" ON quiz_answers;
 CREATE POLICY "Users can update own quiz answers" ON quiz_answers FOR UPDATE USING (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_answers_user ON quiz_answers(user_id);
 
--- 2e. get_user_top_traits RPC
 CREATE OR REPLACE FUNCTION get_user_top_traits(p_user_id UUID)
 RETURNS TABLE(trait TEXT, count INT) AS $$
 BEGIN
@@ -100,7 +97,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
--- 2f. streaks table + trigger
 CREATE TABLE IF NOT EXISTS streaks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
@@ -148,7 +144,6 @@ CREATE TRIGGER on_message_streak
   FOR EACH ROW
   EXECUTE FUNCTION update_streak();
 
--- 2g. aura_snapshots
 CREATE TABLE IF NOT EXISTS aura_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL UNIQUE,
@@ -186,9 +181,7 @@ CREATE TRIGGER on_profile_created_aura
   FOR EACH ROW
   EXECUTE FUNCTION trigger_recompute_aura();
 
--- =============================================================================
 -- PARTIE 3: v16 — privacy_settings table + triggers
--- =============================================================================
 CREATE TABLE IF NOT EXISTS privacy_settings (
   user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
   profile_visible BOOLEAN NOT NULL DEFAULT true,
@@ -208,7 +201,6 @@ CREATE TABLE IF NOT EXISTS privacy_settings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE privacy_settings ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Users can view own privacy_settings" ON privacy_settings;
 CREATE POLICY "Users can view own privacy_settings" ON privacy_settings FOR SELECT USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can insert own privacy_settings" ON privacy_settings;
@@ -218,7 +210,6 @@ CREATE POLICY "Users can update own privacy_settings" ON privacy_settings FOR UP
 DROP POLICY IF EXISTS "Authenticated can SELECT privacy_settings for checks" ON privacy_settings;
 CREATE POLICY "Authenticated can SELECT privacy_settings for checks" ON privacy_settings FOR SELECT USING (auth.role() = 'authenticated');
 
--- Auto-create privacy_settings on profile creation
 CREATE OR REPLACE FUNCTION trigger_create_privacy_settings()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -235,7 +226,6 @@ CREATE TRIGGER on_profile_created_privacy
   FOR EACH ROW
   EXECUTE FUNCTION trigger_create_privacy_settings();
 
--- Sync profile_visible from privacy_settings to profiles
 CREATE OR REPLACE FUNCTION sync_profile_visible()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -250,9 +240,7 @@ CREATE TRIGGER on_privacy_update_sync_profile
   FOR EACH ROW
   EXECUTE FUNCTION sync_profile_visible();
 
--- =============================================================================
 -- PARTIE 4: v17 — Consent & Safety tables
--- =============================================================================
 CREATE TABLE IF NOT EXISTS consent_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -340,9 +328,7 @@ RETURNS SETOF UUID LANGUAGE sql SECURITY DEFINER AS $$
   SELECT blocked_id FROM blocked_users WHERE blocker_id = $1;
 $$;
 
--- =============================================================================
 -- PARTIE 5: v18 — Gift catalog seed
--- =============================================================================
 INSERT INTO gifts (name, emoji, price_cents, image_url) VALUES
   ('Cœur virtuel', '💜', 150, NULL),
   ('Rose rouge', '🌹', 300, NULL),
@@ -388,9 +374,7 @@ INSERT INTO gifts (name, emoji, price_cents, image_url) VALUES
   ('Super Like', '🔥', 1000, NULL)
 ON CONFLICT DO NOTHING;
 
--- =============================================================================
 -- PARTIE 6: v14 — Rate limiting table + RPC
--- =============================================================================
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   count INT NOT NULL DEFAULT 1,
@@ -429,9 +413,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- =============================================================================
--- PARTIE 7: Index supplémentaires pour la performance
--- =============================================================================
+-- PARTIE 7: Index supplémentaires
 CREATE INDEX IF NOT EXISTS idx_privacy_settings_user ON privacy_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_looking_for ON profiles(looking_for);
 CREATE INDEX IF NOT EXISTS idx_profiles_mood ON profiles(mood);
