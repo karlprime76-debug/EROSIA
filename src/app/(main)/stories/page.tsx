@@ -100,7 +100,7 @@ export default function StoriesPage() {
         <h2 className="text-2xl font-bold">Stories</h2>
       </header>
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+        <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
       </div>
     </div>
   )
@@ -128,19 +128,19 @@ export default function StoriesPage() {
             <div
               className={`w-16 h-16 rounded-full p-0.5 ${
                 g.allViewed
-                  ? 'border-2 border-[#2A2826]'
-                  : 'bg-gradient-to-br from-[#D92D4A] to-[#C85A17] shadow-[0_0_8px_rgba(217,45,74,0.3)]'
+                  ? 'border-2 border-[var(--border)]'
+                  : 'bg-gradient-to-br from-[var(--primary)] to-[var(--accentOrange)] shadow-glow'
               }`}
             >
-              <div className="w-full h-full rounded-full overflow-hidden bg-[#1C1C1E] border-2 border-[#070708]">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[var(--card)] border-2 border-[var(--bg)]">
                 {g.photo ? (
                   <Image src={g.photo} alt={g.name} width={64} height={64} className="object-cover w-full h-full" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#9E9488] font-bold">{g.name.charAt(0)}</div>
+                  <div className="w-full h-full flex items-center justify-center text-[var(--textSecondary)] font-bold">{g.name.charAt(0)}</div>
                 )}
               </div>
             </div>
-            <span className="text-[10px] text-[#9E9488] truncate max-w-[72px] text-center">{g.name.split(' ')[0]}</span>
+            <span className="text-[10px] text-[var(--textSecondary)] truncate max-w-[72px] text-center">{g.name.split(' ')[0]}</span>
           </button>
         ))}
       </div>
@@ -148,11 +148,11 @@ export default function StoriesPage() {
       <div className="flex-1 px-4 pb-8 overflow-y-auto" onScroll={handleScroll}>
         {groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[#D92D4A]/10">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-5 flex items-center justify-center border border-[var(--primary)]/10">
               <span className="text-3xl opacity-40">📸</span>
             </div>
             <p className="text-lg font-semibold">Aucune story</p>
-            <p className="text-[#9E9488] text-sm mt-1 max-w-xs leading-relaxed">Les stories apparaîtront ici pendant 24h.</p>
+            <p className="text-[var(--textSecondary)] text-sm mt-1 max-w-xs leading-relaxed">Les stories apparaîtront ici pendant 24h.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -160,12 +160,12 @@ export default function StoriesPage() {
               <div key={group.userId}>
                 <div className="flex items-center gap-2 mb-3">
                   <button type="button" onClick={() => openReader(groups.indexOf(group))} className="flex items-center gap-2 flex-1">
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1C1C1E] ring-1 ring-white/10">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--card)] ring-1 ring-[var(--border)]">
                       {group.photo && <Image src={group.photo} alt={group.name} width={32} height={32} className="object-cover w-full h-full" />}
                     </div>
                     <div>
                       <p className="text-sm font-semibold">{group.name}</p>
-                      <p className="text-[10px] text-[#9E9488]">
+                      <p className="text-[10px] text-[var(--textSecondary)]">
                         {group.stories.length} story{group.stories.length > 1 ? 'ies' : 'y'}
                       </p>
                     </div>
@@ -173,7 +173,7 @@ export default function StoriesPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {group.stories.map(story => (
-                    <div key={story.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#1C1C1E] group">
+                    <div key={story.id} className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[var(--card)] group">
                       <button type="button" onClick={() => openReader(groups.indexOf(group))} className="w-full h-full">
                         {story.type === 'video' ? (
                           <video src={story.media_url} className="w-full h-full object-cover" muted playsInline />
@@ -181,16 +181,16 @@ export default function StoriesPage() {
                           <Image src={story.media_url} alt="" width={200} height={355} className="w-full h-full object-cover" />
                         )}
                       </button>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 to-transparent pointer-events-none" />
                       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between px-1">
                         <button
                           type="button"
                           onClick={() => toggleViews(story.id)}
-                          className="text-[10px] text-white/70 flex items-center gap-1 bg-black/30 px-1.5 py-0.5 rounded-full"
+                          className="text-[10px] text-[var(--textPrimary)]/70 flex items-center gap-1 bg-[var(--card)]/40 px-1.5 py-0.5 rounded-full"
                         >
                           <Eye size={10} /> {viewsData[story.id]?.length ?? story.view_count ?? 0}
                         </button>
-                        <span className="text-[10px] text-white/70 flex items-center gap-1 bg-black/30 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] text-[var(--textPrimary)]/70 flex items-center gap-1 bg-[var(--card)]/40 px-1.5 py-0.5 rounded-full">
                           <Heart size={10} /> {reactionsData[story.id] ?? story.reaction_count ?? 0}
                         </span>
                       </div>
@@ -198,7 +198,7 @@ export default function StoriesPage() {
                         <button
                           type="button"
                           onClick={() => handleDelete(story.id)}
-                          className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
+                          className="w-6 h-6 rounded-full bg-[var(--card)]/50 flex items-center justify-center hover:bg-[var(--cardHover)]/70"
                         >
                           <Trash2 size={10} />
                         </button>
@@ -207,21 +207,21 @@ export default function StoriesPage() {
                   ))}
                 </div>
                 {expandedViews && (
-                  <div className="mt-1 bg-[#1C1C1E] rounded-xl p-3 max-h-40 overflow-y-auto">
-                    <p className="text-[10px] text-[#9E9488] font-medium mb-2 uppercase tracking-wider">Vues</p>
+                  <div className="mt-1 bg-[var(--card)] rounded-xl p-3 max-h-40 overflow-y-auto">
+                    <p className="text-[10px] text-[var(--textSecondary)] font-medium mb-2 uppercase tracking-wider">Vues</p>
                     {(viewsData[expandedViews] ?? []).length === 0 ? (
-                      <p className="text-xs text-[#9E9488]">Aucune vue</p>
+                      <p className="text-xs text-[var(--textSecondary)]">Aucune vue</p>
                     ) : (
                       <div className="space-y-1.5">
                         {(viewsData[expandedViews] ?? []).map(v => (
                           <div key={v.id} className="flex items-center gap-2">
                             {v.profile?.photos?.[0] && (
-                              <div className="w-5 h-5 rounded-full overflow-hidden bg-[#262628]">
+                              <div className="w-5 h-5 rounded-full overflow-hidden bg-[var(--surfaceElevated)]">
                                 <Image src={v.profile.photos[0]} alt="" width={20} height={20} className="object-cover" />
                               </div>
                             )}
                             <p className="text-xs">{v.profile?.name ?? 'Inconnu'}</p>
-                            <p className="text-[10px] text-[#9E9488] ml-auto">
+                            <p className="text-[10px] text-[var(--textSecondary)] ml-auto">
                               {new Date(v.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
@@ -234,7 +234,7 @@ export default function StoriesPage() {
             ))}
             {isLoadingMore && (
               <div className="flex justify-center py-4">
-                <Loader size={16} className="animate-spin text-[#9E9488]" />
+                <Loader size={16} className="animate-spin text-[var(--textSecondary)]" />
               </div>
             )}
           </div>

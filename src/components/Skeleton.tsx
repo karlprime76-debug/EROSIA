@@ -1,6 +1,6 @@
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`rounded-xl bg-[#222225] overflow-hidden relative ${className}`}>
-    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(217,45,74,0.04)] to-transparent animate-shimmer" />
+  return <div className={`rounded-xl bg-[var(--cardDeep)] overflow-hidden relative ${className}`}>
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--primaryGlow)] to-transparent animate-shimmer" />
   </div>
 }
 

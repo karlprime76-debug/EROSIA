@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
   if (success) return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt relative">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(52,211,153,0.1)_0%,_transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_color-mix(in_srgb,_var(--success)_10%,_transparent)_0%,_transparent_60%)]" />
       <motion.div
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -50,21 +50,20 @@ export default function RegisterPage() {
         className="relative z-10 w-full max-w-sm"
       >
         <div
-          className="relative overflow-hidden rounded-3xl border border-white/6 p-8 text-center space-y-5"
-          style={{ background: 'linear-gradient(145deg, rgba(24,24,26,0.92), rgba(15,15,17,0.96))' }}
+          className="relative overflow-hidden rounded-3xl border border-light p-8 text-center space-y-5 bg-surface"
         >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-[#34D399] blur-3xl opacity-[0.08] pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-[var(--success)] blur-3xl opacity-[0.08] pointer-events-none" />
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 280, damping: 16, delay: 0.2 }}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-[#34D399] to-[#10B981] flex items-center justify-center mx-auto shadow-[0_12px_40px_rgba(52,211,153,0.25)] border border-white/10"
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--success)] to-[var(--successVibrant)] flex items-center justify-center mx-auto shadow-[0_12px_40px_var(--successBg)] border border-theme"
           >
-            <Check size={36} className="text-white" strokeWidth={2.5} />
+            <Check size={36} className="text-on-primary" strokeWidth={2.5} />
           </motion.div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white tracking-tight">Inscription réussie !</h2>
-            <p className="text-sm text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
+            <h2 className="text-2xl font-bold text-theme tracking-tight">Inscription réussie !</h2>
+            <p className="text-sm text-secondary max-w-xs mx-auto leading-relaxed">
               Vérifie ta boîte mail pour confirmer ton compte, puis reviens te connecter.
             </p>
           </div>
@@ -105,16 +104,16 @@ export default function RegisterPage() {
                 transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.1 }}
                 className="flex items-center justify-center gap-2.5 mb-4"
               >
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[0_8px_24px_rgba(217,45,74,0.25)] border border-white/10">
-                  <Sparkles size={20} className="text-white" />
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[0_8px_24px_var(--primaryGlow)] border border-theme">
+                  <Sparkles size={20} className="text-on-primary" />
                 </div>
-                <span className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
+                <span className="text-2xl font-bold text-theme tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
               </motion.div>
               <motion.h1
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-xl font-bold text-white tracking-tight"
+                className="text-xl font-bold text-theme tracking-tight"
               >
                 Crée ton univers ✨
               </motion.h1>
@@ -122,7 +121,7 @@ export default function RegisterPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-sm text-[var(--text-secondary)]"
+                className="text-sm text-secondary"
               >
                 Rejoins une communauté de rencontres premium
               </motion.p>
@@ -148,9 +147,9 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
               {/* Prénom */}
               <div className="space-y-1.5">
-                <label htmlFor="reg-name" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">Prénom</label>
+                <label htmlFor="reg-name" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Prénom</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <User size={15} />
                   </div>
                   <input
@@ -159,16 +158,16 @@ export default function RegisterPage() {
                     type="text"
                     placeholder="Ton prénom"
                     autoComplete="given-name"
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
 
               {/* Email */}
               <div className="space-y-1.5">
-                <label htmlFor="reg-email" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">Email</label>
+                <label htmlFor="reg-email" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Email</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <Mail size={15} />
                   </div>
                   <input
@@ -177,16 +176,16 @@ export default function RegisterPage() {
                     type="email"
                     placeholder="ton@email.com"
                     autoComplete="email"
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
 
               {/* Mot de passe */}
               <div className="space-y-1.5">
-                <label htmlFor="reg-password" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">Mot de passe</label>
+                <label htmlFor="reg-password" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Mot de passe</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <Lock size={15} />
                   </div>
                   <input
@@ -195,12 +194,12 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="8 caractères minimum"
                     autoComplete="new-password"
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors duration-200 p-1"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-theme transition-colors duration-200 p-1"
                     aria-label={showPassword ? 'Masquer' : 'Afficher'}
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -210,9 +209,9 @@ export default function RegisterPage() {
 
               {/* Âge */}
               <div className="space-y-1.5">
-                <label htmlFor="reg-age" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">Âge</label>
+                <label htmlFor="reg-age" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Âge</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <Calendar size={15} />
                   </div>
                   <input
@@ -222,7 +221,7 @@ export default function RegisterPage() {
                     placeholder="Ton âge (18+)"
                     min={18}
                     max={120}
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
@@ -233,24 +232,24 @@ export default function RegisterPage() {
                   onClick={() => setAgreeTerms(v => !v)}
                   className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
                     agreeTerms
-                      ? 'bg-[var(--primary)] border-[var(--primary)] shadow-[0_2px_10px_rgba(217,45,74,0.25)]'
+                      ? 'bg-[var(--primary)] border-[var(--primary)] shadow-[0_2px_10px_var(--primaryGlow)]'
                       : 'bg-transparent border-white/15 group-hover:border-white/25'
                   }`}
                 >
                   <AnimatePresence>
                     {agreeTerms && (
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.15 }}>
-                        <Check size={12} className="text-white" strokeWidth={3} />
+                        <Check size={12} className="text-on-primary" strokeWidth={3} />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
                 <input id="reg-terms" type="checkbox" className="sr-only" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} />
-                <span className="text-xs text-[var(--text-muted)] leading-relaxed">
+                <span className="text-xs text-muted leading-relaxed">
                   J&rsquo;ai 18 ans ou plus et j&rsquo;accepte les{' '}
-                  <a href="/cgu" target="_blank" className="text-[var(--primary)] hover:text-[var(--primary-light)] underline transition-colors duration-200">CGU</a>
+                  <a href="/cgu" target="_blank" className="text-primary hover:text-primary underline transition-colors duration-200">CGU</a>
                   {' '}et la{' '}
-                  <a href="/privacy" target="_blank" className="text-[var(--primary)] hover:text-[var(--primary-light)] underline transition-colors duration-200">politique de confidentialité</a>.
+                  <a href="/privacy" target="_blank" className="text-primary hover:text-primary underline transition-colors duration-200">politique de confidentialité</a>.
                 </span>
               </label>
 
@@ -273,16 +272,16 @@ export default function RegisterPage() {
 
             {/* Lien vers login */}
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-white/5" />
-              <span className="text-xs text-[var(--text-muted)] font-medium tracking-wider uppercase">ou</span>
-              <div className="flex-1 h-px bg-white/5" />
+              <div className="flex-1 h-px bg-theme" />
+              <span className="text-xs text-muted font-medium tracking-wider uppercase">ou</span>
+              <div className="flex-1 h-px bg-theme" />
             </div>
             <Link
               href="/login"
-              className="flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--text-secondary)] hover:text-white transition-colors duration-200 group"
+              className="flex items-center justify-center gap-1.5 text-sm font-semibold text-secondary hover:text-theme transition-colors duration-200 group"
             >
               Déjà un compte ?
-              <span className="text-[var(--primary)] group-hover:text-[var(--primary-light)] transition-colors duration-200">Se connecter</span>
+              <span className="text-primary group-hover:text-primary transition-colors duration-200">Se connecter</span>
             </Link>
           </div>
         </div>

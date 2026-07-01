@@ -50,7 +50,7 @@ export default function VerifyPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
     </div>
   )
 
@@ -63,29 +63,29 @@ export default function VerifyPage() {
       <div className="flex-1 px-4 pb-8">
         {status === 'approved' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-            <CheckCircle size={48} className="text-[#22C55E]" />
+            <CheckCircle size={48} className="text-[var(--successVibrant)]" />
             <p className="text-lg font-semibold">Compte vérifié</p>
-            <p className="text-sm text-[#9E9488]">Ton badge vérifié est actif sur ton profil.</p>
+            <p className="text-sm text-secondary">Ton badge vérifié est actif sur ton profil.</p>
           </div>
         ) : status === 'pending' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-            <Clock size={48} className="text-[#EAB308]" />
+            <Clock size={48} className="text-[var(--warningVibrant)]" />
             <p className="text-lg font-semibold">Vérification en cours</p>
-            <p className="text-sm text-[#9E9488]">Ton identité est en cours de vérification. Tu recevras une notification dès que c&rsquo;est terminé.</p>
+            <p className="text-sm text-secondary">Ton identité est en cours de vérification. Tu recevras une notification dès que c&rsquo;est terminé.</p>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="glass rounded-2xl p-6 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto flex items-center justify-center border border-[#D92D4A]/10">
-                <Shield size={32} className="text-[#D92D4A]" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent mx-auto flex items-center justify-center border border-primary/10">
+                <Shield size={32} className="text-primary" />
               </div>
               <p className="text-lg font-semibold">Vérifie ton identité</p>
-              <p className="text-sm text-[#9E9488] leading-relaxed">
+              <p className="text-sm text-secondary leading-relaxed">
                 Didit vérifie ton identité en quelques minutes. Il te suffit de prendre une photo de ta pièce d&rsquo;identité et un selfie.
               </p>
               <button type="button" onClick={handleDiditVerify} disabled={verifying}
-                className="w-full py-3.5 rounded-full font-semibold text-white transition-all duration-300 active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: '#D92D4A' }}>
+                className="w-full py-3.5 rounded-full font-semibold text-on-primary transition-all duration-300 active:scale-[0.97] disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'var(--primary)' }}>
                 {verifying ? 'Ouverture...' : <><ExternalLink size={16} /> Vérifier avec Didit</>}
               </button>
             </div>

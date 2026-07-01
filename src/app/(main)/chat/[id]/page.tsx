@@ -308,23 +308,23 @@ export default function ChatPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   return (
     <div className="flex-1 flex flex-col bg-transparent h-full">
-      <header className="flex items-center gap-3 px-3 py-3 border-b border-[#2A2826]/50 bg-[#070708]/80 backdrop-blur-xl z-10">
-        <button onClick={() => router.push('/matches')} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-[#1C1C1E] transition-colors">
+      <header className="flex items-center gap-3 px-3 py-3 border-b border-theme/50 bg-theme/80 backdrop-blur-xl z-10">
+        <button onClick={() => router.push('/matches')} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-surface transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-[#262628] ring-2 ring-[#2A2826]">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-hover ring-2 ring-theme">
               {profile?.photos?.[0] ? (
                 <Image src={profile.photos[0]} alt={profile.name} width={40} height={40} className="object-cover w-full h-full" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-sm">?</div>
+                <div className="w-full h-full flex items-center justify-center text-secondary text-sm">?</div>
               )}
             </div>
             <div className="absolute -bottom-0.5 -right-0.5"><OnlineStatus isOnline={isOnline} size="sm" /></div>
@@ -332,51 +332,51 @@ export default function ChatPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm truncate">{profile?.name || 'Chat'}</h3>
-              {profile?.age && <span className="text-xs text-[#9E9488]">{profile.age} ans</span>}
+              {profile?.age && <span className="text-xs text-secondary">{profile.age} ans</span>}
             </div>
             <OnlineBadge isOnline={isOnline} />
           </div>
         </div>
 
         <div className="relative">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-[#1C1C1E] transition-colors">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-surface transition-colors">
             <MoreHorizontal size={18} />
           </button>
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-[#1C1C1E] rounded-xl border border-[#2A2826] shadow-xl overflow-hidden py-1">
+              <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-surface rounded-xl border border-theme shadow-xl overflow-hidden py-1">
                 <button onClick={() => { setMenuOpen(false); router.push(`/compatibility/${matchId}`) }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                  <BarChart3 size={14} className="text-[#34D399]" /> Compatibilité
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                  <BarChart3 size={14} className="text-success" /> Compatibilité
                 </button>
                 <button onClick={() => { setMenuOpen(false); loadAiSuggestions() }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                  <Sparkles size={14} className="text-[#EAB308]" /> Suggestions IA
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                  <Sparkles size={14} className="text-warning" /> Suggestions IA
                 </button>
                 <button onClick={() => { setMenuOpen(false); loadDateIdeas() }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                  <Heart size={14} className="text-[#D92D4A]" /> Idée de date
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                  <Heart size={14} className="text-primary" /> Idée de date
                 </button>
                 <button onClick={handleDuelChallenge}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                  <Swords size={14} className="text-[#9E9488]" /> Lancer un duel
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                  <Swords size={14} className="text-secondary" /> Lancer un duel
                 </button>
                 <button onClick={() => { setMenuOpen(false); (async () => {
                   const { error } = await blockUser(otherId)
                   if (error) toast(error, 'error')
                   else { toast('Utilisateur bloqué', 'success'); logConsent(myId, 'user_blocked', otherId) }
                 })() }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5 text-red-400">
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5 text-error">
                   <ShieldOff size={14} /> Bloquer
                 </button>
                 <button onClick={() => { setMenuOpen(false); handleUnmatch() }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5 text-red-400">
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5 text-error">
                   <UserMinus size={14} /> Ne plus match
                 </button>
                 <button onClick={() => { setMenuOpen(false); setShowReport(true) }}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                  <Flag size={14} className="text-[#9E9488]" /> Signaler
+                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                  <Flag size={14} className="text-secondary" /> Signaler
                 </button>
               </div>
             </>
@@ -420,17 +420,17 @@ export default function ChatPage() {
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin">
         {messages.length === 0 && !isTyping ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
-              <Smile size={28} className="text-[#D92D4A]/40" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-primary/10">
+              <Smile size={28} className="text-primary/40" />
             </div>
             <h3 className="font-semibold text-lg">C&apos;est le début de votre histoire</h3>
-            <p className="text-[#9E9488] text-sm mt-1 max-w-xs">
+            <p className="text-secondary text-sm mt-1 max-w-xs">
               Envoyez un message à {profile?.name?.split(' ')[0] || 'votre match'} pour briser la glace.
             </p>
             {profile && aiSuggestions.length === 0 && (
               <button onClick={loadAiSuggestions}
-                className="mt-4 px-4 py-2 rounded-full text-xs font-medium text-white flex items-center gap-1.5 transition-all active:scale-95"
-                style={{ background: '#D92D4A' }}>
+                className="mt-4 px-4 py-2 rounded-full text-xs font-medium text-theme flex items-center gap-1.5 transition-all active:scale-95"
+                style={{ background: 'var(--primary)' }}>
                 <Sparkles size={14} /> Suggestion de message
               </button>
             )}
@@ -452,16 +452,16 @@ export default function ChatPage() {
       <AnimatePresence>
         {showAi && aiSuggestions.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+            className="px-3 py-2 border-t border-theme/50 bg-theme/95">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={14} className="text-[#EAB308]" />
-              <span className="text-xs font-medium text-[#EAB308]">Suggestions</span>
-              <button onClick={() => setShowAi(false)} className="ml-auto p-1"><X size={14} className="text-[#5A5248]" /></button>
+              <Sparkles size={14} className="text-warning" />
+              <span className="text-xs font-medium text-warning">Suggestions</span>
+              <button onClick={() => setShowAi(false)} className="ml-auto p-1"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-wrap gap-2">
               {aiSuggestions.map((s, i) => (
                 <button key={i} onClick={() => { setInput(s); setShowAi(false); inputRef.current?.focus() }}
-                  className="px-3 py-1.5 rounded-full text-xs bg-[#1C1C1E] border border-[#2A2826] text-[#9E9488] hover:border-[#D92D4A]/30 transition-colors">
+                  className="px-3 py-1.5 rounded-full text-xs bg-surface border border-theme text-secondary hover:border-primary/30 transition-colors">
                   {s}
                 </button>
               ))}
@@ -473,26 +473,26 @@ export default function ChatPage() {
       <AnimatePresence>
         {dateSuggestions.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+            className="px-3 py-2 border-t border-theme/50 bg-theme/95">
             <div className="flex items-center gap-2 mb-2">
-              <Heart size={14} className="text-[#D92D4A]" />
-              <span className="text-xs font-medium text-[#D92D4A]">Idées de date</span>
-              <button onClick={() => setDateSuggestions([])} className="ml-auto p-1"><X size={14} className="text-[#5A5248]" /></button>
+              <Heart size={14} className="text-primary" />
+              <span className="text-xs font-medium text-primary">Idées de date</span>
+              <button onClick={() => setDateSuggestions([])} className="ml-auto p-1"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-col gap-2">
               {loadingDates ? (
-                <div className="flex items-center gap-2 text-xs text-[#5A5248]">
-                  <div className="w-3 h-3 border border-[#D92D4A] border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
                   Génération d&apos;idées...
                 </div>
               ) : dateSuggestions.map((s, i) => (
                 <button key={i} onClick={() => sendDateSuggestion(s)}
-                  className="text-left px-3 py-2 rounded-xl bg-[#1C1C1E] border border-[#2A2826] hover:border-[#D92D4A]/30 transition-colors">
+                  className="text-left px-3 py-2 rounded-xl bg-surface border border-theme hover:border-primary/30 transition-colors">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-medium text-white capitalize">{s.type}</span>
-                    <span className="text-[10px] text-[#5A5248]">{s.budget} · {s.distance}</span>
+                    <span className="text-xs font-medium text-theme capitalize">{s.type}</span>
+                    <span className="text-[10px] text-muted">{s.budget} · {s.distance}</span>
                   </div>
-                  <p className="text-[11px] text-[#9E9488]">{s.description}</p>
+                  <p className="text-[11px] text-secondary">{s.description}</p>
                 </button>
               ))}
             </div>
@@ -501,43 +501,43 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {replyTo && (
-        <div className="px-3 py-2 border-t border-[#2A2826]/50 bg-[#070708]/95 flex items-center gap-3">
+        <div className="px-3 py-2 border-t border-theme/50 bg-theme/95 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium text-[#D92D4A]">En réponse</p>
-            <p className="text-xs text-[#9E9488] truncate">{replyTo.text || '📎 Pièce jointe'}</p>
+            <p className="text-[11px] font-medium text-primary">En réponse</p>
+            <p className="text-xs text-secondary truncate">{replyTo.text || '📎 Pièce jointe'}</p>
           </div>
-          <button onClick={() => setReplyTo(null)} className="p-1"><X size={14} className="text-[#5A5248]" /></button>
+          <button onClick={() => setReplyTo(null)} className="p-1"><X size={14} className="text-muted" /></button>
         </div>
       )}
 
-      <div className="px-3 pb-3 pt-2 border-t border-[#2A2826]/50 bg-[#070708]/95">
+      <div className="px-3 pb-3 pt-2 border-t border-theme/50 bg-theme/95">
         <div className="flex items-end gap-2">
-          <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-[#1C1C1E] transition-colors shrink-0">
-            <ImageIcon size={18} className="text-[#9E9488]" />
+          <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+            <ImageIcon size={18} className="text-secondary" />
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
 
-          <button onClick={() => setShowEmoji(!showEmoji)} className="p-2.5 rounded-xl hover:bg-[#1C1C1E] transition-colors shrink-0">
-            <Smile size={18} className="text-[#9E9488]" />
+          <button onClick={() => setShowEmoji(!showEmoji)} className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+            <Smile size={18} className="text-secondary" />
           </button>
 
-          <div className="flex-1 flex items-end gap-2 bg-[#1C1C1E] rounded-2xl px-3 py-1 border border-[#2A2826] focus-within:border-[#D92D4A]/30 transition-colors">
+          <div className="flex-1 flex items-end gap-2 bg-surface rounded-2xl px-3 py-1 border border-theme focus-within:border-primary/30 transition-colors">
             <input
               ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
               placeholder="Écrivez un message..."
-              className="flex-1 bg-transparent text-sm py-2 outline-none text-white placeholder:text-[#5A5248] min-w-0"
+              className="flex-1 bg-transparent text-sm py-2 outline-none text-theme placeholder:text-muted min-w-0"
               maxLength={5000}
             />
             {input.trim() ? (
               <button onClick={handleSend} disabled={sending}
-                className="p-2 shrink-0 text-white disabled:opacity-30 transition-all active:scale-90"
-                style={{ color: '#D92D4A' }}>
+                className="p-2 shrink-0 text-theme disabled:opacity-30 transition-all active:scale-90"
+                style={{ color: 'var(--primary)' }}>
                 <Send size={18} />
               </button>
             ) : (
               <button onClick={handleVoiceToggle}
                 className="p-2 shrink-0 transition-all active:scale-90"
-                style={{ color: isRecording ? '#EF4444' : '#9E9488' }}>
+                style={{ color: isRecording ? 'var(--error)' : 'var(--textSecondary)' }}>
                 {isRecording ? <Square size={18} /> : <Mic size={18} />}
               </button>
             )}
@@ -549,9 +549,9 @@ export default function ChatPage() {
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
               className="flex items-center gap-2 mt-2 px-1">
               <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }}
-                className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-xs text-[#9E9488]">Enregistrement... {recordingDuration}s</span>
-              <span className="text-[10px] text-[#5A5248]">(max 30s)</span>
+                className="w-2 h-2 rounded-full bg-error" />
+              <span className="text-xs text-secondary">Enregistrement... {recordingDuration}s</span>
+              <span className="text-[10px] text-muted">(max 30s)</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -559,11 +559,11 @@ export default function ChatPage() {
         <AnimatePresence>
           {showEmoji && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="mt-2 p-2 bg-[#1C1C1E] rounded-xl border border-[#2A2826]">
+              className="mt-2 p-2 bg-surface rounded-xl border border-theme">
               <div className="flex flex-wrap gap-1">
                 {EMOJI_LIST.map(e => (
                   <button key={e} onClick={() => { setInput(prev => prev + e); inputRef.current?.focus() }}
-                    className="w-9 h-9 flex items-center justify-center text-lg hover:bg-[#262628] rounded-lg transition-colors">
+                    className="w-9 h-9 flex items-center justify-center text-lg hover:bg-hover rounded-lg transition-colors">
                     {e}
                   </button>
                 ))}
@@ -590,9 +590,9 @@ function DateSeparator({ messages }: { messages: ChatMessage[] }) {
     <>
       {separators.map(s => (
         <div key={s.date} className="flex items-center gap-3 py-2">
-          <div className="flex-1 h-px bg-[#2A2826]" />
-          <span className="text-[10px] text-[#5A5248] font-medium">{s.label}</span>
-          <div className="flex-1 h-px bg-[#2A2826]" />
+          <div className="flex-1 h-px bg-theme" />
+          <span className="text-[10px] text-muted font-medium">{s.label}</span>
+          <div className="flex-1 h-px bg-theme" />
         </div>
       ))}
     </>

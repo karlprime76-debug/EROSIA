@@ -54,7 +54,7 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
   if (msg.deleted_for_all) {
     return (
       <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} opacity-40`}>
-        <div className="px-4 py-2 text-xs text-[#5A5248] italic rounded-xl bg-[#1C1C1E]/50">
+        <div className="px-4 py-2 text-xs text-muted italic rounded-xl bg-surface/50">
           Message supprimé
         </div>
       </div>
@@ -85,8 +85,8 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
     >
       <div className={`max-w-[80%] sm:max-w-[70%] ${isOwn ? 'order-1' : 'order-1'}`}>
         {msg.reply_preview && (
-          <div className={`px-3 py-1.5 rounded-t-lg text-xs border-l-2 ${isOwn ? 'border-[#D92D4A]/50 bg-[#D92D4A]/10' : 'border-[#9E9488]/50 bg-[#262628]'} mb-0.5`}>
-            <p className="text-[10px] text-[#9E9488] mb-0.5">
+          <div className={`px-3 py-1.5 rounded-t-lg text-xs border-l-2 ${isOwn ? 'border-primary/50 bg-primary/10' : 'border-secondary/50 bg-surface'} mb-0.5`}>
+            <p className="text-[10px] text-secondary mb-0.5">
               {msg.reply_preview.sender_id === msg.sender_id ? 'Réponse' : 'En réponse'}
             </p>
             <p className="truncate text-[11px] opacity-70">{msg.reply_preview.text || '📎 Pièce jointe'}</p>
@@ -95,13 +95,13 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
 
         <div className={`relative px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
           isOwn
-            ? 'text-white rounded-br-md'
-            : 'text-white rounded-bl-md'
+            ? 'text-on-primary rounded-br-md'
+            : 'text-theme rounded-bl-md'
         }`}
           style={{
             background: isOwn
-              ? 'linear-gradient(135deg, #D92D4A 0%, #C41E3A 100%)'
-              : '#1C1C1E',
+              ? 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)'
+              : 'var(--surface)',
             boxShadow: isOwn
               ? '0 2px 8px rgba(217,45,74,0.25)'
               : '0 1px 4px rgba(0,0,0,0.2)',
@@ -131,10 +131,10 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
           {editing ? (
             <div className="flex gap-2">
               <input value={editText} onChange={e => setEditText(e.target.value)}
-                className="flex-1 bg-transparent border-b border-white/30 outline-none text-sm py-0.5" autoFocus
+                className="flex-1 bg-transparent border-b border-theme/30 outline-none text-sm py-0.5" autoFocus
                 onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditing(false) }} />
-              <button onClick={handleSaveEdit} className="text-white/70 hover:text-white"><Check size={14} /></button>
-              <button onClick={() => setEditing(false)} className="text-white/70 hover:text-white"><X size={14} /></button>
+              <button onClick={handleSaveEdit} className="text-theme/70 hover:text-theme"><Check size={14} /></button>
+              <button onClick={() => setEditing(false)} className="text-theme/70 hover:text-theme"><X size={14} /></button>
             </div>
           ) : msg.text && (
             <p className="whitespace-pre-wrap break-words">{msg.text}</p>
@@ -145,7 +145,7 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
             {msg.edited_at && <span className="text-[9px] opacity-40">modifié</span>}
             {isOwn && (
               msg.read_at
-                ? <CheckCheck size={12} className="text-[#22C55E]" />
+                ? <CheckCheck size={12} className="text-success" />
                 : <Check size={12} className="opacity-50" />
             )}
           </div>
@@ -180,7 +180,7 @@ function AnimatedActions({ isOwn, show, onCopy, onReply, onEdit, onDelete, onRep
 function ActionButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="px-2 py-1 rounded-lg bg-[#1C1C1E] border border-[#2A2826] text-[9px] text-[#9E9488] flex items-center gap-1 hover:bg-[#262628] transition-colors">
+      className="px-2 py-1 rounded-lg bg-surface border border-theme text-[9px] text-secondary flex items-center gap-1 hover:bg-hover transition-colors">
       {icon}{label}
     </button>
   )

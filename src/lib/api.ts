@@ -37,6 +37,7 @@ export interface Profile {
   energy_score?: number
   trust_score?: number
   profile_visible?: boolean
+  is_admin?: boolean
 }
 
 export interface Swipe {

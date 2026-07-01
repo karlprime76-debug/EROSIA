@@ -183,7 +183,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#070708] flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8">
+    <div className="relative min-h-screen w-full overflow-hidden bg-theme flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8">
       {/* Éléments de lueur d'arrière-plan */}
       <div className="pointer-events-none absolute top-10 right-10 w-80 h-80 rounded-full bg-[var(--primary)] blur-[150px] opacity-[0.06]" />
       <div className="pointer-events-none absolute bottom-10 left-10 w-96 h-96 rounded-full bg-[var(--accent-cool)] blur-[150px] opacity-[0.05]" />
@@ -192,8 +192,8 @@ export default function OnboardingPage() {
       <header className="relative z-10 w-full max-w-2xl mx-auto flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
-            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
+            <span className="text-lg font-bold text-theme tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
+            <span className="text-[10px] text-muted uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full bg-surface border border-theme">
               Création
             </span>
           </div>
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
             <button 
               type="button" 
               onClick={async () => { await completeOnboarding(); router.push('/') }} 
-              className="text-xs font-semibold text-[var(--text-secondary)] hover:text-white transition duration-200"
+              className="text-xs font-semibold text-secondary hover:text-theme transition duration-200"
             >
               Passer
             </button>
@@ -214,11 +214,11 @@ export default function OnboardingPage() {
             <div key={stepLabel} className="flex-1 flex flex-col gap-1.5">
               <div 
                 className={`h-[3px] rounded-full transition-all duration-500 ${
-                  idx <= step ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-light)]' : 'bg-[#1C1C1E]'
+                  idx <= step ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-light)]' : 'bg-surface-elevated'
                 }`}
               />
               <span className={`text-[10px] uppercase tracking-wider font-semibold ${
-                idx === step ? 'text-white' : 'text-[var(--text-muted)]'
+                idx === step ? 'text-theme' : 'text-muted'
               }`}>
                 {stepLabel}
               </span>
@@ -242,11 +242,11 @@ export default function OnboardingPage() {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-[#D92D4A]/10 flex items-center justify-center mx-auto border border-[#D92D4A]/20">
-                    <ImageIcon size={22} className="text-[#D92D4A]" />
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto border border-[var(--primary)]/20">
+                    <ImageIcon size={22} className="text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Ajoute tes plus belles photos</h2>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+                  <h2 className="text-2xl font-bold text-theme tracking-tight">Ajoute tes plus belles photos</h2>
+                  <p className="text-sm text-secondary max-w-md mx-auto">
                     Montre ta vraie personnalité. Ajoute au moins une photo pour commencer à découvrir des profils.
                   </p>
                 </div>
@@ -259,8 +259,8 @@ export default function OnboardingPage() {
                     return (
                       <div 
                         key={i} 
-                        className={`aspect-[3/4] relative rounded-2xl overflow-hidden border bg-[rgba(15,15,17,0.6)] backdrop-blur-md transition-all duration-300 ${
-                          photoUrl ? 'border-white/10' : 'border-dashed border-white/10 hover:border-[var(--primary)]/30'
+                        className={`aspect-[3/4] relative rounded-2xl overflow-hidden border bg-surface backdrop-blur-md transition-all duration-300 ${
+                          photoUrl ? 'border-theme' : 'border-dashed border-theme hover:border-[var(--primary)]/30'
                         }`}
                       >
                         {photoUrl ? (
@@ -272,11 +272,11 @@ export default function OnboardingPage() {
                               className="object-cover" 
                               sizes="(max-w-768px) 33vw, 150px"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-2.5">
+                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-2.5">
                               <button 
                                 type="button"
                                 onClick={() => handleDeletePhoto(i)}
-                                className="w-7 h-7 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90"
+                                className="w-7 h-7 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90"
                               >
                                 <X size={14} />
                               </button>
@@ -295,7 +295,7 @@ export default function OnboardingPage() {
                                     fileInputRef.current.click()
                                   }
                                 }}
-                                className="w-9 h-9 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-white/10 hover:scale-105 active:scale-95 transition-all duration-200"
+                                className="w-9 h-9 rounded-full bg-surface-secondary border border-theme flex items-center justify-center text-secondary hover:text-theme hover:bg-card hover:scale-105 active:scale-95 transition-all duration-200"
                               >
                                 <Plus size={16} />
                               </button>
@@ -344,11 +344,11 @@ export default function OnboardingPage() {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-[#D92D4A]/10 flex items-center justify-center mx-auto border border-[#D92D4A]/20">
-                    <Sparkles size={20} className="text-[#D92D4A]" />
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center mx-auto border border-[var(--primary)]/20">
+                    <Sparkles size={20} className="text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Raconte-nous ton histoire</h2>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+                  <h2 className="text-2xl font-bold text-theme tracking-tight">Raconte-nous ton histoire</h2>
+                  <p className="text-sm text-secondary max-w-md mx-auto">
                     Crée un profil authentique qui captive l&rsquo;attention.
                   </p>
                 </div>
@@ -357,22 +357,22 @@ export default function OnboardingPage() {
                   {/* Bio Area */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Bio</label>
-                      <span className="text-[10px] font-semibold text-[var(--text-muted)]">{bio.length}/500</span>
+                      <label className="text-xs font-semibold text-secondary uppercase tracking-wider">Bio</label>
+                      <span className="text-[10px] font-semibold text-muted">{bio.length}/500</span>
                     </div>
                     <textarea 
                       value={bio} 
                       onChange={e => setBio(e.target.value.slice(0, 500))} 
                       rows={3} 
                       placeholder="Partage tes passions, tes rêves ou une description originale..." 
-                      className="w-full px-4 py-3.5 rounded-2xl bg-[rgba(15,15,17,0.7)] border border-white/5 text-white text-sm outline-none focus:border-[var(--primary)] resize-none transition duration-200 placeholder:text-[var(--text-muted)] focus:shadow-[0_0_20px_rgba(217,45,74,0.08)]"
+                      className="w-full px-4 py-3.5 rounded-2xl bg-surface border border-theme text-theme text-sm outline-none focus:border-[var(--primary)] resize-none transition duration-200 placeholder:text-muted focus:shadow-[0_0_20px_var(--primaryGlow)]"
                       aria-label="Bio"
                     />
                   </div>
 
                   {/* Looking For Card Selector */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block">Ce que tu cherches</label>
+                    <label className="text-xs font-semibold text-secondary uppercase tracking-wider block">Ce que tu cherches</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {RELATION_TYPES.map((type) => {
                         const Icon = type.icon
@@ -384,22 +384,22 @@ export default function OnboardingPage() {
                             onClick={() => setLookingFor(type.id)}
                             className={`group relative text-left p-4 rounded-2xl border transition-all duration-300 flex items-center gap-3.5 select-none ${
                               isSelected 
-                                ? 'bg-gradient-to-r from-[#D92D4A]/10 to-transparent border-[#D92D4A]/40 shadow-[0_4px_24px_rgba(217,45,74,0.06)]' 
-                                : 'bg-[rgba(15,15,17,0.5)] border-white/5 hover:border-white/10 hover:bg-[rgba(20,20,24,0.6)]'
+                                ? 'bg-gradient-to-r from-[var(--primary)]/10 to-transparent border-[var(--primary)]/40 shadow-[0_4px_24px_var(--primaryGlow)]' 
+                                : 'bg-surface border-theme hover:border-[var(--primary)]/30 hover:bg-card'
                             }`}
                           >
                             <div 
                               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105"
                               style={{ 
-                                backgroundColor: isSelected ? `${type.color}15` : 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${isSelected ? `${type.color}30` : 'rgba(255,255,255,0.05)'}`
+                                backgroundColor: isSelected ? `${type.color}15` : 'color-mix(in srgb, var(--textPrimary) 3%, transparent)',
+                                border: `1px solid ${isSelected ? `${type.color}30` : 'color-mix(in srgb, var(--textPrimary) 5%, transparent)'}`
                               }}
                             >
-                              <Icon size={16} style={{ color: isSelected ? type.color : 'var(--text-secondary)' }} />
+                              <Icon size={16} style={{ color: isSelected ? type.color : 'var(--textSecondary)' }} />
                             </div>
                             <div className="min-w-0">
-                              <p className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-[var(--text)]'}`}>{type.label}</p>
-                              <p className="text-[10px] text-[var(--text-secondary)] truncate mt-0.5">{type.desc}</p>
+                              <p className={`text-xs font-semibold ${isSelected ? 'text-theme' : 'text-theme'}`}>{type.label}</p>
+                              <p className="text-[10px] text-secondary truncate mt-0.5">{type.desc}</p>
                             </div>
                           </button>
                         )
@@ -410,16 +410,16 @@ export default function OnboardingPage() {
                   {/* Interests Selector */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block">Centres d&rsquo;intérêt</label>
-                      <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                      <label className="text-xs font-semibold text-secondary uppercase tracking-wider block">Centres d&rsquo;intérêt</label>
+                      <span className="text-[10px] font-semibold text-muted">
                         {selectedInterests.length}/8 sélectionnés (min 3)
                       </span>
                     </div>
 
                     {/* Selected & Input */}
-                    <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl border border-white/5 bg-[rgba(15,15,17,0.5)]">
+                    <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl border border-theme bg-surface">
                       {selectedInterests.length === 0 ? (
-                        <span className="text-xs text-[var(--text-muted)] py-1 px-1">Aucun tag sélectionné</span>
+                        <span className="text-xs text-muted py-1 px-1">Aucun tag sélectionné</span>
                       ) : (
                         selectedInterests.map((interest) => (
                           <div 
@@ -445,14 +445,14 @@ export default function OnboardingPage() {
                           placeholder="Autre interest + Entrée..." 
                           value={customInterest}
                           onChange={e => setCustomInterest(e.target.value)}
-                          className="w-full bg-transparent border-none outline-none py-1.5 text-xs text-white placeholder:text-[var(--text-muted)] focus:ring-0 focus:shadow-none"
+                          className="w-full bg-transparent border-none outline-none py-1.5 text-xs text-theme placeholder:text-muted focus:ring-0 focus:shadow-none"
                         />
                       </form>
                     </div>
 
                     {/* Suggestions */}
                     <div className="space-y-1.5">
-                      <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Suggestions</p>
+                      <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">Suggestions</p>
                       <div className="flex flex-wrap gap-1.5">
                         {SUGGESTED_INTERESTS.map((interest) => {
                           const isSelected = selectedInterests.includes(interest)
@@ -463,8 +463,8 @@ export default function OnboardingPage() {
                               onClick={() => handleToggleInterest(interest)}
                               className={`py-1.5 px-3.5 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 ${
                                 isSelected 
-                                  ? 'bg-[var(--primary)] text-white border-transparent shadow-[0_2px_10px_rgba(217,45,74,0.15)]' 
-                                  : 'bg-[rgba(255,255,255,0.02)] text-[var(--text-secondary)] border-white/5 hover:border-white/10 hover:text-white'
+                                  ? 'bg-[var(--primary)] text-theme border-transparent shadow-[0_2px_10px_var(--primaryGlow)]' 
+                                  : 'bg-surface text-secondary border-theme hover:border-[var(--primary)]/30 hover:text-theme'
                               }`}
                             >
                               {interest}
@@ -503,18 +503,18 @@ export default function OnboardingPage() {
                 className="space-y-6 max-w-md mx-auto"
               >
                 <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto border border-purple-500/20">
-                    <Shield size={22} className="text-purple-400" />
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--accent-cool)]/10 flex items-center justify-center mx-auto border border-[var(--accent-cool)]/20">
+                    <Shield size={22} className="text-[var(--accent-cool)]" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Vérifie ton authenticité</h2>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
+                  <h2 className="text-2xl font-bold text-theme tracking-tight">Vérifie ton authenticité</h2>
+                  <p className="text-sm text-secondary max-w-xs mx-auto">
                     Les profils certifiés gagnent en visibilité et inspirent confiance. Prends un selfie rapide !
                   </p>
                 </div>
 
                 <div className="flex flex-col items-center justify-center py-4 relative">
                   {verifPhoto ? (
-                    <div className="w-48 h-48 rounded-full overflow-hidden border-2 border-[#22C55E] bg-[rgba(15,15,17,0.7)] relative shadow-[0_0_30px_rgba(34,197,94,0.15)]">
+                    <div className="w-48 h-48 rounded-full overflow-hidden border-2 border-[var(--successVibrant)] bg-surface relative shadow-[0_0_30px_var(--successBg)]">
                       <Image src={verifPhoto} alt="Selfie de vérification" fill className="object-cover" />
                     </div>
                   ) : (
@@ -522,16 +522,16 @@ export default function OnboardingPage() {
                       type="button" 
                       onClick={() => verifInputRef.current?.click()} 
                       disabled={verifUploading}
-                      className="w-48 h-48 rounded-full border border-dashed border-white/10 hover:border-purple-400/40 flex flex-col items-center justify-center text-[var(--text-secondary)] hover:text-white bg-[rgba(15,15,17,0.5)] transition-all duration-300 relative group active:scale-95"
+                      className="w-48 h-48 rounded-full border border-dashed border-theme hover:border-[var(--accent-cool)]/40 flex flex-col items-center justify-center text-secondary hover:text-theme bg-surface transition-all duration-300 relative group active:scale-95"
                     >
                       {/* Pulse effect */}
-                      <div className="absolute inset-0 rounded-full border border-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse-glow-soft blur-md" />
+                      <div className="absolute inset-0 rounded-full border border-[var(--accent-cool)]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse-glow-soft blur-md" />
                       
                       {verifUploading ? (
-                        <div className="animate-spin w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full" />
+                        <div className="animate-spin w-8 h-8 border-2 border-[var(--accent-cool)] border-t-transparent rounded-full" />
                       ) : (
                         <>
-                          <Camera size={32} className="text-purple-400 mb-2 transition-transform duration-300 group-hover:scale-105" />
+                          <Camera size={32} className="text-[var(--accent-cool)] mb-2 transition-transform duration-300 group-hover:scale-105" />
                           <span className="text-[10px] uppercase font-bold tracking-wider">Prendre un selfie</span>
                         </>
                       )}
@@ -552,7 +552,7 @@ export default function OnboardingPage() {
                     <motion.div 
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-1.5 text-[#22C55E] text-xs font-semibold mt-4"
+                      className="flex items-center gap-1.5 text-[var(--successVibrant)] text-xs font-semibold mt-4"
                     >
                       <Check size={14} /> Selfie envoyé, vérification lancée
                     </motion.div>
@@ -572,7 +572,7 @@ export default function OnboardingPage() {
                   <Button 
                     variant="ghost" 
                     size="pill-lg" 
-                    className="w-full text-xs font-semibold text-[var(--text-secondary)] hover:text-white"
+                    className="w-full text-xs font-semibold text-secondary hover:text-theme"
                     onClick={() => setStep(3)}
                   >
                     Passer la vérification pour l&rsquo;instant
@@ -605,16 +605,16 @@ export default function OnboardingPage() {
                     }}
                     className="absolute inset-0 rounded-full bg-gradient-to-tr from-[var(--primary)] to-[var(--accent-warm)] opacity-50 blur-2xl"
                   />
-                  <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-tr from-[#22C55E] to-[#D92D4A] flex items-center justify-center shadow-[0_12px_40px_rgba(217,45,74,0.3)] border border-white/10 animate-breathe">
-                    <Sparkles size={40} className="text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)]" />
+                  <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-tr from-[var(--successVibrant)] to-[var(--primary)] flex items-center justify-center shadow-[0_12px_40px_var(--primaryGlow)] border border-theme animate-breathe">
+                    <Sparkles size={40} className="text-on-primary drop-shadow-[0_4px_8px_var(--shadow-drop)]" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  <h2 className="text-3xl font-bold text-theme tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
                     Ton profil est prêt !
                   </h2>
-                  <p className="text-sm text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
+                  <p className="text-sm text-secondary max-w-xs mx-auto leading-relaxed">
                     Félicitations, ton onboarding est complet. L&rsquo;univers d&rsquo;Erosia t&rsquo;attend désormais.
                   </p>
                 </div>
@@ -623,7 +623,7 @@ export default function OnboardingPage() {
                   <Button 
                     variant="premium" 
                     size="pill-lg" 
-                    className="w-full text-sm font-semibold tracking-wide shadow-[0_12px_40px_rgba(217,45,74,0.3)] animate-glow-ring"
+                    className="w-full text-sm font-semibold tracking-wide shadow-[0_12px_40px_var(--primaryGlow)] animate-glow-ring"
                     onClick={handleComplete}
                   >
                     Entrer dans Erosia
@@ -637,7 +637,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* Footer minimaliste */}
-      <footer className="relative z-10 w-full text-center text-[10px] text-[var(--text-muted)] tracking-wider">
+      <footer className="relative z-10 w-full text-center text-[10px] text-muted tracking-wider">
         Erosia · Rencontre Immersive Premium
       </footer>
     </div>

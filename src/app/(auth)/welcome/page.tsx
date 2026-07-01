@@ -55,7 +55,7 @@ export default function WelcomePage() {
   const router = useRouter()
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#070708] flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-12">
+    <div className="relative min-h-screen w-full overflow-hidden bg-theme flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-12">
       {/* Éléments de lueur d'arrière-plan */}
       <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 rounded-full bg-[var(--primary)] blur-[120px] opacity-[0.08]" />
       <div className="pointer-events-none absolute bottom-10 right-1/4 w-[400px] h-[400px] rounded-full bg-[var(--accent-cool)] blur-[150px] opacity-[0.06]" />
@@ -69,10 +69,10 @@ export default function WelcomePage() {
           className="flex items-center gap-2.5 cursor-pointer"
           onClick={() => router.push('/')}
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[var(--shadow-glow)] border border-white/10">
-            <Sparkles size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-glow border border-light">
+              <Sparkles size={16} className="text-theme" />
           </div>
-          <span className="text-xl font-bold text-white tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+          <span className="text-xl font-bold text-theme tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
             Erosia
           </span>
         </motion.div>
@@ -86,9 +86,9 @@ export default function WelcomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-xs text-[var(--text-secondary)] shadow-sm backdrop-blur-md"
+            className="inline-flex items-center gap-2 rounded-full border border-light bg-surface px-4 py-1.5 text-xs text-secondary shadow-sm backdrop-blur-md"
           >
-            <Sparkles className="text-[var(--primary)]" size={14} />
+            <Sparkles className="text-primary" size={14} />
             Une nouvelle ère de rencontres premium
           </motion.div>
 
@@ -96,7 +96,7 @@ export default function WelcomePage() {
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            className="text-[clamp(2.25rem,6vw,4rem)] font-bold text-white leading-[1.05] tracking-[-0.03em]"
+            className="text-[clamp(2.25rem,6vw,4rem)] font-bold text-theme leading-[1.05] tracking-[-0.03em]"
           >
             Là où les cœurs<br />
             <span className="text-gradient-primary">se rencontrent.</span>
@@ -113,7 +113,7 @@ export default function WelcomePage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className="text-[var(--text-secondary)] text-base sm:text-lg max-w-md leading-relaxed"
+            className="text-secondary text-base sm:text-lg max-w-md leading-relaxed"
           >
             Rencontres immersives en 3D, auras de compatibilité, cadeaux virtuels et profils vérifiés. Explorez un univers conçu pour des connexions intenses et mémorables.
           </motion.p>
@@ -136,7 +136,7 @@ export default function WelcomePage() {
             <Button
               variant="secondary"
               size="pill-lg"
-              className="flex-1 text-sm font-semibold tracking-wide border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-white backdrop-blur-md"
+              className="flex-1 text-sm font-semibold tracking-wide border border-light hover:border-theme bg-surface hover:bg-hover text-theme backdrop-blur-md"
               onClick={() => router.push('/login')}
             >
               Se connecter
@@ -158,7 +158,7 @@ export default function WelcomePage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 + i * 0.05 }}
-                className="group relative overflow-hidden rounded-2xl p-5 border border-white/5 bg-[rgba(15,15,17,0.6)] backdrop-blur-md hover:border-white/10 hover:bg-[rgba(20,20,24,0.7)] transition-all duration-300 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"
+                className="group relative overflow-hidden rounded-2xl p-5 border border-light bg-surface backdrop-blur-md hover:border-theme hover:bg-hover transition-all duration-300 shadow-card hover:shadow-elevated"
               >
                 {/* Lueur d'effet de carte */}
                 <div 
@@ -180,21 +180,21 @@ export default function WelcomePage() {
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-white tracking-wide">{title}</h3>
+                      <h3 className="text-sm font-semibold text-theme tracking-wide">{title}</h3>
                       {badge && (
                         <span 
                           className="text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider border"
                           style={{
-                            backgroundColor: '#FBBF2415',
-                            color: '#FBBF24',
-                            borderColor: '#FBBF2430'
+                            backgroundColor: 'rgba(251,191,36,0.15)',
+                            color: 'var(--warning)',
+                            borderColor: 'rgba(251,191,36,0.30)'
                           }}
                         >
                           {badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{desc}</p>
+                    <p className="text-xs text-secondary leading-relaxed">{desc}</p>
                   </div>
                 </div>
               </motion.div>
@@ -204,12 +204,12 @@ export default function WelcomePage() {
       </main>
 
       {/* Footer / Copyright */}
-      <footer className="relative z-10 w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between pt-8 text-[11px] text-[var(--text-muted)] tracking-wider">
+       <footer className="relative z-10 w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between pt-8 text-[11px] text-muted tracking-wider">
         <p>© {new Date().getFullYear()} Erosia. Tous droits réservés.</p>
         <div className="flex gap-4 mt-2 sm:mt-0">
-          <a href="/privacy" className="hover:text-white transition-colors duration-200">Politique de confidentialité</a>
+          <a href="/privacy" className="hover:text-theme transition-colors duration-200">Politique de confidentialité</a>
           <span>·</span>
-          <a href="/cgu" className="hover:text-white transition-colors duration-200">CGU</a>
+          <a href="/cgu" className="hover:text-theme transition-colors duration-200">CGU</a>
         </div>
       </footer>
     </div>

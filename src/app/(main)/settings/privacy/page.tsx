@@ -11,7 +11,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     <button type="button" role="switch" aria-checked={checked} aria-label={label}
       onClick={() => onChange(!checked)}
       className={`relative w-11 h-6 rounded-full transition-all duration-300 shrink-0 ${
-        checked ? 'bg-[#D92D4A]' : 'bg-[#2A2826]'
+        checked ? 'bg-primary' : 'bg-[var(--border)]'
       }`}>
       <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-md ${
         checked ? 'translate-x-5' : ''
@@ -29,8 +29,8 @@ function SelectChip({ value, options, onChange }: {
         <button key={o.value} type="button" onClick={() => onChange(o.value)}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             value === o.value
-              ? 'bg-[#D92D4A]/15 text-[#D92D4A] border border-[#D92D4A]/20'
-              : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826] hover:border-[#5A5248]'
+              ? 'bg-primary/15 text-primary border border-primary/20'
+              : 'bg-[var(--surfaceElevated)] text-secondary border border-[var(--border)] hover:border-muted'
           }`}>
           {o.label}
         </button>
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
@@ -96,7 +96,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Profil visible</p>
-              <p className="text-[11px] text-[#5A5248]">Masque votre profil des moteurs de découverte</p>
+              <p className="text-[11px] text-muted">Masque votre profil des moteurs de découverte</p>
             </div>
             <Toggle checked={settings!.profile_visible} onChange={v => update({ profile_visible: v })}
               label="Visibilité du profil" />
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Compatible uniquement</p>
-              <p className="text-[11px] text-[#5A5248]">N&rsquo;être visible que pour les personnes compatibles</p>
+              <p className="text-[11px] text-muted">N&rsquo;être visible que pour les personnes compatibles</p>
             </div>
             <Toggle checked={settings!.visible_to_compatible_only} onChange={v => update({ visible_to_compatible_only: v })}
               label="Compatible uniquement" />
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Âge exact</p>
-              <p className="text-[11px] text-[#5A5248]">Affiche une tranche (ex: 25-29) au lieu de l&rsquo;âge exact</p>
+              <p className="text-[11px] text-muted">Affiche une tranche (ex: 25-29) au lieu de l&rsquo;âge exact</p>
             </div>
             <Toggle checked={settings!.hide_exact_age} onChange={v => update({ hide_exact_age: v })}
               label="Masquer âge exact" />
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Distance exacte</p>
-              <p className="text-[11px] text-[#5A5248]">Affiche &laquo;&nbsp;Proche&nbsp;&raquo; au lieu des kilomètres exacts</p>
+              <p className="text-[11px] text-muted">Affiche &laquo;&nbsp;Proche&nbsp;&raquo; au lieu des kilomètres exacts</p>
             </div>
             <Toggle checked={settings!.hide_exact_distance} onChange={v => update({ hide_exact_distance: v })}
               label="Masquer distance exacte" />
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Photos floutées</p>
-              <p className="text-[11px] text-[#5A5248]">Les photos restent floutées jusqu&rsquo;à votre autorisation</p>
+              <p className="text-[11px] text-muted">Les photos restent floutées jusqu&rsquo;à votre autorisation</p>
             </div>
             <Toggle checked={settings!.blur_photos} onChange={v => update({ blur_photos: v })}
               label="Photos floutées" />
@@ -196,7 +196,7 @@ export default function PrivacyPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">Lectures visibles</p>
-            <p className="text-[11px] text-[#5A5248]">Les autres verront si vous avez lu leurs messages</p>
+            <p className="text-[11px] text-muted">Les autres verront si vous avez lu leurs messages</p>
           </div>
           <Toggle checked={settings!.read_receipts} onChange={v => update({ read_receipts: v })}
             label="Confirmations de lecture" />
@@ -211,7 +211,7 @@ export default function PrivacyPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">Bloquer automatiquement</p>
-            <p className="text-[11px] text-[#5A5248]">Bloque automatiquement les comptes signalés par la communauté</p>
+            <p className="text-[11px] text-muted">Bloque automatiquement les comptes signalés par la communauté</p>
           </div>
           <Toggle checked={settings!.auto_block_reported} onChange={v => update({ auto_block_reported: v })}
             label="Blocage automatique" />
@@ -222,14 +222,14 @@ export default function PrivacyPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-transparent min-h-screen">
-      <header className="flex items-center gap-3 px-3 py-3 border-b border-[#2A2826]/50 bg-[#070708]/80 backdrop-blur-xl z-10 sticky top-0">
-        <button onClick={() => router.back()} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-[#1C1C1E] transition-colors">
+      <header className="flex items-center gap-3 px-3 py-3 border-b border-[var(--border)]/50 bg-[var(--bg)]/80 backdrop-blur-xl z-10 sticky top-0">
+        <button onClick={() => router.back()} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-[var(--surfaceElevated)] transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
           <h2 className="font-semibold text-base">Confidentialité</h2>
         </div>
-        {saving && <div className="w-4 h-4 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin" />}
+        {saving && <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
@@ -242,11 +242,11 @@ export default function PrivacyPage() {
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 rounded-xl shrink-0"
                 style={{ background: 'linear-gradient(135deg, rgba(217,45,74,0.12) 0%, rgba(217,45,74,0.04) 100%)' }}>
-                <Icon size={16} className="text-[#D92D4A]" />
+                <Icon size={16} className="text-primary" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold">{title}</h3>
-                <p className="text-[11px] text-[#5A5248]">{desc}</p>
+                <p className="text-[11px] text-muted">{desc}</p>
               </div>
             </div>
             <div className="pl-11">
@@ -255,7 +255,7 @@ export default function PrivacyPage() {
           </div>
         ))}
 
-        <p className="text-[10px] text-[#5A5248] text-center pt-2 pb-8">
+        <p className="text-[10px] text-muted text-center pt-2 pb-8">
           Vos paramètres de confidentialité sont appliqués en temps réel.
         </p>
       </div>

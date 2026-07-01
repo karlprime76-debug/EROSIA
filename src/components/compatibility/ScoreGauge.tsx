@@ -7,7 +7,7 @@ export function ScoreGauge({ score, size = 'lg' }: { score: number; size?: 'sm' 
   const circumference = 2 * Math.PI * radius
   const offset = circumference * (1 - normalized / 100)
 
-  const color = normalized >= 75 ? '#34D399' : normalized >= 50 ? '#D92D4A' : normalized >= 30 ? '#F87171' : '#6B6258'
+  const color = normalized >= 75 ? 'var(--successVibrant)' : normalized >= 50 ? 'var(--primary)' : normalized >= 30 ? 'var(--warningVibrant)' : 'var(--textMuted)'
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: radius * 2 + stroke, height: radius * 2 + stroke }}>
@@ -19,7 +19,7 @@ export function ScoreGauge({ score, size = 'lg' }: { score: number; size?: 'sm' 
           strokeDasharray={circumference} strokeDashoffset={offset}
           style={{ transition: 'stroke-dashoffset 1s ease-out, stroke 0.5s' }} />
       </svg>
-      <span className="absolute text-3xl font-bold" style={{ color: 'var(--text)' }}>
+      <span className="absolute text-3xl font-bold" style={{ color: 'var(--textPrimary)' }}>
         {normalized}%
       </span>
     </div>

@@ -47,37 +47,37 @@ export function StoryCreator({ onUpload, disabled, premiumRequired }: StoryCreat
             }
           }}
           disabled={disabled || uploading || premiumRequired}
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] flex items-center justify-center transition-all active:scale-90 hover:shadow-[0_0_15px_rgba(217,45,74,0.3)] disabled:opacity-40"
+          className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accentOrange)] flex items-center justify-center transition-all active:scale-90 hover:shadow-glow disabled:opacity-40"
         >
           {uploading ? (
-            <Loader size={20} className="animate-spin text-white" />
+            <Loader size={20} className="animate-spin text-[var(--textOnPrimary)]" />
           ) : premiumRequired ? (
-            <Lock size={18} className="text-white/60" />
+            <Lock size={18} className="text-[var(--textOnPrimary)]/60" />
           ) : (
-            <Camera size={20} className="text-white" />
+            <Camera size={20} className="text-[var(--textOnPrimary)]" />
           )}
         </button>
 
         {showPrivacy && (
-          <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10 bg-[#1C1C1E] border border-[#2A2826] rounded-xl p-1 flex shadow-xl">
+          <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10 bg-[var(--card)] border border-[var(--border)] rounded-xl p-1 flex shadow-xl">
             <button
               type="button"
               onClick={() => setPrivacy('public')}
-              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium flex items-center gap-1 transition ${privacy === 'public' ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:text-white'}`}
+              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium flex items-center gap-1 transition ${privacy === 'public' ? 'bg-primary/20 text-primary' : 'text-[var(--textSecondary)] hover:text-[var(--textPrimary)]'}`}
             >
               <Globe size={10} /> Public
             </button>
             <button
               type="button"
               onClick={() => setPrivacy('close_friends')}
-              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium flex items-center gap-1 transition ${privacy === 'close_friends' ? 'bg-[#D92D4A]/20 text-[#D92D4A]' : 'text-[#9E9488] hover:text-white'}`}
+              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium flex items-center gap-1 transition ${privacy === 'close_friends' ? 'bg-primary/20 text-primary' : 'text-[var(--textSecondary)] hover:text-[var(--textPrimary)]'}`}
             >
               <Lock size={10} /> Amis
             </button>
           </div>
         )}
       </div>
-      <span className="text-[10px] text-[#9E9488]">Ta story</span>
+      <span className="text-[10px] text-[var(--textSecondary)]">Ta story</span>
       <input
         ref={fileRef}
         type="file"

@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           htmlFor={inputId}
           className={cn(
             'text-xs font-medium block tracking-wide',
-            error ? 'text-[#F87171]' : 'text-[#A09890]'
+            error ? 'text-[var(--error)]' : 'text-[var(--textSecondary)]'
           )}
         >
           {label}
@@ -29,17 +29,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'w-full bg-[#18181A] text-[#F5F0EB] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200',
+            'w-full bg-[var(--card)] text-[var(--textPrimary)] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200',
             error
-              ? 'border-[#F87171]/50 focus:border-[#F87171] focus:shadow-[0_0_0_3px_rgba(248,113,113,0.12)]'
-              : 'border-[#2C2A28] focus:border-[#D92D4A] focus:shadow-[0_0_0_3px_rgba(217,45,74,0.12)]',
-            'placeholder:text-[var(--text-muted)]',
+              ? 'border-[var(--error)]/50 focus:border-[var(--error)] focus:shadow-[0_0_0_3px_var(--errorBg)]'
+              : 'border-[var(--border)] focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_var(--primaryGlow)]',
+            'placeholder:text-[var(--textMuted)]',
             className
           )}
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[#F87171] mt-1.5 px-1">{error}</p>
+          <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[var(--error)] mt-1.5 px-1">{error}</p>
         )}
       </div>
     )
@@ -58,7 +58,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const inputId = id ?? label.toLowerCase().replace(/\s+/g, '-')
     return (
       <div className="space-y-1.5">
-        <label htmlFor={inputId} className="text-xs font-medium text-[#A09890] block">
+        <label htmlFor={inputId} className="text-xs font-medium text-[var(--textSecondary)] block">
           {label}
         </label>
         <select
@@ -67,8 +67,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'w-full bg-[#18181A] text-[#F5F0EB] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 appearance-none',
-            error ? 'border-[#F87171]/50' : 'border-[#2C2A28] focus:border-[#D92D4A]',
+            'w-full bg-[var(--card)] text-[var(--textPrimary)] border rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 appearance-none',
+            error ? 'border-[var(--error)]/50' : 'border-[var(--border)] focus:border-[var(--primary)]',
             className
           )}
           {...props}
@@ -77,7 +77,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-        {error && <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[#F87171] mt-1 px-1">{error}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="text-[11px] text-[var(--error)] mt-1 px-1">{error}</p>}
       </div>
     )
   }

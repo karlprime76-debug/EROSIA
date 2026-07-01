@@ -34,9 +34,9 @@ export default function ForgotPasswordPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
-            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#34D399] to-[#10B981] flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_rgba(52,211,153,0.2)]"
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--success)] to-[var(--successVibrant)] flex items-center justify-center mx-auto mb-5 shadow-[0_0_24px_var(--successBg)]"
           >
-            <Sparkles size={28} className="text-white" />
+            <Sparkles size={28} className="text-on-primary" />
           </motion.div>
           <h2 className="text-xl font-bold text-[var(--text)] mb-2">Email envoyé !</h2>
           <p className="text-[var(--text-secondary)] text-sm mb-2">Vérifie ta boîte de réception.</p>

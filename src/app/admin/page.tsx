@@ -90,8 +90,8 @@ export default function AdminPage() {
   if (checking) return (
     <div className="min-h-dvh flex items-center justify-center px-6 bg-transparent">
       <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
-        <div className="w-8 h-8 border-2 border-[#D92D4A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-[#9E9488] text-sm">Vérification...</p>
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-secondary text-sm">Vérification...</p>
       </div>
     </div>
   )
@@ -100,7 +100,7 @@ export default function AdminPage() {
     <div className="min-h-dvh flex items-center justify-center px-6 bg-transparent">
       <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">
         <h2 className="text-xl font-bold mb-2">Accès restreint</h2>
-        <p className="text-[#9E9488] text-sm">{userEmail ? 'Accès admin uniquement' : 'Connecte-toi avec un compte admin'}</p>
+        <p className="text-secondary text-sm">{userEmail ? 'Accès admin uniquement' : 'Connecte-toi avec un compte admin'}</p>
       </div>
     </div>
   )
@@ -116,13 +116,13 @@ export default function AdminPage() {
     <div className="min-h-dvh bg-transparent px-4 py-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Administration</h2>
-        <button type="button" aria-label="Rafraîchir" onClick={() => { loadData(); loadAdminData() }} className="p-2 text-[#9E9488] hover:text-white transition"><RefreshCw size={18} /></button>
+        <button type="button" aria-label="Rafraîchir" onClick={() => { loadData(); loadAdminData() }} className="p-2 text-secondary hover:text-theme transition"><RefreshCw size={18} /></button>
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {tabs.map(t => (
           <button type="button" key={t.key} onClick={() => setTab(t.key)}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${tab === t.key ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488]'}`}>
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${tab === t.key ? 'bg-primary text-on-primary' : 'bg-surface-elevated text-secondary'}`}>
             {t.label}
           </button>
         ))}
@@ -132,28 +132,28 @@ export default function AdminPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="glass-card rounded-2xl p-4">
-              <Users size={20} className="text-[#3B82F6] mb-2" />
+              <Users size={20} className="text-info mb-2" />
               <p className="text-2xl font-bold">{stats.totalUsers}</p>
-              <p className="text-[10px] text-[#9E9488]">Utilisateurs</p>
+              <p className="text-[10px] text-secondary">Utilisateurs</p>
             </div>
             <div className="glass-card rounded-2xl p-4">
-              <Gift size={20} className="text-[#EAB308] mb-2" />
+              <Gift size={20} className="text-warning mb-2" />
               <p className="text-2xl font-bold">{stats.totalGifts}</p>
-              <p className="text-[10px] text-[#9E9488]">Cadeaux envoyés</p>
+              <p className="text-[10px] text-secondary">Cadeaux envoyés</p>
             </div>
             <div className="glass-card rounded-2xl p-4">
-              <ShieldAlert size={20} className="text-[#A855F7] mb-2" />
+              <ShieldAlert size={20} className="text-info mb-2" />
               <p className="text-2xl font-bold">{stats.pendingVerifs}</p>
-              <p className="text-[10px] text-[#9E9488]">Vérifications en attente</p>
+              <p className="text-[10px] text-secondary">Vérifications en attente</p>
             </div>
             <div className="glass-card rounded-2xl p-4">
-              <Smartphone size={20} className="text-[#22C55E] mb-2" />
+              <Smartphone size={20} className="text-success mb-2" />
               <p className="text-2xl font-bold">{stats.pendingPayouts}</p>
-              <p className="text-[10px] text-[#9E9488]">Retraits en attente</p>
+              <p className="text-[10px] text-secondary">Retraits en attente</p>
             </div>
           </div>
           <div className="glass-card rounded-2xl p-4">
-            <p className="text-sm text-[#9E9488] mb-1">Total retraits effectués</p>
+            <p className="text-sm text-secondary mb-1">Total retraits effectués</p>
             <p className="text-xl font-bold">{stats.totalPayoutsAll}</p>
           </div>
         </div>
@@ -161,24 +161,24 @@ export default function AdminPage() {
 
       {tab === 'verifications' && (
         <div className="space-y-4">
-          {verifications.length === 0 && <p className="text-[#9E9488] text-sm">Aucune demande en attente</p>}
+          {verifications.length === 0 && <p className="text-secondary text-sm">Aucune demande en attente</p>}
           {verifications.map(req => (
             <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-[#1C1C1E] flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-16 h-16 rounded-xl bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
                 {req.photo_url ? (
                   <Image src={req.photo_url} alt="Photo de vérification" width={64} height={64} className="w-full h-full object-cover" />
                 ) : (
-                  <ShieldAlert size={20} className="text-[#9E9488]" />
+                  <ShieldAlert size={20} className="text-secondary" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{req.profile?.name ?? 'Inconnu'}</p>
-                <p className="text-[10px] text-[#9E9488]">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
+                <p className="text-[10px] text-secondary">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
               </div>
               <button type="button" onClick={() => handleVerify(req.id, req.user_id, true)}
-                className="px-4 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition">Approuver</button>
+                className="px-4 py-2 rounded-full text-xs font-medium bg-[var(--successBg)] text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_25%,transparent)] transition">Approuver</button>
               <button type="button" onClick={() => handleVerify(req.id, req.user_id, false)}
-                className="px-4 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition">Rejeter</button>
+                className="px-4 py-2 rounded-full text-xs font-medium bg-[var(--errorBg)] text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_25%,transparent)] transition">Rejeter</button>
             </div>
           ))}
         </div>
@@ -186,16 +186,16 @@ export default function AdminPage() {
 
       {tab === 'moderation' && (
         <div className="space-y-4">
-          {modQueue.length === 0 && <p className="text-[#9E9488] text-sm">Aucun contenu à modérer</p>}
+          {modQueue.length === 0 && <p className="text-secondary text-sm">Aucun contenu à modérer</p>}
           {modQueue.map(item => (
             <div key={item.id} className="glass-card rounded-2xl p-4">
-              <p className="text-xs font-medium text-[#D92D4A] uppercase">{item.content_type}</p>
+              <p className="text-xs font-medium text-primary uppercase">{item.content_type}</p>
               {item.content_text && <p className="text-sm mt-1">{item.content_text}</p>}
               <div className="flex gap-2 mt-3">
                 <button type="button" onClick={() => handleModeration(item.id, true)}
-                  className="px-4 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition">Approuver</button>
+                  className="px-4 py-2 rounded-full text-xs font-medium bg-[var(--successBg)] text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_25%,transparent)] transition">Approuver</button>
                 <button type="button" onClick={() => handleModeration(item.id, false)}
-                  className="px-4 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition">Rejeter</button>
+                  className="px-4 py-2 rounded-full text-xs font-medium bg-[var(--errorBg)] text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_25%,transparent)] transition">Rejeter</button>
               </div>
             </div>
           ))}
@@ -204,8 +204,8 @@ export default function AdminPage() {
 
       {tab === 'retraits' && (
         <div className="space-y-4">
-          {loading && <p className="text-[#9E9488] text-sm">Chargement...</p>}
-          {!loading && payouts.length === 0 && <p className="text-[#9E9488] text-sm">Aucun retrait en attente</p>}
+          {loading && <p className="text-secondary text-sm">Chargement...</p>}
+          {!loading && payouts.length === 0 && <p className="text-secondary text-sm">Aucun retrait en attente</p>}
           {payouts.map(tx => {
             let details = { type: '', identifier: '' }
             try { details = JSON.parse(tx.payment_details ?? '{}') } catch {}
@@ -213,21 +213,21 @@ export default function AdminPage() {
               <div key={tx.id} className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-[#EAB308]" />
+                    <Clock size={16} className="text-warning" />
                     <p className="font-medium text-sm">{tx.user_name}</p>
                   </div>
                   <p className="font-bold text-sm">{tx.amount_cents.toLocaleString('fr-FR')} F</p>
                 </div>
-                <p className="text-[10px] text-[#9E9488] mb-3">
+                <p className="text-[10px] text-secondary mb-3">
                   {details.identifier || 'Inconnu'} — {new Date(tx.created_at).toLocaleDateString('fr-FR')}
                 </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => handlePayoutAction(tx.id, 'completed')}
-                    className="flex-1 py-2 rounded-full text-xs font-medium bg-green-600/20 text-green-400 hover:bg-green-600/30 transition flex items-center justify-center gap-1">
+                    className="flex-1 py-2 rounded-full text-xs font-medium bg-[var(--successBg)] text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_25%,transparent)] transition flex items-center justify-center gap-1">
                     <CheckCircle size={12} /> Marquer effectué
                   </button>
                   <button type="button" onClick={() => handlePayoutAction(tx.id, 'failed')}
-                    className="flex-1 py-2 rounded-full text-xs font-medium bg-red-600/20 text-red-400 hover:bg-red-600/30 transition flex items-center justify-center gap-1">
+                    className="flex-1 py-2 rounded-full text-xs font-medium bg-[var(--errorBg)] text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_25%,transparent)] transition flex items-center justify-center gap-1">
                     <XCircle size={12} /> Marquer échoué
                   </button>
                 </div>

@@ -53,17 +53,17 @@ export default function QuizPage() {
 
   if (questions.length === 0) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
     </div>
   )
 
   if (done) return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-      <Heart size={48} className="text-[#D92D4A] mb-4" fill="#D92D4A" />
+      <Heart size={48} className="text-primary mb-4" fill="var(--primary)" />
       <h2 className="text-2xl font-bold mb-2">Quiz terminé !</h2>
-      <p className="text-[#9E9488] mb-6">Tes réponses nous aident à trouver des personnes compatibles.</p>
+      <p className="text-secondary mb-6">Tes réponses nous aident à trouver des personnes compatibles.</p>
       <button type="button" onClick={() => router.push('/discover')}
-        className="px-8 py-3 rounded-full font-semibold text-white" style={{ background: '#D92D4A' }}>
+        className="px-8 py-3 rounded-full font-semibold text-on-primary" style={{ background: 'var(--primary)' }}>
         Découvrir des profils
       </button>
     </div>
@@ -78,19 +78,19 @@ export default function QuizPage() {
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">Quiz de compatibilité</h2>
-          <p className="text-xs text-[#9E9488]">Question {current + 1}/{questions.length}</p>
+          <p className="text-xs text-secondary">Question {current + 1}/{questions.length}</p>
         </div>
       </header>
 
       <div className="px-5 mb-4">
-        <div className="h-1.5 bg-[#1C1C1E] rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, background: '#D92D4A' }} />
+        <div className="h-1.5 bg-[var(--surfaceElevated)] rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, background: 'var(--primary)' }} />
         </div>
       </div>
 
       <div className="flex-1 px-5">
         {q.category && (
-          <p className="text-xs font-semibold text-[#D92D4A] uppercase tracking-wider mb-2">{q.category}</p>
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">{q.category}</p>
         )}
         <h3 className="text-xl font-bold mb-6">{q.question}</h3>
         <div className="space-y-3">
@@ -98,8 +98,8 @@ export default function QuizPage() {
             <button type="button" key={i} onClick={() => handleAnswer(i)}
               className={`w-full text-left px-5 py-4 rounded-xl border transition ${
                 answers[q.id] === i
-                  ? 'border-[#D92D4A] bg-[#D92D4A]/10 text-white'
-                  : 'border-[#2A2826] bg-[#1C1C1E] text-[#9E9488]'
+                  ? 'border-primary bg-primary/10 text-theme'
+                  : 'border-[var(--border)] bg-[var(--surfaceElevated)] text-secondary'
               }`}>
               {opt.text}
             </button>
@@ -110,8 +110,8 @@ export default function QuizPage() {
       {current === questions.length - 1 && (
         <div className="px-5 pb-8">
           <button type="button" onClick={handleSave} disabled={saving}
-            className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50"
-            style={{ background: '#D92D4A' }}>
+            className="w-full py-3.5 rounded-full font-semibold text-on-primary disabled:opacity-50"
+            style={{ background: 'var(--primary)' }}>
             {saving ? 'Enregistrement...' : 'Voir mes résultats'}
           </button>
         </div>

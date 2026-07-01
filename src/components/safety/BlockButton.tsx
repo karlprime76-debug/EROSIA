@@ -52,10 +52,10 @@ export default function BlockButton({
       disabled={loading}
       className={`${sizeClasses} rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5 ${
         confirm
-          ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+          ? 'bg-error/20 text-error border border-error/40'
           : blocked
-            ? 'bg-[#222225] text-[#6B6258] border border-[#2C2A28]'
-            : 'bg-[#222225] text-[#A09890] border border-[#2C2A28] hover:border-red-500/30 hover:text-red-400'
+            ? 'bg-surface text-muted border border-theme'
+            : 'bg-surface text-secondary border border-theme hover:border-error/30 hover:text-error'
       }`}
       title={confirm ? `Confirmer le blocage de ${userName}` : blocked ? `Débloquer ${userName}` : `Bloquer ${userName}`}
     >

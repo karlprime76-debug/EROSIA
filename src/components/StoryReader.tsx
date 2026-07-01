@@ -98,9 +98,9 @@ function StoryViewer({
     <div className="absolute inset-0 flex flex-col">
       <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 px-2 pt-2">
         {Array.from({ length: 1 }).map((_, i) => (
-          <div key={i} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+          <div key={i} className="flex-1 h-0.5 bg-[var(--borderMedium)]/30 rounded-full overflow-hidden">
             <div
-              className="h-full bg-white rounded-full transition-all duration-100"
+              className="h-full bg-[var(--primary)] rounded-full transition-all duration-100"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -112,7 +112,7 @@ function StoryViewer({
           <video
             ref={videoRef}
             src={story.media_url}
-            className="w-full h-full object-contain bg-black"
+            className="w-full h-full object-contain bg-[var(--bg)]"
             playsInline
             muted
           />
@@ -121,12 +121,12 @@ function StoryViewer({
             src={story.media_url}
             alt="Story"
             fill
-            className="object-contain bg-black"
+            className="object-contain bg-[var(--bg)]"
             unoptimized
           />
         )}
 
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--bg)]/40 to-transparent pointer-events-none" />
       </div>
 
       {myReaction && (
@@ -136,7 +136,7 @@ function StoryViewer({
       )}
 
       {showReactions && (
-        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent pt-16 pb-6 px-4">
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-[var(--bg)]/90 to-transparent pt-16 pb-6 px-4">
           <div className="flex items-center justify-center gap-3">
             {REACTION_EMOJIS.map(emoji => (
               <button
@@ -157,7 +157,7 @@ function StoryViewer({
           <button
             type="button"
             onClick={() => onDelete(story.id)}
-            className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition"
+            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition"
           >
             <Trash2 size={14} />
           </button>
@@ -239,8 +239,8 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
 
   if (!currentGroup || !currentStory) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-        <p className="text-white/60">Story introuvable</p>
+      <div className="fixed inset-0 z-50 bg-[var(--bg)] flex items-center justify-center">
+        <p className="text-[var(--textSecondary)]">Story introuvable</p>
       </div>
     )
   }
@@ -249,27 +249,27 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
   const hasNext = storyIdx < (currentGroup.stories.length - 1) || groupIdx < groups.length - 1
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col">
       <div className="relative flex-1">
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-3 pb-2 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-3 pb-2 bg-gradient-to-b from-[var(--bg)]/50 to-transparent">
           <div className="flex items-center gap-2 flex-1">
             {currentGroup.photo && (
-              <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/30">
+              <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-[var(--border)]">
                 <Image src={currentGroup.photo} alt={currentGroup.name} width={32} height={32} className="object-cover w-full h-full" />
               </div>
             )}
             <div>
-              <p className="text-sm font-semibold text-white">{currentGroup.name}</p>
-              <p className="text-[10px] text-white/60">
+              <p className="text-sm font-semibold text-[var(--textPrimary)]">{currentGroup.name}</p>
+              <p className="text-[10px] text-[var(--textSecondary)]">
                 {new Date(currentStory.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-white/40">
+            <span className="text-[10px] text-[var(--textMuted)]">
               {storyIdx + 1}/{currentGroup.stories.length}
             </span>
-            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center hover:bg-[var(--cardHover)] transition">
               <X size={16} />
             </button>
           </div>

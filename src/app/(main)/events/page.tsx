@@ -68,7 +68,7 @@ export default function EventsPage() {
         <h2 className="text-2xl font-bold">Antennes</h2>
         <div className="flex-1" />
         <button type="button" onClick={() => setShowForm(true)} aria-label="Créer"
-          className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D92D4A' }}>
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-primary">
           <Plus size={18} />
         </button>
       </header>
@@ -76,18 +76,18 @@ export default function EventsPage() {
       {/* Search */}
       <div className="px-4 pb-2">
         <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9E9488]" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
           <input
             ref={searchRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Rechercher un événement..."
-            className="w-full bg-[#1C1C1E] rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border border-[#2A2826] focus:border-[#D92D4A]/40 transition placeholder:text-[#6B6258]"
+            className="w-full bg-surface-elevated rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border border-theme focus:border-primary/40 transition placeholder:text-secondary"
           />
           {query && (
             <button type="button" onClick={() => { setQuery(''); searchRef.current?.focus() }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9E9488]">
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
               <X size={14} />
             </button>
           )}
@@ -104,8 +104,8 @@ export default function EventsPage() {
               onClick={() => setSelectedCat(selectedCat === cat ? null : cat)}
               className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition ${
                 selectedCat === cat
-                  ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/30'
-                  : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826] hover:border-[#6B6258]'
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-surface-elevated text-secondary border border-theme hover:border-secondary'
               }`}
             >
               {cat === 'sport' && '⚽ '}{cat === 'culture' && '🎨 '}{cat === 'food' && '🍽️ '}
@@ -121,15 +121,15 @@ export default function EventsPage() {
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-3">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+            <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
           </div>
         ) : events.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center mt-12">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-primary/10">
               <span className="text-2xl opacity-40">📅</span>
             </div>
             <p className="text-base font-semibold">Aucun événement trouvé</p>
-            <p className="text-[#9E9488] text-sm mt-1">Crée le premier événement !</p>
+            <p className="text-secondary text-sm mt-1">Crée le premier événement !</p>
           </div>
         ) : (
           events.map(event => (

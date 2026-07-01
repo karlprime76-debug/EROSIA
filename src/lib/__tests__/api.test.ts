@@ -80,6 +80,8 @@ describe('sendMessage', () => {
     const chain = makeChain()
     chain.maybeSingle
       .mockResolvedValueOnce({ data: { user1_id: 'user1', user2_id: 'user2' }, error: null })
+      .mockResolvedValueOnce({ data: { user1_id: 'user1', user2_id: 'user2' }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
     chain.single.mockResolvedValue({ data: { id: 'msg1', match_id: 'match1', sender_id: 'user1', text: 'Hello' }, error: null })
     mockSupabase.from.mockReturnValue(chain)
   })

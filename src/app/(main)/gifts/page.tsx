@@ -162,7 +162,7 @@ function GiftsContent() {
 
   if (!initialLoad) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
     </div>
   )
 
@@ -173,20 +173,20 @@ function GiftsContent() {
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-4 border border-[#EAB308]/10">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#EAB308] to-[#D92D4A] flex items-center justify-center shrink-0">
-            <Wallet size={20} className="text-white" />
+        <div className="glass-card rounded-2xl p-4 flex items-center gap-4 border border-[var(--warningVibrant)]/10">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--warningVibrant)] to-[var(--primary)] flex items-center justify-center shrink-0">
+            <Wallet size={20} className="text-[var(--textOnPrimary)]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-[#9E9488] uppercase tracking-wider">Mon portefeuille</p>
-            <p className="text-2xl font-bold text-white">{fmt(balance)} F</p>
+            <p className="text-[10px] text-[var(--textSecondary)] uppercase tracking-wider">Mon portefeuille</p>
+            <p className="text-2xl font-bold text-[var(--textPrimary)]">{fmt(balance)} F</p>
           </div>
           <button type="button" onClick={() => {
             if (balance <= 0) return
             if (!paySaved) { setShowPaymentConfig(true); return }
             setShowPayoutModal(true)
           }} disabled={balance <= 0}
-            className="px-4 py-2 rounded-full text-xs font-semibold text-white disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
+            className="px-4 py-2 rounded-full text-xs font-semibold text-[var(--textOnPrimary)] disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
             <ArrowUpRight size={14} /> Retirer
           </button>
         </div>
@@ -194,25 +194,25 @@ function GiftsContent() {
         {showPayoutModal && (
           <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
-            <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[#1C1C1E] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-white mb-1">Retirer ton solde</h3>
-              <p className="text-xs text-[#9E9488] mb-4">Solde disponible : <strong className="text-white">{fmt(balance)} F</strong></p>
+            <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-[var(--textPrimary)] mb-1">Retirer ton solde</h3>
+              <p className="text-xs text-[var(--textSecondary)] mb-4">Solde disponible : <strong className="text-[var(--textPrimary)]">{fmt(balance)} F</strong></p>
               <div className="mb-3">
-                <label className="text-xs text-[#9E9488] mb-1 block">Montant (F)</label>
+                <label className="text-xs text-[var(--textSecondary)] mb-1 block">Montant (F)</label>
                 <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance} aria-label="Montant du retrait"
-                  className="w-full px-4 py-3 rounded-xl bg-[#262628] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
               </div>
               <div className="mb-4">
-                <label className="text-xs text-[#9E9488] mb-1 block">Moyen de retrait</label>
-                <div className="px-4 py-3 rounded-xl bg-[#262628] text-white text-sm flex items-center gap-2">
+                <label className="text-xs text-[var(--textSecondary)] mb-1 block">Moyen de retrait</label>
+                <div className="px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm flex items-center gap-2">
                   {savedPayMethod === 'card' ? <CreditCard size={16} /> : <Smartphone size={16} />}
-                  <span className="text-[#9E9488]">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
+                  <span className="text-[var(--textSecondary)]">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
                 </div>
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[#2A2826] text-[#9E9488]">Annuler</button>
+                <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--textSecondary)]">Annuler</button>
                 <button type="button" onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
-                  className="flex-1 py-3 rounded-full text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: '#D92D4A' }}>
+                  className="flex-1 py-3 rounded-full text-sm font-semibold text-[var(--textOnPrimary)] disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: 'var(--primary)' }}>
                   {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
                 </button>
               </div>
@@ -222,25 +222,25 @@ function GiftsContent() {
 
         <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
           className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
-          {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[#9E9488]" /> : <Smartphone size={20} className="text-[#9E9488]" />}
+          {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[var(--textSecondary)]" /> : <Smartphone size={20} className="text-[var(--textSecondary)]" />}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Moyen de paiement</p>
-            <p className="text-xs text-[#9E9488]">
+            <p className="text-xs text-[var(--textSecondary)]">
               {paySaved ? (savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`) : 'Ajouter un moyen de paiement'}
             </p>
           </div>
-          <ChevronRight size={16} className="text-[#5A5248]" />
+          <ChevronRight size={16} className="text-[var(--textMuted)]" />
         </button>
 
         {showPaymentConfig && (
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
             <div className="flex gap-2">
               <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
-                className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
+                className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
                 <Smartphone size={16} className="mx-auto mb-1" /> Mobile Money
               </button>
               <button type="button" onClick={() => { setPayMethod('card'); setPaySaved(false) }}
-                className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
+                className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
                 <CreditCard size={16} className="mx-auto mb-1" /> Carte bancaire
               </button>
             </div>
@@ -248,37 +248,37 @@ function GiftsContent() {
             {payMethod === 'mobile_money' ? (
               <>
                 <div>
-                  <label className="text-xs text-[#9E9488] mb-1 block">Pays</label>
+                  <label className="text-xs text-[var(--textSecondary)] mb-1 block">Pays</label>
                   <select value={payCountry} onChange={e => { setPayCountry(e.target.value); setPayOperator(countries.find(c => c.code === e.target.value)?.operators[0] ?? '') }}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none">
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                     {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-[#9E9488] mb-1 block">Opérateur</label>
+                  <label className="text-xs text-[var(--textSecondary)] mb-1 block">Opérateur</label>
                   <select value={payOperator} onChange={e => setPayOperator(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none">
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                     {countryOps.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-[#9E9488] mb-1 block">Numéro de téléphone</label>
+                  <label className="text-xs text-[var(--textSecondary)] mb-1 block">Numéro de téléphone</label>
                   <input value={payPhone} onChange={e => setPayPhone(e.target.value)} placeholder="+221 77 123 45 67" aria-label="Numéro de téléphone"
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
                 </div>
               </>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-[#9E9488] text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
+                <p className="text-xs text-[var(--textSecondary)] text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
                 <div>
-                  <label className="text-xs text-[#9E9488] mb-1 block">4 derniers chiffres</label>
+                  <label className="text-xs text-[var(--textSecondary)] mb-1 block">4 derniers chiffres</label>
                   <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric" aria-label="4 derniers chiffres de la carte"
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]" />
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
                 </div>
                 <div>
-                  <label className="text-xs text-[#9E9488] mb-1 block">Marque</label>
+                  <label className="text-xs text-[var(--textSecondary)] mb-1 block">Marque</label>
                   <select value={payCardBrand} onChange={e => setPayCardBrand(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none">
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                     <option value="Visa">Visa</option>
                     <option value="Mastercard">Mastercard</option>
                     <option value="Orange Money">Orange Money</option>
@@ -290,7 +290,7 @@ function GiftsContent() {
             )}
 
             <button type="button" onClick={handleSavePayment}
-              className="w-full py-2.5 rounded-full text-white text-sm font-semibold" style={{ background: '#D92D4A' }}>
+              className="w-full py-2.5 rounded-full text-[var(--textOnPrimary)] text-sm font-semibold" style={{ background: 'var(--primary)' }}>
               {paySaved ? 'Modifier' : 'Enregistrer'}
             </button>
           </div>
@@ -298,20 +298,20 @@ function GiftsContent() {
 
         {gifts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-up">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[var(--primary)]/10">
               <span className="text-2xl opacity-40">🎁</span>
             </div>
-            <p className="text-sm text-[#9E9488]">Aucun cadeau disponible pour le moment.</p>
+            <p className="text-sm text-[var(--textSecondary)]">Aucun cadeau disponible pour le moment.</p>
           </div>
         ) : (
         <div className="grid grid-cols-3 gap-3">
           {gifts.map(g => (
             <button type="button" key={g.id} onClick={() => setSelectedGift(g.id)}
-              className={`bg-[#1C1C1E] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${selectedGift === g.id ? 'border-[#D92D4A] ring-1 ring-[#D92D4A]' : 'border-[#2A2826]'}`}>
+              className={`bg-[var(--card)] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${selectedGift === g.id ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]' : 'border-[var(--border)]'}`}>
               <span className="text-3xl block mb-1 transition-transform duration-200 group-hover:scale-110">{g.emoji || '🎁'}</span>
               <p className="text-[10px] font-medium truncate">{g.name}</p>
-              <p className="text-[10px] text-[#D92D4A] font-bold">{fmt(toXof(g.price_cents))} F</p>
-              <p className="text-[8px] text-[#9E9488]">+{FEE_PERCENT}% frais</p>
+              <p className="text-[10px] text-[var(--primary)] font-bold">{fmt(toXof(g.price_cents))} F</p>
+              <p className="text-[8px] text-[var(--textSecondary)]">+{FEE_PERCENT}% frais</p>
             </button>
           ))}
         </div>
@@ -320,13 +320,13 @@ function GiftsContent() {
         {selectedGift && selectedGiftData && (
           <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
             <p className="text-sm text-center">
-              <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[#D92D4A]">{fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F</strong>
-              <br /><span className="text-xs text-[#9E9488]">dont {FEE_PERCENT}% de frais</span>
+              <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[var(--primary)]">{fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F</strong>
+              <br /><span className="text-xs text-[var(--textSecondary)]">dont {FEE_PERCENT}% de frais</span>
             </p>
             <div>
-              <label className="text-xs text-[#9E9488] mb-1 block">Destinataire</label>
+              <label className="text-xs text-[var(--textSecondary)] mb-1 block">Destinataire</label>
               <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none">
                 <option value="">Sélectionner un match...</option>
                 {matches.map(m => (
                   <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
@@ -334,13 +334,13 @@ function GiftsContent() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#9E9488] mb-1 block">Message (optionnel)</label>
+              <label className="text-xs text-[var(--textSecondary)] mb-1 block">Message (optionnel)</label>
               <textarea value={message} onChange={e => setMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
-                rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none focus:border-[#D92D4A] resize-none" />
-              <p className="text-[10px] text-right text-[#9E9488]">{message.length}/200</p>
+                rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none focus:border-[var(--primary)] resize-none" />
+              <p className="text-[10px] text-right text-[var(--textSecondary)]">{message.length}/200</p>
             </div>
             <button type="button" onClick={handleSend} disabled={!selectedMatch || sending}
-              className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: '#D92D4A' }}>
+              className="w-full py-3.5 rounded-full font-semibold text-[var(--textOnPrimary)] disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
               <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F`}
             </button>
           </div>
@@ -348,7 +348,7 @@ function GiftsContent() {
 
         {transactions.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--textSecondary)] uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
               <History size={14} /> Historique des transactions
             </h3>
             <div className="space-y-2">
@@ -357,18 +357,18 @@ function GiftsContent() {
                 const isPendingPayout = t.type === 'payout' && t.status === 'pending'
                 return (
                   <div key={t.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCredit ? 'bg-[#22C55E]/15' : isPendingPayout ? 'bg-[#EAB308]/15' : 'bg-[#D92D4A]/15'}`}>
-                      {isCredit ? <ArrowUpRight size={16} className="text-[#22C55E]" /> : isPendingPayout ? <Clock size={16} className="text-[#EAB308]" /> : <CheckCircle size={16} className="text-[#D92D4A]" />}
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCredit ? 'bg-[var(--successVibrant)]/15' : isPendingPayout ? 'bg-[var(--warningVibrant)]/15' : 'bg-[var(--primary)]/15'}`}>
+                      {isCredit ? <ArrowUpRight size={16} className="text-[var(--successVibrant)]" /> : isPendingPayout ? <Clock size={16} className="text-[var(--warningVibrant)]" /> : <CheckCircle size={16} className="text-[var(--primary)]" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{isCredit ? 'Cadeau reçu' : 'Retrait demandé'}</p>
-                      <p className="text-[10px] text-[#9E9488]">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+                      <p className="text-[10px] text-[var(--textSecondary)]">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-bold ${isCredit ? 'text-[#22C55E]' : 'text-[#D92D4A]'}`}>
+                      <p className={`text-sm font-bold ${isCredit ? 'text-[var(--successVibrant)]' : 'text-[var(--primary)]'}`}>
                         {isCredit ? '+' : '-'}{fmt(t.amount_cents)} F
                       </p>
-                      <p className={`text-[10px] ${t.status === 'completed' ? 'text-[#22C55E]' : t.status === 'pending' ? 'text-[#EAB308]' : 'text-[#9E9488]'}`}>
+                      <p className={`text-[10px] ${t.status === 'completed' ? 'text-[var(--successVibrant)]' : t.status === 'pending' ? 'text-[var(--warningVibrant)]' : 'text-[var(--textSecondary)]'}`}>
                         {t.status === 'completed' ? 'Effectué' : t.status === 'pending' ? 'En attente' : t.status}
                       </p>
                     </div>
@@ -381,18 +381,18 @@ function GiftsContent() {
 
         {received.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-[#9E9488] uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
+            <h3 className="text-sm font-semibold text-[var(--textSecondary)] uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
             <div className="space-y-2">
               {received.slice(0, 5).map(r => (
                 <div key={r.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
                   <span className="text-2xl">{r.gift?.emoji || '🎁'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
-                    <p className="text-xs text-[#9E9488]">De {r.sender?.name || 'Inconnu'}</p>
+                    <p className="text-xs text-[var(--textSecondary)]">De {r.sender?.name || 'Inconnu'}</p>
                   </div>
                   {r.gift?.price_cents && (
                     <div className="text-right">
-                      <p className="text-xs font-bold text-[#EAB308]">+{fmt(toXof(r.gift.price_cents - Math.round(r.gift.price_cents * 0.15)))} F</p>
+                      <p className="text-xs font-bold text-[var(--warningVibrant)]">+{fmt(toXof(r.gift.price_cents - Math.round(r.gift.price_cents * 0.15)))} F</p>
                     </div>
                   )}
                 </div>
@@ -407,7 +407,7 @@ function GiftsContent() {
 
 export default function GiftsPage() {
   return (
-    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>}>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}>
       <GiftsContent />
     </Suspense>
   )

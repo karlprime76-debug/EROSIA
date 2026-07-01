@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
 import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile } from '@/lib/api'
+import { getPrivacySettings } from '@/lib/privacy'
 import { getActiveStories } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
 import { useConfirm } from '@/components/ConfirmDialog'
@@ -142,6 +143,8 @@ export default function DiscoverPage() {
   const [myMoodInternal, setMyMoodInternal] = useState('')
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
+  const [blurPhotos, setBlurPhotos] = useState(false)
+  const [unblurredIds, setUnblurredIds] = useState<Set<string>>(new Set())
   const profilesRef = useRef(profiles)
   useEffect(() => { profilesRef.current = profiles }, [profiles])
   const router = useRouter()
@@ -149,6 +152,7 @@ export default function DiscoverPage() {
   const { confirm } = useConfirm()
 
   useEffect(() => {
+    getPrivacySettings().then(r => { if (r.data) setBlurPhotos(r.data.blur_photos) }).catch(logger.error)
     getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(logger.error)
     getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(logger.error)
     checkPremium().then(setIsPremium).catch(logger.error)
@@ -382,24 +386,24 @@ export default function DiscoverPage() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
         <Link href="/discover" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[0_4px_16px_rgba(217,45,74,0.2)] border border-white/10 transition-transform duration-200 group-hover:scale-105">
-            <Heart size={15} fill="white" className="text-white" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-glow border border-light/10 transition-transform duration-200 group-hover:scale-105">
+            <Heart size={15} fill="white" className="text-theme" />
           </div>
-          <span className="text-xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
+          <span className="text-xl font-bold text-theme tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
         </Link>
 
         <div className="flex items-center gap-1.5">
           {/* Swipe counter */}
           {!isPremium && (
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-white/6 bg-white/3">
-              <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-[0_0_4px_rgba(217,45,74,0.6)]" />
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-light/6 bg-card/3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shadow-glow" />
               <span className="text-[10px] font-semibold text-[var(--text-muted)]">{swipeLimit - swipeCount} left</span>
             </div>
           )}
 
           {hasSwiped && (
             <button type="button" onClick={handleRewind} aria-label="Annuler le swipe"
-              className="w-9 h-9 rounded-full border border-white/6 bg-white/3 flex items-center justify-center transition-all duration-200 hover:border-white/15 hover:bg-white/6 active:scale-90">
+              className="w-9 h-9 rounded-full border border-light/6 bg-card/3 flex items-center justify-center transition-all duration-200 hover:border-light/15 hover:bg-card/6 active:scale-90">
               <RotateCcw size={14} className="text-[var(--text-muted)]" />
             </button>
           )}
@@ -408,13 +412,13 @@ export default function DiscoverPage() {
             className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-200 active:scale-90 ${
               showFilters
                 ? 'border-[var(--primary)]/40 bg-[var(--primary)]/8 text-[var(--primary)]'
-                : 'border-white/6 bg-white/3 text-[var(--text-muted)] hover:border-white/15'
+                : 'border-light/6 bg-card/3 text-[var(--text-muted)] hover:border-light/15'
             }`}>
             <SlidersHorizontal size={14} />
           </button>
 
           <button type="button" onClick={() => router.push('/matches')} aria-label="Matchs"
-            className="w-9 h-9 rounded-full border border-white/6 bg-white/3 flex items-center justify-center transition-all duration-200 hover:border-white/15 hover:bg-white/6 active:scale-90">
+            className="w-9 h-9 rounded-full border border-light/6 bg-card/3 flex items-center justify-center transition-all duration-200 hover:border-light/15 hover:bg-card/6 active:scale-90">
             <MessageCircle size={15} className="text-[var(--text-muted)]" />
           </button>
         </div>
@@ -429,21 +433,21 @@ export default function DiscoverPage() {
             className="mx-4 mb-3 p-5 glass rounded-2xl space-y-4 text-sm"
           >
             <div>
-              <label className="text-xs font-medium text-[#A09890] mb-1.5 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
+              <label className="text-xs font-medium text-secondary mb-1.5 block">Âge : {filters.minAge} – {filters.maxAge} ans</label>
               <div className="flex gap-3 items-center">
                 <input type="range" min={18} max={70} value={filters.minAge} aria-label="Âge minimum"
                   onChange={e => setFilters(f => ({ ...f, minAge: Math.min(Number(e.target.value), f.maxAge) }))}
-                  className="flex-1 accent-[#D92D4A]" />
-                <span className="text-[#6B6560]">–</span>
+                  className="flex-1 accent-[var(--primary)]" />
+                <span className="text-muted">–</span>
                 <input type="range" min={18} max={70} value={filters.maxAge} aria-label="Âge maximum"
                   onChange={e => setFilters(f => ({ ...f, maxAge: Math.max(Number(e.target.value), f.minAge) }))}
-                  className="flex-1 accent-[#D92D4A]" />
+                  className="flex-1 accent-[var(--primary)]" />
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-[#A09890] mb-1.5 block">Type de relation</label>
+              <label className="text-xs font-medium text-secondary mb-1.5 block">Type de relation</label>
               <select value={filters.lookingFor} onChange={e => setFilters(f => ({ ...f, lookingFor: e.target.value }))}
-                className="w-full bg-[#18181A] text-[#F5F0EB] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#D92D4A]">
+                className="w-full bg-surface-secondary text-theme border border-theme rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary">
                 <option value="">Tout</option>
                 <option value="friendship">Amitié</option>
                 <option value="casual">Plan cul</option>
@@ -453,9 +457,9 @@ export default function DiscoverPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-[#A09890] mb-1.5 block">Distance</label>
+              <label className="text-xs font-medium text-secondary mb-1.5 block">Distance</label>
               <select value={distanceKm ?? ''} onChange={e => setDistanceKm(e.target.value ? Number(e.target.value) : null)}
-                className="w-full bg-[#18181A] text-[#F5F0EB] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#D92D4A]">
+                className="w-full bg-surface-secondary text-theme border border-theme rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary">
                 <option value="">Tout</option>
                 <option value="10">10 km</option>
                 <option value="25">25 km</option>
@@ -464,9 +468,9 @@ export default function DiscoverPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="filter-city" className="text-xs font-medium text-[#A09890] mb-1.5 block">Ville</label>
+              <label htmlFor="filter-city" className="text-xs font-medium text-secondary mb-1.5 block">Ville</label>
               <input id="filter-city" value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value }))} placeholder="Nom de ville"
-                className="w-full bg-[#18181A] text-[#F5F0EB] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-[#D92D4A] focus:shadow-[0_0_0_3px_rgba(217,45,74,0.12)]" />
+                className="w-full bg-surface-secondary text-theme border border-theme rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <button type="button" onClick={() => { (async () => {
               setShowFilters(false); setLoading(true); setPage(1); setHasMore(true)
@@ -474,7 +478,7 @@ export default function DiscoverPage() {
               if (data) { setProfiles(data); setHasMore(data.length >= DISCOVER_PAGE_SIZE) }
               setLoading(false)
             })().catch(logger.error) }}
-              className="w-full py-3 rounded-full text-white font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-[#D92D4A] shadow-[0_4px_16px_rgba(217,45,74,0.2)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)]">
+              className="w-full py-3 rounded-full text-theme font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-primary shadow-glow hover:shadow-glow">
               Appliquer les filtres
             </button>
           </motion.div>
@@ -500,11 +504,11 @@ export default function DiscoverPage() {
                 <div className="absolute inset-0 rounded-3xl bg-[var(--primary)]/5 blur-xl" />
               </div>
               <div>
-                <p className="text-xl font-bold text-white">Tu as tout exploré !</p>
+                <p className="text-xl font-bold text-theme">Tu as tout exploré !</p>
                 <p className="text-[var(--text-muted)] text-sm mt-1 max-w-xs mx-auto leading-relaxed">Reviens demain ou élargis tes filtres pour découvrir plus de profils</p>
               </div>
               <button type="button" onClick={() => setShowFilters(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/4 text-sm font-semibold text-[var(--text-secondary)] hover:border-white/20 transition-all duration-200">
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-light/10 bg-card/4 text-sm font-semibold text-[var(--text-secondary)] hover:border-light/20 transition-all duration-200">
                 <SlidersHorizontal size={14} />
                 Modifier les filtres
               </button>
@@ -527,19 +531,19 @@ export default function DiscoverPage() {
               <AnimatePresence>
                 {dragStart !== null && dragX > 40 && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute top-16 left-6 z-30 px-4 py-2 rounded-full border-2 border-[#34D399] bg-[#34D399]/10 backdrop-blur-md">
-                    <span className="text-[#34D399] font-bold text-sm tracking-wider">LIKE ❤️</span>
+                    className="absolute top-16 left-6 z-30 px-4 py-2 rounded-full border-2 border-[var(--success)] bg-success/10 backdrop-blur-md">
+                    <span className="text-success font-bold text-sm tracking-wider">LIKE ❤️</span>
                   </motion.div>
                 )}
                 {dragStart !== null && dragX < -40 && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute top-16 right-6 z-30 px-4 py-2 rounded-full border-2 border-[#F87171] bg-[#F87171]/10 backdrop-blur-md">
-                    <span className="text-[#F87171] font-bold text-sm tracking-wider">NOPE ✕</span>
+                    className="absolute top-16 right-6 z-30 px-4 py-2 rounded-full border-2 border-[var(--error)] bg-error/10 backdrop-blur-md">
+                    <span className="text-error font-bold text-sm tracking-wider">NOPE ✕</span>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <TiltCard className={`relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)] bg-[#18181A] border border-white/6 transition-all duration-300 ${
+              <TiltCard className={`relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.6)] bg-surface-secondary border border-light/6 transition-all duration-300 ${
                 swipeAnim === 'left' ? 'opacity-0 -translate-x-48 rotate-12 scale-90' : swipeAnim === 'right' ? 'opacity-0 translate-x-48 -rotate-12 scale-90' : ''
               }`}>
                 <div className="relative w-full h-full">
@@ -551,23 +555,33 @@ export default function DiscoverPage() {
                         animate={{ scale: 1.6, rotate: 5, opacity: 0 }}
                         transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
                       >
-                        <Heart size={90} className="text-[#34D399]" fill="#34D399" />
+                        <Heart size={90} className="text-success" fill="var(--success)" />
                       </motion.div>
                     </div>
                   )}
 
                   {/* Photo */}
                   {current.photos?.[0] ? (
-                    <Image src={current.photos[0]} alt={current.name} fill className="object-cover pointer-events-none" />
+                    <Image src={current.photos[0]} alt={current.name} fill className={`object-cover pointer-events-none ${blurPhotos && !unblurredIds.has(current.id) ? 'blur-2xl scale-110' : ''}`} />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#1C1C1E]">
-                      <Heart size={48} className="text-[#3A3835]" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-surface">
+                      <Heart size={48} className="text-muted" />
                     </div>
+                  )}
+
+                  {/* Blur toggle */}
+                  {blurPhotos && !unblurredIds.has(current.id) && (
+                    <button type="button" onClick={() => setUnblurredIds(prev => new Set(prev).add(current.id))} aria-label="Voir la photo"
+                      className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer bg-transparent">
+                      <div className="w-14 h-14 rounded-full bg-theme/50 backdrop-blur-md flex items-center justify-center border border-light/15 shadow-lg">
+                        <Eye size={24} className="text-theme" />
+                      </div>
+                    </button>
                   )}
 
                   {/* Stories ring */}
                   {storiesUserIds.has(current.id) && (
-                    <div className="absolute top-4 left-4 w-12 h-12 rounded-full ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[#070708] z-10 shadow-[0_0_16px_rgba(217,45,74,0.35)]" />
+                    <div className="absolute top-4 left-4 w-12 h-12 rounded-full ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)] z-10 shadow-glow" />
                   )}
 
                   {/* Badges top-left : Aura, Trust, Energy */}
@@ -596,16 +610,16 @@ export default function DiscoverPage() {
                         setIdx(0)
                       }
                     })().catch(logger.error) }} aria-label="Bloquer"
-                      className="w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/60 transition-all duration-200">
-                      <Shield size={13} className="text-white/40" />
+                      className="w-8 h-8 bg-theme/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-theme/60 transition-all duration-200">
+                      <Shield size={13} className="text-theme/40" />
                     </button>
 
                     {current.trust_score !== undefined && current.trust_score !== null && (
                       <div className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-lg backdrop-blur-md border"
                         style={{
-                          background: current.trust_score >= 70 ? 'rgba(129,140,248,0.18)' : current.trust_score >= 40 ? 'rgba(251,191,36,0.18)' : 'rgba(248,113,113,0.18)',
-                          color: current.trust_score >= 70 ? '#A5B4FC' : current.trust_score >= 40 ? '#FBBF24' : '#F87171',
-                          borderColor: current.trust_score >= 70 ? 'rgba(129,140,248,0.25)' : 'rgba(251,191,36,0.2)',
+                          background: current.trust_score >= 70 ? 'color-mix(in srgb, var(--info) 18%, transparent)' : current.trust_score >= 40 ? 'color-mix(in srgb, var(--warning) 18%, transparent)' : 'color-mix(in srgb, var(--error) 18%, transparent)',
+                          color: current.trust_score >= 70 ? 'var(--info)' : current.trust_score >= 40 ? 'var(--warning)' : 'var(--error)',
+                          borderColor: current.trust_score >= 70 ? 'color-mix(in srgb, var(--info) 25%, transparent)' : 'color-mix(in srgb, var(--warning) 20%, transparent)',
                         }}>
                         🛡 {current.trust_score}
                       </div>
@@ -613,9 +627,9 @@ export default function DiscoverPage() {
                     {current.energy_score !== undefined && current.energy_score !== null && (
                       <div className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-lg backdrop-blur-md border"
                         style={{
-                          background: current.energy_score >= 70 ? 'rgba(52,211,153,0.18)' : 'rgba(251,191,36,0.18)',
-                          color: current.energy_score >= 70 ? '#34D399' : '#FBBF24',
-                          borderColor: 'rgba(52,211,153,0.2)',
+                          background: current.energy_score >= 70 ? 'color-mix(in srgb, var(--success) 18%, transparent)' : 'color-mix(in srgb, var(--warning) 18%, transparent)',
+                          color: current.energy_score >= 70 ? 'var(--success)' : 'var(--warning)',
+                          borderColor: 'color-mix(in srgb, var(--success) 20%, transparent)',
                         }}>
                         ⚡ {current.energy_score}
                       </div>
@@ -623,8 +637,8 @@ export default function DiscoverPage() {
                     {compatScores[current.id] !== undefined && (
                       <div className="px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg backdrop-blur-md"
                         style={{
-                          background: compatScores[current.id] >= 70 ? 'rgba(52,211,153,0.85)' : compatScores[current.id] >= 40 ? 'rgba(251,191,36,0.85)' : 'rgba(248,113,113,0.85)',
-                          color: 'white',
+                          background: compatScores[current.id] >= 70 ? 'color-mix(in srgb, var(--success) 85%, transparent)' : compatScores[current.id] >= 40 ? 'color-mix(in srgb, var(--warning) 85%, transparent)' : 'color-mix(in srgb, var(--error) 85%, transparent)',
+                          color: 'var(--textPrimary)',
                         }}>
                         {compatScores[current.id]}% match
                       </div>
@@ -632,33 +646,33 @@ export default function DiscoverPage() {
                   </div>
 
                   {/* Dégradé bas */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/80 via-[var(--bg)]/15 to-transparent pointer-events-none" />
 
                   {/* Info profil bas */}
                   <div className="absolute bottom-[6.5rem] left-5 right-5 pointer-events-none space-y-1.5">
                     <div className="flex items-baseline gap-2">
-                      <h2 className="text-[22px] font-bold text-white leading-tight">
+                      <h2 className="text-[22px] font-bold text-theme leading-tight">
                         {current.name}
-                        {current.is_verified && <BadgeCheck size={17} className="inline ml-1.5 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />}
+                        {current.is_verified && <BadgeCheck size={17} className="inline ml-1.5 text-info drop-shadow-[0_0_8px_var(--info)]" />}
                       </h2>
-                      {current.age && <span className="text-lg text-white/75 font-semibold">{current.age}</span>}
+                      {current.age && <span className="text-lg text-theme/75 font-semibold">{current.age}</span>}
                     </div>
                     {current.location && (
-                      <p className="text-white/60 text-xs flex items-center gap-1">
-                        <span className="inline-block w-1 h-1 rounded-full bg-white/40" />
+                      <p className="text-theme/60 text-xs flex items-center gap-1">
+                        <span className="inline-block w-1 h-1 rounded-full bg-card/40" />
                         {current.location}
                       </p>
                     )}
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {current.mood && (
-                        <span className="text-[10px] text-white/80 bg-white/12 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/8">{moodLabel(current.mood)}</span>
+                        <span className="text-[10px] text-theme/80 bg-card/12 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-light/8">{moodLabel(current.mood)}</span>
                       )}
                       {current.looking_for && (
                         <span className="text-[10px] text-[var(--primary)] bg-[var(--primary)]/12 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-[var(--primary)]/15">{lookingForLabel(current.looking_for)}</span>
                       )}
                       {current.interests?.slice(0, 2).map((i) => (
-                        <span key={i} className="text-[10px] text-white/65 bg-white/8 backdrop-blur-sm px-2 py-0.5 rounded-full">{i}</span>
+                        <span key={i} className="text-[10px] text-theme/65 bg-card/8 backdrop-blur-sm px-2 py-0.5 rounded-full">{i}</span>
                       ))}
                     </div>
                   </div>
@@ -669,12 +683,12 @@ export default function DiscoverPage() {
                     <button type="button" onClick={() => swipe('pass')} aria-label="Passer"
                       className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
                       style={{
-                        background: 'rgba(8,8,10,0.75)',
+                        background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
                         backdropFilter: 'blur(20px)',
-                        borderColor: 'rgba(248,113,113,0.2)',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                        borderColor: 'color-mix(in srgb, var(--error) 20%, transparent)',
+                        boxShadow: '0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
                       }}>
-                      <X size={24} className="text-[#F87171]" />
+                      <X size={24} className="text-error" />
                     </button>
 
                     {/* Super like */}
@@ -682,14 +696,14 @@ export default function DiscoverPage() {
                       <button type="button" onClick={() => swipe('super_like')} aria-label="Super like"
                         className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
                         style={{
-                          background: 'rgba(8,8,10,0.75)',
+                          background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
                           backdropFilter: 'blur(20px)',
-                          borderColor: 'rgba(129,140,248,0.3)',
-                          boxShadow: superLikesLeft > 0 ? '0 0 16px rgba(129,140,248,0.15), 0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.4)',
+                          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
+                          boxShadow: superLikesLeft > 0 ? '0 0 16px color-mix(in srgb, var(--info) 15%, transparent), 0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)' : '0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
                         }}>
-                        <Star size={19} className="text-indigo-400" fill={superLikesLeft > 0 ? '#818CF8' : 'none'} />
+                        <Star size={19} className="text-info" fill={superLikesLeft > 0 ? 'var(--info)' : 'none'} />
                       </button>
-                      <span className="absolute -top-1.5 -right-2 text-[9px] font-bold text-indigo-300 bg-[#0D0D12] rounded-full px-1.5 py-0.5 border border-indigo-500/30">
+                      <span className="absolute -top-1.5 -right-2 text-[9px] font-bold text-info/70 bg-theme rounded-full px-1.5 py-0.5 border border-info/30">
                         {superLikesLeft}/{SUPER_LIKE_DAILY}
                       </span>
                     </div>
@@ -703,31 +717,31 @@ export default function DiscoverPage() {
                     })().catch(logger.error) }} aria-label="Clin d'oeil"
                       className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
                       style={{
-                        background: 'rgba(8,8,10,0.75)',
+                        background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
                         backdropFilter: 'blur(20px)',
-                        borderColor: flirtedIds.includes(current?.id ?? '') ? 'rgba(217,45,74,0.35)' : 'rgba(255,255,255,0.06)',
-                        boxShadow: flirtedIds.includes(current?.id ?? '') ? '0 0 12px rgba(217,45,74,0.15)' : 'none',
+                        borderColor: flirtedIds.includes(current?.id ?? '') ? 'color-mix(in srgb, var(--primary) 35%, transparent)' : 'color-mix(in srgb, var(--textPrimary) 6%, transparent)',
+                        boxShadow: flirtedIds.includes(current?.id ?? '') ? '0 0 12px color-mix(in srgb, var(--primary) 15%, transparent)' : 'none',
                       }}>
-                      <Eye size={17} className={flirtedIds.includes(current?.id ?? '') ? 'text-[var(--primary)]' : 'text-white/40'} />
+                      <Eye size={17} className={flirtedIds.includes(current?.id ?? '') ? 'text-[var(--primary)]' : 'text-theme/40'} />
                     </button>
 
                     {/* Like */}
                     <button type="button" onClick={() => swipe('like')} aria-label="Like"
                       className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
                       style={{
-                        background: 'rgba(8,8,10,0.75)',
+                        background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
                         backdropFilter: 'blur(20px)',
-                        borderColor: 'rgba(52,211,153,0.2)',
-                        boxShadow: '0 0 20px rgba(52,211,153,0.08), 0 4px 20px rgba(0,0,0,0.4)',
+                        borderColor: 'color-mix(in srgb, var(--success) 20%, transparent)',
+                        boxShadow: '0 0 20px color-mix(in srgb, var(--success) 8%, transparent), 0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
                       }}>
-                      <Heart size={24} className="text-[#34D399]" />
+                      <Heart size={24} className="text-success" />
                     </button>
 
                     {/* Signaler */}
                     <button type="button" onClick={() => setShowReportModal(true)} aria-label="Signaler"
-                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border border-white/5"
-                      style={{ background: 'rgba(8,8,10,0.75)', backdropFilter: 'blur(20px)' }}>
-                      <Flag size={14} className="text-white/25" />
+                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border border-light/5"
+                      style={{ background: 'color-mix(in srgb, var(--bg) 75%, transparent)', backdropFilter: 'blur(20px)' }}>
+                      <Flag size={14} className="text-theme/25" />
                     </button>
                   </div>
                 </div>
@@ -743,7 +757,7 @@ export default function DiscoverPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            aria-hidden="true" role="presentation" className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
+            aria-hidden="true" role="presentation" className="fixed inset-0 bg-theme/80 z-50 flex items-center justify-center p-6 backdrop-blur-sm"
             onClick={() => setShowReportModal(false)}
           >
             <FocusTrap>
@@ -755,8 +769,8 @@ export default function DiscoverPage() {
               className="glass rounded-3xl p-8 max-w-sm w-full text-center"
               onClick={e => e.stopPropagation()}
             >
-              <h2 className="text-xl font-bold text-[#F5F0EB] mb-2">Signaler ce profil</h2>
-              <p className="text-[#A09890] text-sm mb-5">Pour quelle raison ?</p>
+              <h2 className="text-xl font-bold text-theme mb-2">Signaler ce profil</h2>
+              <p className="text-secondary text-sm mb-5">Pour quelle raison ?</p>
               <div className="space-y-2">
                 {REPORT_REASONS.map((reason) => (
                   <button type="button" key={reason} onClick={() => { (async () => {
@@ -766,13 +780,13 @@ export default function DiscoverPage() {
                     if (error) { toast('Erreur lors du signalement', 'error') }
                     else { toast('Signalement envoyé', 'success') }
                   })().catch(logger.error) }}
-                    className="w-full py-3 rounded-xl text-sm font-medium bg-[#18181A] text-[#F5F0EB] hover:bg-[#222225] transition-all duration-200 border border-[#2C2A28]">
+                    className="w-full py-3 rounded-xl text-sm font-medium bg-surface-secondary text-theme hover:bg-hover transition-all duration-200 border border-theme">
                     {reason}
                   </button>
                 ))}
               </div>
               <button type="button" onClick={() => setShowReportModal(false)}
-                className="w-full py-3 mt-3 text-[#A09890] text-sm hover:text-[#F5F0EB] transition-colors duration-200">
+                className="w-full py-3 mt-3 text-secondary text-sm hover:text-theme transition-colors duration-200">
                 Annuler
               </button>
             </motion.div>

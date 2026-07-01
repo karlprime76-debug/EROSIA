@@ -132,7 +132,7 @@ export default function SettingsPage() {
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
               })().catch(logger.error) }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[#D92D4A] text-white' : 'bg-[#262628] text-[#9E9488]'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
                   {o.label}
                 </button>
               ))}
@@ -144,27 +144,27 @@ export default function SettingsPage() {
           render: () => (
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
-                <span className="text-xs text-[#9E9488]">Push</span>
+                <span className="text-xs text-[var(--textSecondary)]">Push</span>
                 <button type="button" role="switch" aria-checked={notifPush} onClick={() => { (async () => {
                   const v = !notifPush
                   setNotifPush(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_push: v }).eq('id', user.id)
                 })().catch(logger.error) }}
-                  className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
+                  className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[var(--primary)]' : 'bg-[var(--surfaceElevated)]'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--textOnPrimary)] transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
               <label className="flex items-center justify-between">
-                <span className="text-xs text-[#9E9488]">Email</span>
+                <span className="text-xs text-[var(--textSecondary)]">Email</span>
                 <button type="button" role="switch" aria-checked={notifEmail} onClick={() => { (async () => {
                   const v = !notifEmail
                   setNotifEmail(v)
                   const { data: { user } } = await supabase.auth.getUser()
                   if (user) supabase.from('profiles').update({ notif_email: v }).eq('id', user.id)
                 })().catch(logger.error) }}
-                  className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[#D92D4A]' : 'bg-[#262628]'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
+                  className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[var(--primary)]' : 'bg-[var(--surfaceElevated)]'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--textOnPrimary)] transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
             </div>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
           desc: ghostMode ? 'Invisible pour les autres' : 'Visible',
           render: () => (
             isPremium ? <ToggleSwitch enabled={ghostMode} onChange={handleGhostToggle} />
-              : <Lock size={16} className="text-[#9E9488]" />
+              : <Lock size={16} className="text-[var(--textSecondary)]" />
           ),
         },
       ],
@@ -215,10 +215,10 @@ export default function SettingsPage() {
                     }
                     if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
                   }}
-                  className="w-full rounded-lg bg-[#262628] border border-[#2A2826] px-3 py-2 text-sm text-white outline-none focus:border-[#D92D4A]"
+                  className="w-full rounded-lg bg-[var(--surfaceElevated)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--textPrimary)] outline-none focus:border-[var(--primary)]"
                   autoFocus maxLength={80}
                 />
-                <p className="text-[10px] text-right text-[#9E9488] mt-0.5">{nameValue.length}/80</p>
+                <p className="text-[10px] text-right text-[var(--textSecondary)] mt-0.5">{nameValue.length}/80</p>
               </div>
               <button type="button" aria-label="Enregistrer" onClick={() => { (async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
@@ -232,13 +232,13 @@ export default function SettingsPage() {
                   setSavingName(false); setEditingName(false)
                 } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
               })().catch(logger.error) }} disabled={savingName}
-                className="rounded-full p-1.5 text-green-400 hover:bg-[#262628]"><Check size={16} /></button>
+                className="rounded-full p-1.5 text-[var(--successVibrant)] hover:bg-[var(--surfaceElevated)]"><Check size={16} /></button>
               <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}
-                className="rounded-full p-1.5 text-[#9E9488] hover:bg-[#262628]"><X size={16} /></button>
+                className="rounded-full p-1.5 text-[var(--textSecondary)] hover:bg-[var(--surfaceElevated)]"><X size={16} /></button>
             </div>
           ) : (
             <button type="button" onClick={() => setEditingName(true)}
-              className="mt-1 text-xs text-[#D92D4A] font-medium">Modifier</button>
+              className="mt-1 text-xs text-[var(--primary)] font-medium">Modifier</button>
           ),
         },
         {
@@ -256,20 +256,20 @@ export default function SettingsPage() {
           render: () => (
             <div className="mt-2 space-y-2">
               {upgradeSuccess && (
-                <p className="text-xs text-[#22C55E] font-medium">Paiement réussi ! Bienvenue sur Premium.</p>
+                <p className="text-xs text-[var(--successVibrant)] font-medium">Paiement réussi ! Bienvenue sur Premium.</p>
               )}
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${subscriptionTier === 'premium' ? 'bg-[#22C55E]' : 'bg-[#6B6258]'}`} />
-                <span className="text-xs text-[#9E9488]">{subscriptionTier === 'premium' ? 'Premium actif' : 'Compte gratuit'}</span>
+                <div className={`w-2 h-2 rounded-full ${subscriptionTier === 'premium' ? 'bg-[var(--successVibrant)]' : 'bg-[var(--textMuted)]'}`} />
+                <span className="text-xs text-[var(--textSecondary)]">{subscriptionTier === 'premium' ? 'Premium actif' : 'Compte gratuit'}</span>
               </div>
               {subscriptionTier !== 'premium' && (
                 <button type="button" onClick={handleUpgrade}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-white"
-                  style={{ background: 'linear-gradient(135deg, #D92D4A, #C85A17)' }}>
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--textOnPrimary)]"
+                  style={{ background: 'linear-gradient(135deg, var(--primary), var(--accentOrange))' }}>
                   Passer à Premium — 5 000 CFA/mois
                 </button>
               )}
-              {upgradeError && <p className="text-xs text-[#D92D4A]">{upgradeError}</p>}
+              {upgradeError && <p className="text-xs text-[var(--primary)]">{upgradeError}</p>}
             </div>
           ),
         },
@@ -284,14 +284,14 @@ export default function SettingsPage() {
           render: () => (
             <div className="mt-2 space-y-2">
               <label className="flex items-center justify-between">
-                <span className="text-xs text-[#9E9488]">Activer</span>
+                <span className="text-xs text-[var(--textSecondary)]">Activer</span>
                 {isPremium ? <ToggleSwitch enabled={travelActive} onChange={handleTravelToggle2} />
-                  : <Lock size={16} className="text-[#9E9488]" />}
+                  : <Lock size={16} className="text-[var(--textSecondary)]" />}
               </label>
               {travelActive && (
                 <input value={travelCity} onChange={e => setTravelCity(e.target.value)} onBlur={saveTravelCity}
                   placeholder="Nom de la ville..." aria-label="Ville de voyage"
-                  className="w-full px-3 py-2 rounded-lg bg-[#262628] text-sm text-white border border-[#2A2826] outline-none focus:border-[#D92D4A]"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surfaceElevated)] text-sm text-[var(--textPrimary)] border border-[var(--border)] outline-none focus:border-[var(--primary)]"
                 />
               )}
             </div>
@@ -305,13 +305,13 @@ export default function SettingsPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
-        <h2 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Paramètres</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--textPrimary)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
         {[1, 2, 3].map(i => (
           <div key={i}>
             <div className="h-3 w-20 bg-[var(--border)] rounded mb-2 animate-pulse" />
-            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
               {[1, 2].map(j => (
                 <div key={j} className="px-4 py-3.5 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                   <div className="flex items-center gap-3">
@@ -334,21 +334,21 @@ export default function SettingsPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
-        <h2 className="text-2xl font-bold" style={{ color: 'var(--text)' }}>Paramètres</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--textPrimary)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
         {sections.map(section => (
           <div key={section.title}>
-            <h3 className="text-sm font-semibold tracking-wider mb-2 px-1" style={{ color: 'var(--text-secondary)' }}>{section.title}</h3>
-            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+            <h3 className="text-sm font-semibold tracking-wider mb-2 px-1" style={{ color: 'var(--textSecondary)' }}>{section.title}</h3>
+            <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
               {section.items.map(({ icon: Icon, label, desc, danger, onClick, render }) => (
                 <div key={label}
                   className="px-4 py-3.5 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                   <div className="flex items-center gap-3">
-                    <Icon size={20} className={`shrink-0 ${danger ? 'text-[#D92D4A]' : 'text-[var(--text-muted)]'}`} />
+                    <Icon size={20} className={`shrink-0 ${danger ? 'text-[var(--primary)]' : 'text-[var(--textMuted)]'}`} />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${danger ? 'text-[#D92D4A]' : ''}`} style={{ color: danger ? undefined : 'var(--text)' }}>{label}</p>
-                      {desc && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</p>}
+                      <p className={`text-sm font-medium ${danger ? 'text-[var(--primary)]' : ''}`} style={{ color: danger ? undefined : 'var(--textPrimary)' }}>{label}</p>
+                      {desc && <p className="text-xs" style={{ color: 'var(--textSecondary)' }}>{desc}</p>}
                     </div>
                     {onClick && !danger && (
                       <button type="button" onClick={onClick}

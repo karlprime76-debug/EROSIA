@@ -56,8 +56,8 @@ export default function LoginPage() {
         className="w-full max-w-sm relative z-10"
       >
         {/* Card principale glassmorphism */}
-        <div className="relative overflow-hidden rounded-3xl border border-white/6 shadow-[0_32px_80px_rgba(0,0,0,0.5),_inset_0_1px_0_rgba(255,255,255,0.04)]"
-          style={{ background: 'linear-gradient(145deg, rgba(24,24,26,0.92), rgba(15,15,17,0.96))' }}
+        <div className="relative overflow-hidden rounded-3xl border border-light shadow-elevated"
+          style={{ background: 'linear-gradient(145deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--bg) 96%, transparent))' }}
         >
           {/* Lueur intérieure de la carte */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-[var(--primary)] blur-3xl opacity-[0.08] pointer-events-none" />
@@ -71,17 +71,17 @@ export default function LoginPage() {
                 transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.1 }}
                 className="flex items-center justify-center gap-2.5 mb-5"
               >
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-[0_8px_24px_rgba(217,45,74,0.25)] border border-white/10">
-                  <Sparkles size={20} className="text-white" />
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-glow border border-light">
+                  <Sparkles size={20} className="text-theme" />
                 </div>
-                <span className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
+                <span className="text-2xl font-bold text-theme tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
               </motion.div>
 
               <motion.h1
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-xl font-bold text-white tracking-tight"
+                className="text-xl font-bold text-theme tracking-tight"
               >
                 Heureux de te revoir 👋
               </motion.h1>
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-sm text-[var(--text-secondary)]"
+                className="text-sm text-secondary"
               >
                 Connecte-toi pour retrouver tes connexions
               </motion.p>
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="text-sm text-[var(--error)] bg-[var(--error-bg)] rounded-2xl py-3 px-4 border border-[rgba(248,113,113,0.15)] text-center"
+                  className="text-sm text-error bg-error rounded-2xl py-3 px-4 border border-[var(--error)]/15 text-center"
                 >
                   {error}
                 </motion.div>
@@ -115,11 +115,11 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4" noValidate>
               {/* Email */}
               <div className="space-y-1.5">
-                <label htmlFor="login-email" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">
+                <label htmlFor="login-email" className="text-xs font-semibold text-secondary block tracking-wider uppercase">
                   Email
                 </label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <Mail size={16} />
                   </div>
                   <input
@@ -129,7 +129,7 @@ export default function LoginPage() {
                     type="email"
                     placeholder="ton@email.com"
                     autoComplete="email"
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-surface text-theme border border-light rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-primary focus:bg-hover focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
@@ -137,18 +137,18 @@ export default function LoginPage() {
               {/* Mot de passe */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="login-password" className="text-xs font-semibold text-[var(--text-secondary)] block tracking-wider uppercase">
+                  <label htmlFor="login-password" className="text-xs font-semibold text-secondary block tracking-wider uppercase">
                     Mot de passe
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-[10px] font-semibold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors duration-200 tracking-wide uppercase"
+                    className="text-[10px] font-semibold text-muted hover:text-primary transition-colors duration-200 tracking-wide uppercase"
                   >
                     Oublié ?
                   </Link>
                 </div>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors duration-200">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                     <Lock size={16} />
                   </div>
                   <input
@@ -158,12 +158,12 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    className="w-full bg-white/3 text-white border border-white/6 rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-white/5 focus:shadow-[0_0_0_3px_rgba(217,45,74,0.1)] placeholder:text-[var(--text-muted)]"
+                    className="w-full bg-surface text-theme border border-light rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-primary focus:bg-hover focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors duration-200 p-1"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-theme transition-colors duration-200 p-1"
                     aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -189,16 +189,16 @@ export default function LoginPage() {
 
             {/* Séparateur & lien inscription */}
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-white/5" />
-              <span className="text-xs text-[var(--text-muted)] font-medium tracking-wider uppercase">ou</span>
-              <div className="flex-1 h-px bg-white/5" />
+              <div className="flex-1 h-px bg-surface" />
+              <span className="text-xs text-muted font-medium tracking-wider uppercase">ou</span>
+              <div className="flex-1 h-px bg-surface" />
             </div>
             <Link
               href="/register"
-              className="flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--text-secondary)] hover:text-white transition-colors duration-200 group"
+              className="flex items-center justify-center gap-1.5 text-sm font-semibold text-secondary hover:text-theme transition-colors duration-200 group"
             >
               Pas encore de compte ?
-              <span className="text-[var(--primary)] group-hover:text-[var(--primary-light)] transition-colors duration-200">Créer un compte</span>
+              <span className="text-primary group-hover:text-[var(--primary-light)] transition-colors duration-200">Créer un compte</span>
             </Link>
           </div>
         </div>

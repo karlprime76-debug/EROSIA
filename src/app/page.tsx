@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function SplashPage() {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#070708] flex flex-col items-center justify-center select-none">
+    <div className="relative min-h-screen w-full overflow-hidden bg-theme flex flex-col items-center justify-center select-none">
       {/* Preload hint for font */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -67,7 +67,7 @@ export default function SplashPage() {
 
       {/* Desktop-only shimmer bar */}
       <div className="splash-shimmer absolute bottom-16 left-0 right-0 flex justify-center hidden sm:flex">
-        <div className="relative w-12 h-[2px] bg-[#111214] rounded-full overflow-hidden">
+        <div className="relative w-12 h-[2px] bg-[var(--cardDeep)] rounded-full overflow-hidden">
           <div className="absolute top-0 left-0 w-12 h-full bg-gradient-to-r from-transparent via-[var(--primary)] to-transparent splash-slide" />
         </div>
       </div>

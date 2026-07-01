@@ -92,15 +92,15 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               className="glass rounded-2xl p-6 max-w-sm w-full text-center"
               onClick={e => e.stopPropagation()}
             >
-              <p className="text-sm text-[#F5F0EB] mb-6 leading-relaxed">{state.message}</p>
+              <p className="text-sm text-[var(--textPrimary)] mb-6 leading-relaxed">{state.message}</p>
               <div className="flex gap-3">
                 <button type="button" onClick={() => handle(false)}
-                  className="flex-1 py-2.5 rounded-full text-sm font-medium border border-[#2C2A28] text-[#A09890] hover:bg-[#222225] transition-all duration-200">
+                  className="flex-1 py-2.5 rounded-full text-sm font-medium border border-[var(--border)] text-secondary hover:bg-[var(--cardHover)] transition-all duration-200">
                   Annuler
                 </button>
                 <button type="button" onClick={() => handle(true)}
-                  className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white shadow-[0_4px_16px_rgba(217,45,74,0.25)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)] transition-all duration-200"
-                  style={{ background: '#D92D4A' }}>
+                  className="flex-1 py-2.5 rounded-full text-sm font-semibold text-on-primary shadow-[0_4px_16px_rgba(217,45,74,0.25)] hover:shadow-[0_6px_24px_rgba(217,45,74,0.35)] transition-all duration-200"
+                  style={{ background: 'var(--primary)' }}>
                   Confirmer
                 </button>
               </div>

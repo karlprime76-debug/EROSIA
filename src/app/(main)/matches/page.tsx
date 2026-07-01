@@ -148,18 +148,18 @@ export default function ConversationsPage() {
       <header className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-3xl font-bold">Messages</h2>
-          <span className="text-[#9E9488] text-sm">{filtered.length}</span>
+          <span className="text-secondary text-sm">{filtered.length}</span>
         </div>
-        <p className="text-[#9E9488] text-sm">Conversations et matchs</p>
+        <p className="text-secondary text-sm">Conversations et matchs</p>
       </header>
 
       <div className="px-4 pb-2">
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5A5248]" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             placeholder="Rechercher une conversation..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#1C1C1E] text-white text-sm border border-[#2A2826] outline-none focus:border-[#D92D4A]/30 transition-colors placeholder:text-[#5A5248]"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-surface text-theme text-sm border border-theme outline-none focus:border-primary/30 transition-colors placeholder:text-muted"
           />
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function ConversationsPage() {
       <div className="px-4 pb-3 flex gap-2 overflow-x-auto">
         {(['all', 'unread', 'favorites'] as FilterMode[]).map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${filter === f ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${filter === f ? 'bg-primary text-theme' : 'bg-surface text-secondary border border-theme'}`}>
             {f === 'all' ? 'Toutes' : f === 'unread' ? 'Non lues' : 'Favoris'}
           </button>
         ))}
@@ -176,18 +176,18 @@ export default function ConversationsPage() {
       <div className="flex-1 px-4 pb-4 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
-              <MessageCircle size={28} className="text-[#D92D4A]/40" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-primary/10">
+              <MessageCircle size={28} className="text-primary/40" />
             </div>
             <h3 className="font-semibold text-lg">
               {searchQuery ? 'Aucun résultat' : filter !== 'all' ? 'Aucune conversation' : 'Pas encore de messages'}
             </h3>
-            <p className="text-[#9E9488] text-sm mt-1 max-w-xs">
+            <p className="text-secondary text-sm mt-1 max-w-xs">
               {searchQuery ? 'Essaie un autre terme de recherche.' : 'Match avec quelqu\'un pour commencer à discuter.'}
             </p>
             {!searchQuery && filter === 'all' && (
-              <Link href="/discover" className="inline-block mt-6 px-8 py-3 rounded-full text-white font-semibold text-sm transition-all active:scale-95"
-                style={{ background: '#D92D4A' }}>
+              <Link href="/discover" className="inline-block mt-6 px-8 py-3 rounded-full text-theme font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'var(--primary)' }}>
                 Découvrir
               </Link>
             )}
@@ -229,16 +229,16 @@ function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen
       ? truncateMessage(lastMsg.text, 60)
       : lastMsg?.image_url
         ? '📷 Photo'
-        : <span className="italic text-[#5A5248]">Dites bonjour !</span>
+        : <span className="italic text-muted">Dites bonjour !</span>
 
   return (
-    <Link href={`/chat/${conv.matchId}`} className="relative flex items-center gap-3 p-3 rounded-2xl hover:bg-[#1C1C1E]/60 transition-colors group">
+    <Link href={`/chat/${conv.matchId}`} className="relative flex items-center gap-3 p-3 rounded-2xl hover:bg-surface/60 transition-colors group">
       <div className="relative shrink-0">
-        <div className="w-14 h-14 rounded-full overflow-hidden bg-[#262628] ring-2 ring-[#2A2826]">
+        <div className="w-14 h-14 rounded-full overflow-hidden bg-hover ring-2 ring-theme">
           {p.photos?.[0] ? (
             <Image src={p.photos[0]} alt={p.name} width={56} height={56} className="object-cover w-full h-full" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#9E9488]">?</div>
+            <div className="w-full h-full flex items-center justify-center text-secondary">?</div>
           )}
         </div>
         <div className="absolute -bottom-0.5 -right-0.5">
@@ -249,20 +249,20 @@ function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm truncate">{p.name}</span>
-          {p.age && <span className="text-xs text-[#9E9488]">{p.age} ans</span>}
+          {p.age && <span className="text-xs text-secondary">{p.age} ans</span>}
           {p.mood && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#D92D4A]/10 text-[#D92D4A] truncate max-w-[60px]">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary truncate max-w-[60px]">
               {p.mood}
             </span>
           )}
           {p.trust_score !== undefined && p.trust_score >= 7 && (
-            <ShieldOff size={12} className="text-[#22C55E]" />
+            <ShieldOff size={12} className="text-success" />
           )}
-          {conv.isFavorite && <Star size={12} className="text-[#EAB308] fill-[#EAB308]" />}
+          {conv.isFavorite && <Star size={12} className="text-warning fill-[var(--warning)]" />}
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#9E9488] mt-0.5">
+        <div className="flex items-center gap-2 text-xs text-secondary mt-0.5">
           <span className="truncate flex-1">
-            {isOwn && <span className="text-[#5A5248]">Vous : </span>}
+            {isOwn && <span className="text-muted">Vous : </span>}
             {previewText}
           </span>
           {lastMsg?.created_at && (
@@ -272,32 +272,32 @@ function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen
       </div>
 
       {conv.unreadCount > 0 && (
-        <div className="shrink-0 w-5 h-5 rounded-full bg-[#D92D4A] flex items-center justify-center">
-          <span className="text-[9px] font-bold text-white">{conv.unreadCount > 9 ? '9+' : conv.unreadCount}</span>
+        <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+          <span className="text-[9px] font-bold text-theme">{conv.unreadCount > 9 ? '9+' : conv.unreadCount}</span>
         </div>
       )}
 
       <div className="relative">
         <button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); onMenuOpen(menuOpen === conv.matchId ? null : conv.matchId) }}
-          className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-[#262628]">
-          <MoreHorizontal size={16} className="text-[#5A5248]" />
+          className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-hover">
+          <MoreHorizontal size={16} className="text-muted" />
         </button>
         {menuOpen === conv.matchId && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => onMenuOpen(null)} />
-            <div className="absolute right-0 top-full mt-1 z-20 w-44 bg-[#1C1C1E] rounded-xl border border-[#2A2826] shadow-xl overflow-hidden py-1">
+            <div className="absolute right-0 top-full mt-1 z-20 w-44 bg-surface rounded-xl border border-theme shadow-xl overflow-hidden py-1">
               <button onClick={e => { e.preventDefault(); onToggleFavorite(conv.matchId); onMenuOpen(null) }}
-                className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                <Star size={14} className={conv.isFavorite ? 'text-[#EAB308] fill-[#EAB308]' : 'text-[#9E9488]'} />
+                className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                <Star size={14} className={conv.isFavorite ? 'text-warning fill-[var(--warning)]' : 'text-secondary'} />
                 {conv.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
               </button>
               <button onClick={e => { e.preventDefault(); onToggleArchive(conv.matchId); onMenuOpen(null) }}
-                className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5">
-                <Archive size={14} className="text-[#9E9488]" />
+                className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                <Archive size={14} className="text-secondary" />
                 {conv.isArchived ? 'Désarchiver' : 'Archiver'}
               </button>
               <button onClick={e => { e.preventDefault(); onUnmatch(conv.matchId); onMenuOpen(null) }}
-                className="w-full px-4 py-2.5 text-sm text-left hover:bg-[#262628] flex items-center gap-2.5 text-red-400">
+                className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5 text-error">
                 <X size={14} />
                 Supprimer
               </button>

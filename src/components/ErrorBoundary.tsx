@@ -37,15 +37,15 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-sm">
-            <div className="w-16 h-16 rounded-2xl bg-[#D92D4A]/10 mx-auto mb-4 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 mx-auto mb-4 flex items-center justify-center">
               <span className="text-2xl">!</span>
             </div>
-            <h2 className="text-lg font-semibold text-[#F5F0EB] mb-2">Une erreur est survenue</h2>
-            <p className="text-sm text-[#9E9488] mb-6">Réessaie ou reviens plus tard</p>
+            <h2 className="text-lg font-semibold text-[var(--textPrimary)] mb-2">Une erreur est survenue</h2>
+            <p className="text-sm text-secondary mb-6">Réessaie ou reviens plus tard</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-[#D92D4A] hover:bg-[#FF2D55] transition-colors"
+              className="px-6 py-2.5 rounded-full text-sm font-semibold text-on-primary bg-primary hover:bg-[var(--primaryLight)] transition-colors"
             >
               Recharger
             </button>

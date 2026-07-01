@@ -56,11 +56,11 @@ export default function NewDuelPage() {
         <h2 className="text-2xl font-bold">Nouveau duel</h2>
       </header>
       <div className="flex-1 px-4 pb-8 space-y-4 overflow-y-auto">
-        <p className="text-sm text-[#9E9488]">Choisis deux profils à opposer</p>
+        <p className="text-sm text-secondary">Choisis deux profils à opposer</p>
         <div>
-          <label className="text-xs text-[#9E9488] mb-1 block">Profil A</label>
+          <label className="text-xs text-secondary mb-1 block">Profil A</label>
           <select value={selectedA} onChange={e => setSelectedA(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
+            className="w-full px-4 py-3 rounded-xl bg-surface-elevated border border-theme text-theme text-sm outline-none">
             <option value="">Sélectionner...</option>
             {profiles.filter(p => p.id !== selectedB).map(p => (
               <option key={p.id} value={p.id}>{p.name}, {p.age}</option>
@@ -68,9 +68,9 @@ export default function NewDuelPage() {
           </select>
         </div>
         <div>
-          <label className="text-xs text-[#9E9488] mb-1 block">Profil B</label>
+          <label className="text-xs text-secondary mb-1 block">Profil B</label>
           <select value={selectedB} onChange={e => setSelectedB(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#1C1C1E] border border-[#2A2826] text-white text-sm outline-none">
+            className="w-full px-4 py-3 rounded-xl bg-surface-elevated border border-theme text-theme text-sm outline-none">
             <option value="">Sélectionner...</option>
             {profiles.filter(p => p.id !== selectedA).map(p => (
               <option key={p.id} value={p.id}>{p.name}, {p.age}</option>
@@ -79,12 +79,12 @@ export default function NewDuelPage() {
         </div>
         {isPremium === false ? (
           <button type="button" onClick={() => router.push('/settings')}
-            className="w-full py-3.5 rounded-full font-semibold text-white flex items-center justify-center gap-2 bg-[#262628]">
+            className="w-full py-3.5 rounded-full font-semibold text-theme flex items-center justify-center gap-2 bg-surface-elevated">
             <Lock size={16} /> Premium requis
           </button>
         ) : (
           <button type="button" onClick={handleCreate} disabled={!selectedA || !selectedB || selectedA === selectedB || creating}
-            className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ background: '#D92D4A' }}>
+            className="w-full py-3.5 rounded-full font-semibold text-on-primary disabled:opacity-50 bg-primary">
             {creating ? 'Création...' : 'Lancer le duel'}
           </button>
         )}

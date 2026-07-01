@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { subscribeToPush } from '@/lib/push'
 
 export default function SwRegister() {
   useEffect(() => {
@@ -31,7 +32,13 @@ export default function SwRegister() {
       })
     }
 
-    register().catch(() => {})
+    register()
+      .then(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          subscribeToPush().catch(() => {})
+        }
+      })
+      .catch(() => {})
   }, [])
 
   return null

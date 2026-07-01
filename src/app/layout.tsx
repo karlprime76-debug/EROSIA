@@ -7,7 +7,7 @@ import { ConfirmProvider } from '@/components/ConfirmDialog'
 import { Providers } from '@/components/Providers'
 import { DynamicBackground } from '@/components/DynamicBackground'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,12 +41,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`h-full antialiased ${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#D92D4A" />
+        <meta name="theme-color" content={process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D92D4A'} />
       </head>
-      <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text)] overflow-x-hidden"
-        style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[var(--primary)] focus:text-white focus:rounded-lg">
+      <body className="min-h-full flex flex-col bg-theme overflow-x-hidden"
+        style={{ fontFamily: 'var(--fontBody)' }}>
+        <ThemeProvider>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg">
             Aller au contenu principal
           </a>
           <DynamicBackground />

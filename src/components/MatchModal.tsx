@@ -27,8 +27,7 @@ export function MatchModal({ matchModal, myPhoto, onClose }: MatchModalProps) {
       exit={{ opacity: 0 }}
       aria-hidden="true"
       role="presentation"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6 bg-theme/85 backdrop-blur-sm"
       onClick={onClose}
     >
       <MatchBurst />
@@ -41,11 +40,10 @@ export function MatchModal({ matchModal, myPhoto, onClose }: MatchModalProps) {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl text-center"
+        className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl text-center shadow-elevated"
         style={{
-          background: 'linear-gradient(160deg, rgba(20,20,22,0.97) 0%, rgba(12,12,14,0.99) 100%)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(217,45,74,0.08)',
+          background: 'linear-gradient(160deg, var(--surface) 0%, var(--bg) 100%)',
+          border: '1px solid var(--borderLight)',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -57,20 +55,20 @@ export function MatchModal({ matchModal, myPhoto, onClose }: MatchModalProps) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 350, damping: 16, delay: 0.1 }}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] mx-auto flex items-center justify-center shadow-[0_0_48px_rgba(217,45,74,0.35)] border-2 border-white/10"
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primaryDark)] mx-auto flex items-center justify-center shadow-[0_0_48px_rgba(217,45,74,0.35)] border-2 border-[var(--borderLight)]"
           >
-            <Heart size={36} className="text-white" fill="white" />
+            <Heart size={36} className="text-[var(--textOnPrimary)]" fill="var(--textOnPrimary)" />
           </motion.div>
 
           <div>
-            <h2 className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>C&rsquo;est un match !</h2>
-            <p className="text-[var(--text-secondary)] text-sm mt-1">Vous vous êtes mutuellement likés ✨</p>
+            <h2 className="text-3xl font-bold text-[var(--textPrimary)] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>C&rsquo;est un match !</h2>
+            <p className="text-[var(--textSecondary)] text-sm mt-1">Vous vous êtes mutuellement likés ✨</p>
           </div>
 
           <div className="flex items-center justify-center gap-3 py-2">
             {myPhoto
               ? <Image src={myPhoto} alt="Vous" width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
-              : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
+              : <div className="w-[76px] h-[76px] rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center text-[var(--textMuted)] text-2xl border border-[var(--borderLight)]">?</div>}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.3, 1] }}
@@ -80,22 +78,22 @@ export function MatchModal({ matchModal, myPhoto, onClose }: MatchModalProps) {
             </motion.div>
             {matchModal.profile.photos?.[0]
               ? <Image src={matchModal.profile.photos[0]} alt={matchModal.profile.name} width={76} height={76} className="w-[76px] h-[76px] rounded-full border-2 border-[var(--primary)] object-cover shadow-[0_0_20px_rgba(217,45,74,0.2)]" />
-              : <div className="w-[76px] h-[76px] rounded-full bg-[#1C1C1E] flex items-center justify-center text-[var(--text-muted)] text-2xl border border-white/6">?</div>}
+              : <div className="w-[76px] h-[76px] rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center text-[var(--textMuted)] text-2xl border border-[var(--borderLight)]">?</div>}
           </div>
 
-          <p className="font-semibold text-white text-lg">{matchModal.profile.name}</p>
+          <p className="font-semibold text-[var(--textPrimary)] text-lg">{matchModal.profile.name}</p>
 
           <div className="space-y-2 pt-1">
             <button type="button" onClick={() => { router.push(`/chat/${matchModal.matchId}`); onClose() }}
-              className="w-full py-4 rounded-2xl text-white font-bold text-sm tracking-wide transition-all duration-300 active:scale-[0.97]"
+              className="w-full py-4 rounded-2xl text-[var(--textOnPrimary)] font-bold text-sm tracking-wide transition-all duration-300 active:scale-[0.97]"
               style={{
-                background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                background: 'linear-gradient(135deg, var(--primary), var(--primaryDark))',
                 boxShadow: '0 8px 32px rgba(217,45,74,0.3)',
               }}>
               💬 Envoyer un message
             </button>
             <button type="button" onClick={onClose}
-              className="w-full py-3 text-[var(--text-muted)] text-sm hover:text-white transition-colors duration-200">
+              className="w-full py-3 text-[var(--textMuted)] text-sm hover:text-[var(--textPrimary)] transition-colors duration-200">
               Continuer à explorer
             </button>
           </div>

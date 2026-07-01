@@ -63,9 +63,9 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const today = new Date().toISOString().slice(0, 16)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-      <div className="bg-[#1C1C1E] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto border border-[#2A2826]">
-        <div className="sticky top-0 bg-[#1C1C1E] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[#2A2826]">
+    <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center">
+      <div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto border border-[var(--border)]">
+        <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[var(--border)]">
           <button type="button" onClick={onClose} aria-label="Fermer" className="p-1">
             <ArrowLeft size={20} />
           </button>
@@ -76,14 +76,14 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
           {/* Image */}
           <div>
             {preview ? (
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#262628]">
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[var(--surfaceElevated)]">
                 <Image src={preview} alt="" fill className="object-cover" sizes="500px" />
                 <button type="button" onClick={removeImage} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
                   <X size={14} />
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex flex-col items-center justify-center gap-2 text-[#9E9488] hover:border-[#D92D4A]/40 transition">
+              <button type="button" onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center gap-2 text-[var(--textSecondary)] hover:border-[var(--primary)]/40 transition">
                 <Camera size={24} />
                 <span className="text-xs">Ajouter une image</span>
               </button>
@@ -93,34 +93,34 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
 
           {/* Title */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Titre *</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Titre *</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               maxLength={100}
               required
-              className="w-full bg-[#262628] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[#D92D4A]"
+              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder="Soirée bowling, Brunch..."
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Description</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Description</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               maxLength={500}
               rows={3}
-              className="w-full bg-[#262628] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[#D92D4A] resize-none"
+              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)] resize-none"
               placeholder="Décris ton événement..."
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Catégorie</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Catégorie</label>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {EVENT_CATEGORIES.map(cat => (
                 <button
@@ -129,8 +129,8 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
                   onClick={() => setCategory(cat)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
                     category === cat
-                      ? 'bg-[#D92D4A]/20 text-[#D92D4A] border border-[#D92D4A]/30'
-                      : 'bg-[#262628] text-[#9E9488] border border-transparent hover:border-[#2A2826]'
+                      ? 'bg-primary/20 text-primary border border-[var(--primary)]/30'
+                      : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)] border border-transparent hover:border-[var(--border)]'
                   }`}
                 >
                   {cat === 'sport' && '⚽ '}{cat === 'culture' && '🎨 '}{cat === 'food' && '🍽️ '}
@@ -144,38 +144,38 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
 
           {/* Location */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Lieu</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Lieu</label>
             <input
               type="text"
               value={location}
               onChange={e => setLocation(e.target.value)}
-              className="w-full bg-[#262628] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[#D92D4A]"
+              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder="Paris 11e, Chez Michel..."
             />
           </div>
 
           {/* Date */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Date</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Date</label>
             <input
               type="datetime-local"
               value={eventDate}
               onChange={e => setEventDate(e.target.value)}
               min={today}
-              className="w-full bg-[#262628] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[#D92D4A] text-white [color-scheme:dark]"
+              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)] text-[var(--textPrimary)]"
             />
           </div>
 
           {/* Max participants */}
           <div>
-            <label className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider">Participants max</label>
+            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Participants max</label>
             <input
               type="number"
               value={maxParticipants}
               onChange={e => setMaxParticipants(e.target.value)}
               min={2}
               max={1000}
-              className="w-full bg-[#262628] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[#D92D4A]"
+              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder="Illimité"
             />
           </div>
@@ -183,7 +183,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
           <button
             type="submit"
             disabled={loading || !title.trim()}
-            className="w-full bg-[#D92D4A] text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#D92D4A]/90 transition disabled:opacity-40"
+            className="w-full bg-[var(--primary)] text-[var(--textOnPrimary)] rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--primaryLight)] transition disabled:opacity-40"
           >
             {loading && <Loader size={14} className="animate-spin" />}
             {loading ? 'Création...' : 'Créer l\'événement'}
@@ -193,3 +193,5 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
     </div>
   )
 }
+
+

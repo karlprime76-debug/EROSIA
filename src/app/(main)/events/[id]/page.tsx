@@ -39,7 +39,7 @@ export default function EventDetailPage() {
 
   if (loading) return (
     <div className="bg-transparent flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
     </div>
   )
 
@@ -48,7 +48,7 @@ export default function EventDetailPage() {
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
       </header>
-      <div className="flex-1 flex items-center justify-center text-[#9E9488] text-sm">Événement introuvable</div>
+      <div className="flex-1 flex items-center justify-center text-secondary text-sm">Événement introuvable</div>
     </div>
   )
 
@@ -96,7 +96,7 @@ export default function EventDetailPage() {
         <h2 className="text-lg font-bold">Événement</h2>
         <div className="flex-1" />
         {isCreator && (
-          <button type="button" onClick={handleDelete} aria-label="Supprimer" className="p-1 text-[#9E9488] hover:text-[#D92D4A] transition">
+          <button type="button" onClick={handleDelete} aria-label="Supprimer" className="p-1 text-secondary hover:text-primary transition">
             <Trash2 size={18} />
           </button>
         )}
@@ -105,7 +105,7 @@ export default function EventDetailPage() {
       <div className="flex-1 overflow-y-auto pb-8">
         {/* Image */}
         {event.image_url && (
-          <div className="relative w-full aspect-video bg-[#1C1C1E]">
+          <div className="relative w-full aspect-video bg-[var(--surfaceElevated)]">
             <Image src={event.image_url} alt={event.title} fill className="object-cover" sizes="100vw" priority />
           </div>
         )}
@@ -116,7 +116,7 @@ export default function EventDetailPage() {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">{catEmoji}</span>
               {event.category && (
-                <span className="text-[10px] uppercase tracking-wider text-[#D92D4A] font-medium bg-[#D92D4A]/10 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] uppercase tracking-wider text-primary font-medium bg-[var(--primary)]/10 px-2 py-0.5 rounded-full">
                   {event.category}
                 </span>
               )}
@@ -125,7 +125,7 @@ export default function EventDetailPage() {
           </div>
 
           {/* Meta */}
-          <div className="space-y-2 text-sm text-[#9E9488]">
+          <div className="space-y-2 text-sm text-secondary">
             {event.location && (
               <div className="flex items-center gap-2">
                 <MapPin size={14} className="shrink-0" />
@@ -147,17 +147,17 @@ export default function EventDetailPage() {
           {/* Description */}
           {event.description && (
             <div>
-              <h3 className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider mb-1">Description</h3>
-              <p className="text-sm leading-relaxed text-[#E8E2D9]">{event.description}</p>
+              <h3 className="text-[11px] font-medium text-secondary uppercase tracking-wider mb-1">Description</h3>
+              <p className="text-sm leading-relaxed text-theme">{event.description}</p>
             </div>
           )}
 
           {/* Creator */}
           {event.creator && (
             <div>
-              <h3 className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider mb-2">Organisateur</h3>
+              <h3 className="text-[11px] font-medium text-secondary uppercase tracking-wider mb-2">Organisateur</h3>
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-[#262628] overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-[var(--surfaceElevated)] overflow-hidden">
                   {event.creator.photos?.[0] && (
                     <Image src={event.creator.photos[0]} alt={event.creator.name} width={36} height={36} className="object-cover w-full h-full" />
                   )}
@@ -165,7 +165,7 @@ export default function EventDetailPage() {
                 <div>
                   <p className="text-sm font-medium">{event.creator.name}</p>
                   {event.creator.occupation && (
-                    <p className="text-[11px] text-[#9E9488]">{event.creator.occupation}</p>
+                    <p className="text-[11px] text-secondary">{event.creator.occupation}</p>
                   )}
                 </div>
               </div>
@@ -175,13 +175,13 @@ export default function EventDetailPage() {
           {/* Participants list */}
           {participants.length > 0 && (
             <div>
-              <h3 className="text-[11px] font-medium text-[#9E9488] uppercase tracking-wider mb-2">
+              <h3 className="text-[11px] font-medium text-secondary uppercase tracking-wider mb-2">
                 Participants ({participants.length})
               </h3>
               <div className="flex flex-wrap gap-2">
                 {participants.map(p => (
-                  <div key={p.id} className="flex items-center gap-2 bg-[#1C1C1E] rounded-full pl-1 pr-3 py-1 border border-[#2A2826]">
-                    <div className="w-7 h-7 rounded-full bg-[#262628] overflow-hidden shrink-0">
+                  <div key={p.id} className="flex items-center gap-2 bg-[var(--surfaceElevated)] rounded-full pl-1 pr-3 py-1 border border-[var(--border)]">
+                    <div className="w-7 h-7 rounded-full bg-[var(--surfaceElevated)] overflow-hidden shrink-0">
                       {p.profile?.photos?.[0] && (
                         <Image src={p.profile.photos[0]} alt={p.profile.name} width={28} height={28} className="object-cover w-full h-full" />
                       )}
@@ -201,8 +201,8 @@ export default function EventDetailPage() {
               disabled={joining}
               className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition ${
                 joined
-                  ? 'bg-[#1C1C1E] text-[#D92D4A] border border-[#D92D4A]/30'
-                  : 'bg-[#D92D4A] text-white hover:bg-[#D92D4A]/90'
+                  ? 'bg-[var(--surfaceElevated)] text-primary border border-[var(--primary)]/30'
+                  : 'bg-primary text-on-primary hover:bg-primary/90'
               }`}
             >
               {joining && <Loader size={14} className="animate-spin" />}

@@ -55,12 +55,12 @@ export default function DateIdeasPage() {
       <div className="px-4 pb-2 overflow-x-auto">
         <div className="flex gap-2">
           <button type="button" onClick={() => setCategory('')}
-            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${!category ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${!category ? 'bg-primary text-on-primary' : 'bg-surface-elevated text-secondary border border-theme'}`}>
             Toutes
           </button>
           {categories.map(c => (
             <button type="button" key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${category === c ? 'bg-[#D92D4A] text-white' : 'bg-[#1C1C1E] text-[#9E9488] border border-[#2A2826]'}`}>
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${category === c ? 'bg-primary text-on-primary' : 'bg-surface-elevated text-secondary border border-theme'}`}>
               {c}
             </button>
           ))}
@@ -68,22 +68,22 @@ export default function DateIdeasPage() {
       </div>
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-full"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} /></div>
+          <div className="flex items-center justify-center h-full">          <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>
         ) : ideas.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D92D4A]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[#D92D4A]/10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-primary/10">
               <span className="text-2xl opacity-40">💝</span>
             </div>
-            <p className="text-sm text-[#9E9488]">Aucune idée de date dans cette catégorie.</p>
+            <p className="text-sm text-secondary">Aucune idée de date dans cette catégorie.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {ideas.map(idea => (
               <button type="button" key={idea.id} onClick={() => toggle(idea.id)}
-                className={`bg-[#1C1C1E] rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-[#D92D4A]' : 'border-[#2A2826]'}`}>
+                className={`bg-surface-elevated rounded-xl border p-4 text-left transition ${myIdeaIds.has(idea.id) ? 'border-primary' : 'border-theme'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl">{idea.emoji || '💝'}</span>
-                  <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-[#D92D4A] fill-[#D92D4A]' : 'text-[#9E9488]'} />
+                  <Heart size={14} className={myIdeaIds.has(idea.id) ? 'text-primary fill-primary' : 'text-secondary'} />
                 </div>
                 <p className="text-xs font-medium">{idea.idea}</p>
               </button>

@@ -14,35 +14,35 @@ const buttonVariants = cva([
   variants: {
     variant: {
       primary: [
-        'bg-[var(--primary)] text-white',
-        'hover:bg-[var(--primary-light)]',
+        'bg-[var(--primary)] text-[var(--textOnPrimary)]',
+        'hover:bg-[var(--primaryLight)]',
         'shadow-[0_4px_16px_rgba(217,45,74,0.25)]',
         'hover:shadow-[0_8px_32px_rgba(217,45,74,0.35)]',
         'hover:scale-[1.015]',
       ],
       secondary: [
-        'bg-[var(--bg-card)] text-[var(--text)]',
+        'bg-[var(--card)] text-[var(--textPrimary)]',
         'border border-[var(--border)]',
-        'hover:bg-[var(--bg-hover)] hover:border-[var(--text-muted)]',
+        'hover:bg-[var(--cardHover)] hover:border-[var(--textMuted)]',
       ],
       ghost: [
-        'text-[var(--text-secondary)]',
-        'hover:text-[var(--text)] hover:bg-[var(--bg-hover)]',
+        'text-[var(--textSecondary)]',
+        'hover:text-[var(--textPrimary)] hover:bg-[var(--cardHover)]',
       ],
       outline: [
-        'border border-[var(--border)] text-[var(--text)]',
+        'border border-[var(--border)] text-[var(--textPrimary)]',
         'hover:border-[var(--primary)] hover:text-[var(--primary)]',
         'bg-transparent',
       ],
       danger: [
-        'bg-[var(--error)] text-white',
+        'bg-[var(--error)] text-[var(--textOnPrimary)]',
         'hover:opacity-90',
         'shadow-[0_4px_16px_rgba(248,113,113,0.2)]',
       ],
       premium: [
         'relative overflow-hidden',
-        'bg-gradient-to-b from-[var(--primary-light)] to-[var(--primary)]',
-        'text-white font-semibold',
+        'bg-gradient-to-b from-[var(--primaryLight)] to-[var(--primary)]',
+        'text-[var(--textOnPrimary)] font-semibold',
         'shadow-[0_4px_24px_rgba(217,45,74,0.3)]',
         'hover:shadow-[0_8px_40px_rgba(217,45,74,0.4)]',
         'hover:scale-[1.015]',
@@ -50,14 +50,14 @@ const buttonVariants = cva([
         'hover:before:opacity-100 before:transition-opacity before:duration-200',
       ],
       glowing: [
-        'bg-[var(--primary)] text-white',
+        'bg-[var(--primary)] text-[var(--textOnPrimary)]',
         'shadow-[0_0_20px_rgba(217,45,74,0.3)]',
         'hover:shadow-[0_0_40px_rgba(217,45,74,0.5)]',
         'animate-glow-ring',
       ],
       glass: [
-        'glass text-[var(--text)]',
-        'hover:bg-[var(--bg-hover)]',
+        'glass text-[var(--textPrimary)]',
+        'hover:bg-[var(--cardHover)]',
       ],
     },
     size: {

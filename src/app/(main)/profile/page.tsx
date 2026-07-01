@@ -16,14 +16,14 @@ class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError
     if (this.state.hasError) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#D92D4A]/10 flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
             <span className="text-2xl">😵</span>
           </div>
           <h3 className="font-semibold text-lg">Oups, quelque chose a planté</h3>
-          <p className="text-[#9E9488] text-sm mt-1 max-w-xs">Un problème est survenu. Recharge la page.</p>
+          <p className="text-secondary text-sm mt-1 max-w-xs">Un problème est survenu. Recharge la page.</p>
           <button onClick={() => window.location.reload()}
-            className="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium text-white"
-            style={{ background: '#D92D4A' }}>
+            className="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium text-theme"
+            style={{ background: 'var(--primary)' }}>
             Recharger
           </button>
         </div>
@@ -42,6 +42,7 @@ import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
 import dynamic from 'next/dynamic'
 import { AuraBadge, useAura } from '@/components/AuraSphere'
+import { useTheme } from 'next-themes'
 
 const AuraSphere = dynamic(() => import('@/components/AuraSphere').then(m => ({ default: m.AuraSphere })), { ssr: false })
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
@@ -66,6 +67,7 @@ function ProfilePageInner() {
   const { aura, recompute: recomputeAura } = useAura()
   const { toast } = useToast()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
 
   const fetchProfileFromApi = async () => {
     const res = await fetch('/api/profile/me')
@@ -86,7 +88,7 @@ function ProfilePageInner() {
           const { data: { user } } = await supabase.auth.getUser()
           logger.debug('browser getUser fallback', { userId: user?.id, email: user?.email })
           if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at'
+            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, is_admin'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
             logger.debug('browser select fallback', { id: data?.id, name: data?.name })
             if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
@@ -231,12 +233,13 @@ function ProfilePageInner() {
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: '#D92D4A', borderTopColor: 'transparent' }} />
+      <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
     </div>
   )
 
   const menu = [
     { icon: BadgeCheck, label: 'Vérification', desc: 'Identité certifiée', action: () => router.push('/verify') },
+    ...(profile?.is_admin ? [{ icon: Shield, label: 'Administration', desc: 'Panneau d\'administration', action: () => router.push('/admin') }] : []),
     { icon: Shield, label: 'Paramètres', desc: 'Confidentialité, notifications', action: () => router.push('/settings') },
     { icon: Lock, label: 'Confidentialité', desc: 'Mode privé, visibilité', action: () => router.push('/settings/privacy') },
     { icon: Palette, label: 'Apparence', desc: 'Thème sombre/clair', action: () => setThemePicker(true) },
@@ -245,7 +248,7 @@ function ProfilePageInner() {
   ]
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#141414] to-[#1a1a1a] p-4">
+    <div className="relative min-h-screen bg-theme bg-gradient-to-b from-[var(--bg)] via-[var(--surface)] to-[var(--surfaceSecondary)] p-4">
   <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
       <header className="flex items-center justify-between px-5 pt-6 pb-3 relative">
           <h2 className="text-3xl font-bold">Mon Profil</h2>
@@ -258,7 +261,7 @@ function ProfilePageInner() {
   variant="primary"
   onClick={() => setEditing(!editing)}
   className="active:scale-95"
-  style={{ color: editing ? '#9E9488' : '#D92D4A' }}
+  style={{ color: editing ? 'var(--textSecondary)' : 'var(--primary)' }}
 >
   {editing ? 'Annuler' : 'Modifier'}
 </Button>
@@ -268,21 +271,21 @@ function ProfilePageInner() {
         <div className="glass-card rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="relative shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#D92D4A] to-[#C85A17] p-0.5 shrink-0">
-                <div className="w-full h-full rounded-full overflow-hidden bg-[#262628]">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primaryDark)] p-0.5 shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden bg-hover">
                   {profile?.photos?.[0] ? (
                     <button type="button" onClick={() => setLightboxIdx(0)} className="w-full h-full">
                       <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" loading="lazy" />
                     </button>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#9E9488] text-3xl">?</div>
+                    <div className="w-full h-full flex items-center justify-center text-secondary text-3xl">?</div>
                   )}
                 </div>
               </div>
               <button type="button" onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[#141414]"
-                style={{ background: '#D92D4A' }}>
-                {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-white" />}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[var(--bg)]"
+                style={{ background: 'var(--primary)' }}>
+                {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-theme" />}
               </button>
             </div>
             <div>
@@ -290,27 +293,27 @@ function ProfilePageInner() {
                 {profile?.name?.trim() ? (
                   <p className="text-xl font-bold">{profile.name.trim()}</p>
                 ) : (
-                  <button type="button" onClick={() => setEditing(true)} className="text-xl font-bold text-[#D92D4A] hover:underline">
+                  <button type="button" onClick={() => setEditing(true)} className="text-xl font-bold text-primary hover:underline">
                     + Ajouter mon pseudo
                   </button>
                 )}
                 {streak > 0 && (
                   <div className="flex items-center gap-1 text-sm ml-2">
                     <span>🔥</span>
-                    <span className="text-[#EAB308] font-bold">{streak}</span>
+                    <span className="text-warning font-bold">{streak}</span>
                   </div>
                 )}
               </div>
-                {profile?.location && <p className="text-sm text-[#9E9488]">📍 {profile.location}</p>}
+                {profile?.location && <p className="text-sm text-secondary">📍 {profile.location}</p>}
                 {aura && <div className="mt-1"><AuraBadge aura={aura} /></div>}
-              {profile?.last_seen && <p className="text-xs text-[#9E9488] mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
+              {profile?.last_seen && <p className="text-xs text-secondary mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
             </div>
           </div>
 
           {profile && profile.photos.length > 0 && (
             <div className="grid grid-cols-3 gap-2.5">
               {profile.photos.map((photo, idx) => (
-                <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-[#262628]">
+                <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-hover">
                   <button type="button" onClick={() => setLightboxIdx(idx)} className="w-full h-full">
                     <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" loading="lazy" />
                   </button>
@@ -318,24 +321,24 @@ function ProfilePageInner() {
                     {idx > 0 && (
                       <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
-                        <Star size={14} className="text-amber-500" />
+                        <Star size={14} className="text-warning" />
                       </button>
                     )}
                     <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                       className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
-                      <Trash2 size={14} className="text-red-500" />
+                      <Trash2 size={14} className="text-error" />
                     </button>
                   </div>
-                  {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}
+                  {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-warning text-theme px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}
                 </div>
               ))}
             </div>
           )}
           {editing && (
             <div className="mt-4">
-              <p className="text-xs text-[#9E9488] mb-2 font-medium">Vidéo d&rsquo;introduction</p>
+              <p className="text-xs text-secondary mb-2 font-medium">Vidéo d&rsquo;introduction</p>
               {profile?.video_url ? (
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-[#1C1C1E]">
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-surface">
                   <video src={profile.video_url} controls className="w-full h-full object-cover" />
                   <button type="button" onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
@@ -344,8 +347,8 @@ function ProfilePageInner() {
                 </div>
               ) : (
                 <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#2A2826] flex items-center justify-center text-[#9E9488] disabled:opacity-40">
-                  {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[#D92D4A] border-t-transparent rounded-full" /> : <Camera size={24} />}
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-theme flex items-center justify-center text-secondary disabled:opacity-40">
+                  {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" /> : <Camera size={24} />}
                 </button>
               )}
               <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
@@ -358,24 +361,24 @@ function ProfilePageInner() {
             <div>
               <label htmlFor="profile-name" className="text-sm font-medium mb-1 block">Pseudo</label>
               <input id="profile-name" value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))} placeholder="Ton pseudo"
-                maxLength={80} className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
-              <p className="text-[10px] text-[#9E9488] text-right mt-1">{nameValue.length}/80</p>
+                maxLength={80} className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary" />
+              <p className="text-[10px] text-secondary text-right mt-1">{nameValue.length}/80</p>
             </div>
             <div>
               <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
               <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] resize-none" />
-              <p className="text-[10px] text-[#9E9488] text-right mt-1">{bio.length}/500</p>
+                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary resize-none" />
+              <p className="text-[10px] text-secondary text-right mt-1">{bio.length}/500</p>
             </div>
             <div>
               <label htmlFor="profile-interests" className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
               <input id="profile-interests" value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
-                className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A]" />
+                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary" />
             </div>
             <div>
               <label htmlFor="profile-looking-for" className="text-sm font-medium mb-1 block">Ce que je cherche</label>
               <select id="profile-looking-for" value={lookingFor} onChange={e => setLookingFor(e.target.value as LookingFor)}
-                className="w-full px-4 py-3 rounded-xl border border-[#2A2826] text-sm outline-none focus:border-[#D92D4A] bg-[#141414]">
+                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary bg-theme">
                 <option value="friendship">Amitié</option>
                 <option value="casual">Plan cul</option>
                 <option value="fwb">Friends with benefits</option>
@@ -397,8 +400,8 @@ function ProfilePageInner() {
                   <button type="button" key={val} onClick={() => setMood(val as Mood)}
                     className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
                       mood === val
-                        ? 'border-[#D92D4A] bg-[#D92D4A]/10 text-[#D92D4A]'
-                        : 'border-[#2A2826] text-[#9E9488] hover:border-[#5A5248]'
+                        ? 'border-[var(--primary)] bg-primary/10 text-primary'
+                        : 'border-theme text-secondary hover:border-[var(--borderMedium)]'
                     }`}
                   >
                     {label}
@@ -411,7 +414,7 @@ function ProfilePageInner() {
   onClick={() => { saveProfile().catch(logger.error) }}
   disabled={savingProfile}
   className="w-full py-3.5 disabled:opacity-40"
-  style={{ background: '#D92D4A' }}
+  style={{ background: 'var(--primary)' }}
 >
   {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
 </Button>
@@ -420,32 +423,32 @@ function ProfilePageInner() {
           <>
             {profile?.bio && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-1.5 text-[#9E9488] uppercase tracking-wider">Bio</h3>
+                <h3 className="font-semibold text-sm mb-1.5 text-secondary uppercase tracking-wider">Bio</h3>
                 <p className="text-sm leading-relaxed">{profile.bio}</p>
               </div>
             )}
             {profile?.interests && profile.interests.length > 0 && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Centres d&rsquo;intérêt</h3>
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Centres d&rsquo;intérêt</h3>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map(i => (
-                    <span key={i} className="text-xs bg-[#D92D4A]/8 px-3 py-1.5 rounded-full border border-[#D92D4A]/10 text-[#D92D4A]">{i}</span>
+                    <span key={i} className="text-xs bg-primary/8 px-3 py-1.5 rounded-full border border-[var(--primary)]/10 text-primary">{i}</span>
                   ))}
                 </div>
               </div>
             )}
             {profile?.looking_for && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Ce que je cherche</h3>
-                <span className="text-xs text-[#D92D4A] bg-[#D92D4A]/10 px-3 py-1.5 rounded-full border border-[#D92D4A]/10">
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Ce que je cherche</h3>
+                <span className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10">
                   {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
                 </span>
               </div>
             )}
             {profile?.mood && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Mon mood</h3>
-                <span className="inline-flex items-center gap-1.5 text-xs bg-[#D92D4A]/10 px-3 py-1.5 rounded-full border border-[#D92D4A]/10 text-[#D92D4A]">
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Mon mood</h3>
+                <span className="inline-flex items-center gap-1.5 text-xs bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10 text-primary">
                   {{
                     discuter: '💬 Discuter',
                     rencontre: '🔥 Rencontre',
@@ -459,7 +462,7 @@ function ProfilePageInner() {
             )}
             {profile?.energy_score !== undefined && profile?.energy_score !== null && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Energy Score</h3>
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Energy Score</h3>
                 <div className="flex items-center gap-3">
                 <div className="w-12 h-12">
                   <CircularProgressbar
@@ -468,11 +471,11 @@ function ProfilePageInner() {
                     styles={buildStyles({
                       textSize: '32px',
                       pathColor:
-                        profile.energy_score >= 70 ? '#34D399' :
-                        profile.energy_score >= 40 ? '#FBBF24' :
-                        '#F87171',
-                      trailColor: '#2A2826',
-                      textColor: '#F5F0EB',
+                        profile.energy_score >= 70 ? 'var(--success)' :
+                        profile.energy_score >= 40 ? 'var(--warning)' :
+                        'var(--error)',
+                      trailColor: 'var(--border)',
+                      textColor: 'var(--textPrimary)',
                     })}
                   />
                 </div>
@@ -482,7 +485,7 @@ function ProfilePageInner() {
             )}
             {profile?.trust_score !== undefined && profile?.trust_score !== null && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Score de Confiance</h3>
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Score de Confiance</h3>
                 <div className="flex items-center gap-3">
                 <div className="w-12 h-12">
                   <CircularProgressbar
@@ -491,11 +494,11 @@ function ProfilePageInner() {
                     styles={buildStyles({
                       textSize: '32px',
                       pathColor:
-                        profile.trust_score >= 70 ? '#818CF8' :
-                        profile.trust_score >= 40 ? '#FBBF24' :
-                        '#F87171',
-                      trailColor: '#2A2826',
-                      textColor: '#F5F0EB',
+                        profile.trust_score >= 70 ? 'var(--info)' :
+                        profile.trust_score >= 40 ? 'var(--warning)' :
+                        'var(--error)',
+                      trailColor: 'var(--border)',
+                      textColor: 'var(--textPrimary)',
                     })}
                   />
                 </div>
@@ -505,10 +508,10 @@ function ProfilePageInner() {
             )}
             {profileTraits.length > 0 && (
               <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-[#9E9488] uppercase tracking-wider">Personnalité</h3>
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Personnalité</h3>
                 <div className="flex flex-wrap gap-2">
                   {profileTraits.map((trait: string, i: number) => (
-                    <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-[#D92D4A]/10 text-[#D92D4A] border border-[#D92D4A]/20">
+                    <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-[var(--primary)]/20">
                       {trait}
                     </span>
                   ))}
@@ -530,26 +533,26 @@ function ProfilePageInner() {
               style={{
                 background: danger
                   ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.02) 100%)'
-                  : 'linear-gradient(135deg, rgba(217,45,74,0.06) 0%, rgba(255,255,255,0.02) 100%)',
-                borderColor: danger ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)',
+                  : 'linear-gradient(135deg, var(--primaryGlow) 0%, var(--borderLight) 100%)',
+                borderColor: danger ? 'rgba(239,68,68,0.15)' : 'var(--borderLight)',
               }}>
               <div className="flex items-center gap-3 w-full">
                 <div className="p-2 rounded-xl transition-colors shrink-0"
                   style={{
                     background: danger
                       ? 'rgba(239,68,68,0.12)'
-                      : 'linear-gradient(135deg, rgba(217,45,74,0.15) 0%, rgba(217,45,74,0.05) 100%)',
+                      : 'linear-gradient(135deg, var(--primaryGlow) 0%, var(--borderLight) 100%)',
                   }}>
-                  <Icon size={18} className={danger ? 'text-red-400' : ''} style={{ color: danger ? undefined : '#D92D4A' }} />
+                  <Icon size={18} className={danger ? 'text-error' : ''} style={{ color: danger ? undefined : 'var(--primary)' }} />
                 </div>
-                <span className={`text-sm font-semibold ${danger ? 'text-red-400' : 'text-white'}`}>{label}</span>
+                <span className={`text-sm font-semibold ${danger ? 'text-error' : 'text-theme'}`}>{label}</span>
               </div>
-              {desc && <span className="text-[11px] text-[#5A5248] leading-tight">{desc}</span>}
+              {desc && <span className="text-[11px] text-muted leading-tight">{desc}</span>}
               <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                 style={{
                   background: danger
                     ? 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(239,68,68,0.06), transparent 40%)'
-                    : 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(217,45,74,0.08), transparent 40%)',
+                    : 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), var(--primaryGlow), transparent 40%)',
                 }} />
             </button>
           ))}
@@ -561,9 +564,9 @@ function ProfilePageInner() {
       )}
 
       {themePicker && (
-        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setThemePicker(false)}
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(0,0,0,0.6)] backdrop-blur-sm" onClick={() => setThemePicker(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setThemePicker(false) }}>
-          <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-lg bg-[#1C1C1E] rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-lg bg-surface rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-center mb-5">Apparence</h3>
             <div className="space-y-2">
               {[
@@ -571,28 +574,18 @@ function ProfilePageInner() {
                 { mode: 'dark', icon: Moon, label: 'Nuit' },
                 { mode: 'system', icon: Monitor, label: 'Système' },
               ].map(({ mode, icon: Icon, label }) => {
-                const current = localStorage.getItem('erosia_theme') || 'system'
+                const current = theme || 'system'
                 const active = current === mode
                 return (
                   <button type="button" key={mode} onClick={() => {
-                    const html = document.documentElement
-                    if (mode === 'system') {
-                      localStorage.removeItem('erosia_theme')
-                      html.classList.remove('light', 'dark')
-                      if (window.matchMedia('(prefers-color-scheme: dark)').matches) html.classList.add('dark')
-                      else html.classList.add('light')
-                    } else {
-                      localStorage.setItem('erosia_theme', mode)
-                      html.classList.remove('light', 'dark')
-                      html.classList.add(mode)
-                    }
+                    setTheme(mode)
                     setThemePicker(false)
-                  }} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-[#D92D4A]/10 border border-[#D92D4A]/20' : 'hover:bg-white/5'}`}>
+                  }} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-primary/10 border border-[var(--primary)]/20' : 'hover:bg-card/5'}`}>
                     <div className="flex items-center gap-3">
-                      <Icon size={20} className={active ? 'text-[#D92D4A]' : 'text-[#9E9488]'} />
-                      <span className={active ? 'text-[#D92D4A] font-medium' : 'text-sm'}>{label}</span>
+                      <Icon size={20} className={active ? 'text-primary' : 'text-secondary'} />
+                      <span className={active ? 'text-primary font-medium' : 'text-sm'}>{label}</span>
                     </div>
-                    {active && <Check size={18} className="text-[#D92D4A]" />}
+                    {active && <Check size={18} className="text-primary" />}
                   </button>
                 )
               })}

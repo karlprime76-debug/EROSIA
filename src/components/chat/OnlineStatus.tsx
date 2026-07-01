@@ -26,7 +26,7 @@ export function OnlineStatus({ isOnline, size = 'sm', visibility }: {
         style={{
           width: dim,
           height: dim,
-          backgroundColor: effective ? '#22C55E' : '#5A5248',
+          backgroundColor: effective ? 'var(--success)' : 'var(--text-muted)',
           boxShadow: effective ? '0 0 6px rgba(34,197,94,0.5)' : 'none',
           margin: 2,
         }}
@@ -40,7 +40,7 @@ export function OnlineBadge({ isOnline, lastSeen, visibility }: { isOnline: bool
   return (
     <div className="flex items-center gap-1.5">
       <OnlineStatus isOnline={effective} size="sm" visibility={visibility} />
-      <span className={`text-[10px] ${effective ? 'text-[#22C55E]' : 'text-[#5A5248]'}`}>
+      <span className={`text-[10px] ${effective ? 'text-success' : 'text-muted'}`}>
         {effective ? 'En ligne' : lastSeen ? formatLastSeen(lastSeen) : 'Hors ligne'}
     </span>
     </div>

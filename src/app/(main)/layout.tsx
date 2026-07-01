@@ -126,7 +126,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] flex items-center justify-center rounded-full text-[8px] font-bold text-white px-0.5 bg-[var(--primary)] shadow-[0_0_8px_rgba(217,45,74,0.5)]"
+                          className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] flex items-center justify-center rounded-full text-[8px] font-bold text-on-primary px-0.5 bg-[var(--primary)] shadow-[0_0_8px_var(--primaryGlow)]"
                         >
                           {unreadCount > 99 ? '99+' : unreadCount}
                         </motion.span>
