@@ -18,8 +18,11 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'http://localhost:3000'
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email, password,
+      options: { emailRedirectTo: `${origin}/auth/callback` },
     })
 
     if (authError || !authData.user) {

@@ -83,6 +83,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   let supabaseResponse = NextResponse.next({ request })
+  const secure = process.env.NODE_ENV === 'production'
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -94,7 +95,7 @@ export default async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, { ...options, secure, sameSite: 'lax' })
           )
         },
       },
@@ -106,7 +107,7 @@ export default async function proxy(request: NextRequest) {
   const routeKey = `${ip}:${pathname}`
   if (pathname.startsWith('/api/')) {
     let maxReqs = 30
-    if (pathname === '/api/auth/register') maxReqs = 3
+    if (pathname === '/api/auth/register') maxReqs = 10
     else if (pathname === '/api/auth/delete-account') maxReqs = 5
     else if (pathname === '/api/auth/callback') maxReqs = 10
     else if (pathname.includes('/paydunya/')) maxReqs = 10
