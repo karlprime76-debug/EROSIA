@@ -38,12 +38,12 @@ BEGIN
   );
 
   INSERT INTO auth.identities (
-    id, user_id, identity_data, provider,
+    id, user_id, identity_data, provider, provider_id,
     last_sign_in_at, created_at, updated_at
   ) VALUES (
     v_user_id, v_user_id,
     jsonb_build_object('sub', v_user_id::TEXT, 'email', p_email),
-    'email',
+    'email', p_email,
     NOW(), NOW(), NOW()
   );
 
