@@ -21,7 +21,7 @@ const ASSETS_CACHE = `${CACHE_NAME}-assets`
 const sw = `// erosia SW v${VERSION} — generated at build time
 const CACHE_NAME = '${CACHE_NAME}'
 const ASSETS_CACHE = '${ASSETS_CACHE}'
-const STATIC_ASSETS = ['/', '/offline', '/logo.png', '/icone.png', '/manifest.json', '/login', '/register', '/welcome', '/privacy', '/cgu']
+const STATIC_ASSETS = ['/', '/offline', '/login', '/manifest.json']
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()

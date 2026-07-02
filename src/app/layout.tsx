@@ -42,6 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`h-full antialiased ${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content={process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D92D4A'} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col bg-theme overflow-x-hidden"
         style={{ fontFamily: 'var(--fontBody)' }}>

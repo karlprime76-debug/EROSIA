@@ -76,8 +76,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             className="relative mx-3 mb-3 rounded-[22px] overflow-hidden"
             style={{
               background: 'var(--glass-deep-bg)',
-              backdropFilter: 'blur(32px) saturate(1.3)',
-              WebkitBackdropFilter: 'blur(32px) saturate(1.3)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid var(--glass-border)',
               boxShadow: 'var(--glass-shadow)',
             }}
