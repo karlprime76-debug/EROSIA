@@ -4,6 +4,9 @@
 -- Appliquer dans Supabase SQL Editor.
 -- Usage depuis le code : SELECT public.create_auth_user('email', 'password');
 
+-- Colonne manquante pour le trigger on_auth_user_active
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ DEFAULT now();
+
 CREATE OR REPLACE FUNCTION public.create_auth_user(p_email TEXT, p_password TEXT)
 RETURNS UUID
 SECURITY DEFINER
