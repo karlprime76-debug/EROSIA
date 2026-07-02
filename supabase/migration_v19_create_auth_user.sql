@@ -7,7 +7,7 @@
 CREATE OR REPLACE FUNCTION public.create_auth_user(p_email TEXT, p_password TEXT)
 RETURNS UUID
 SECURITY DEFINER
-SET search_path = extensions
+SET search_path = extensions, public
 AS $$
 DECLARE
   v_user_id UUID;
