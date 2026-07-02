@@ -1,3 +1,18 @@
+<!-- BEGIN:erosia-audit-register -->
+# Audit inscription (Jul 2026)
+
+## Problème : POST /api/auth/register → 400 silencieux
+- **Cause racine** : L'API Supabase Auth renvoie systématiquement 500 avec `"Database error saving new user"` — infrastructure Supabase en panne (compute capacity degraded dans toutes les régions, voir [status.supabase.com](https://status.supabase.com))
+- Ce n'est PAS un bug applicatif : le code Zod, route handler, et profile creation sont corrects
+- `supabase.auth.signUp()` et `admin.auth.admin.createUser()` échouent tous les deux — l'auth schema de Supabase ne peut pas écrire en base
+- En attendant la résolution par Supabase, le route affiche désormais `"Le service d'inscription est temporairement indisponible, réessaie plus tard"` et loggue via `logger.error` (visible en prod Vercel)
+
+## Modifications apportées
+- `src/app/api/auth/register/route.ts` :
+  - `logger.warn` → `logger.error` pour que les échecs signup apparaissent dans les logs Vercel
+  - Message utilisateur en français si l'erreur contient "Database error saving new user"
+<!-- END:erosia-audit-register -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
