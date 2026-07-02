@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
+import { signToken } from '@/lib/custom-auth'
 
 async function createUserViaGoTrue(email: string, password: string, origin: string) {
   const supabase = await createClient()
@@ -53,7 +54,17 @@ export async function POST(request: Request) {
         logger.error('Profile creation failed after RPC', { userId, error: profileError.message })
         return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
       }
-      return NextResponse.json({ ok: true })
+      const token = await signToken(userId as string, email)
+      logger.error('RPC signup succeeded — returning autoLogin token', { userId })
+      const rpcRes = NextResponse.json({ ok: true, autoLogin: true })
+      rpcRes.cookies.set('custom_auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 604800,
+      })
+      return rpcRes
     }
 
     const { error: profileError } = await createProfile(authData.user.id, name, age)

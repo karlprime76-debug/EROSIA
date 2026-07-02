@@ -1,6 +1,7 @@
 // UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.89), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.90)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { verifyToken } from '@/lib/custom-auth'
 
 const rateMap = new Map<string, { count: number; resetAt: number }>()
 
@@ -101,7 +102,23 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data?.user ?? null
+  } catch {
+    // GoTrue down — ignore
+  }
+
+  if (!user) {
+    const token = request.cookies.get('custom_auth_token')?.value
+    if (token) {
+      const payload = await verifyToken(token)
+      if (payload) {
+        user = { id: payload.sub, email: payload.email } as any
+      }
+    }
+  }
 
   // Skip auth redirect for API, static files, SW, and public pages
   if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && pathname !== '/sw.js') {

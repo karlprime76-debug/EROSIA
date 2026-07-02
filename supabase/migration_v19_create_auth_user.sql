@@ -57,3 +57,29 @@ BEGIN
   RETURN v_user_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Fonction de vérification de mot de passe (contourne GoTrue)
+CREATE OR REPLACE FUNCTION public.verify_password(p_email TEXT, p_password TEXT)
+RETURNS UUID
+SECURITY DEFINER
+SET search_path = extensions, public
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_stored TEXT;
+BEGIN
+  SELECT id, encrypted_password INTO v_user_id, v_stored
+  FROM auth.users
+  WHERE email = p_email;
+
+  IF NOT FOUND OR v_user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF v_stored = crypt(p_password, v_stored) THEN
+    RETURN v_user_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
