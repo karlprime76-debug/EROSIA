@@ -5,8 +5,6 @@ import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
 
-const DB_ERROR_MSG = 'Database error saving new user'
-
 async function createUserViaGoTrue(email: string, password: string, origin: string) {
   const supabase = await createClient()
   return supabase.auth.signUp({
@@ -42,24 +40,20 @@ export async function POST(request: Request) {
     const { data: authData, error: authError } = await createUserViaGoTrue(email, password, origin)
 
     if (authError || !authData.user) {
-      if (authError?.message?.includes(DB_ERROR_MSG)) {
-        logger.error('GoTrue signup failed — trying RPC fallback', { error: authError.message })
-        const { data: userId, error: rpcError } = await createUserViaRpc(email, password)
-        if (rpcError || !userId) {
-          logger.error('RPC fallback also failed', { error: rpcError?.message })
-          return NextResponse.json({
-            error: "Le service d'inscription est temporairement indisponible, réessaie plus tard",
-          }, { status: 400 })
-        }
-        const { error: profileError } = await createProfile(userId as string, name, age)
-        if (profileError) {
-          logger.error('Profile creation failed after RPC', { userId, error: profileError.message })
-          return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
-        }
-        return NextResponse.json({ ok: true })
+      logger.error('GoTrue signup failed — trying RPC fallback', { error: authError?.message })
+      const { data: userId, error: rpcError } = await createUserViaRpc(email, password)
+      if (rpcError || !userId) {
+        logger.error('RPC fallback also failed', { error: rpcError?.message })
+        return NextResponse.json({
+          error: "Le service d'inscription est temporairement indisponible, réessaie plus tard",
+        }, { status: 400 })
       }
-      logger.error('Signup failed', { error: authError?.message })
-      return NextResponse.json({ error: authError?.message ?? 'Inscription échouée' }, { status: 400 })
+      const { error: profileError } = await createProfile(userId as string, name, age)
+      if (profileError) {
+        logger.error('Profile creation failed after RPC', { userId, error: profileError.message })
+        return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
+      }
+      return NextResponse.json({ ok: true })
     }
 
     const { error: profileError } = await createProfile(authData.user.id, name, age)
