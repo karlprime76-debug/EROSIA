@@ -26,7 +26,9 @@ export async function POST(request: Request) {
     })
 
     if (authError || !authData.user) {
-      return NextResponse.json({ error: 'Inscription échouée' }, { status: 400 })
+      const msg = authError?.message ?? 'Inscription échouée'
+      logger.warn('Signup failed', { error: msg })
+      return NextResponse.json({ error: msg }, { status: 400 })
     }
 
     const admin = createAdminClient()

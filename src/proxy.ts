@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const rateMap = new Map<string, { count: number; resetAt: number }>()
 
-function checkRateLimitLocal(key: string, maxRequests: number, windowMs: number): boolean {
+function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
   const now = Date.now()
   const entry = rateMap.get(key)
   if (!entry || now > entry.resetAt) {
@@ -14,26 +14,6 @@ function checkRateLimitLocal(key: string, maxRequests: number, windowMs: number)
   if (entry.count >= maxRequests) return false
   entry.count++
   return true
-}
-
-async function checkRateLimit(supabase: ReturnType<typeof createServerClient>, key: string, maxRequests: number, windowMs: number): Promise<boolean> {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000)
-    const { data, error } = await supabase.rpc('increment_rate_limit', {
-      key,
-      max_requests: maxRequests,
-      window_ms: windowMs,
-    }, { signal: controller.signal })
-    clearTimeout(timeoutId)
-    if (error || data == null) {
-      console.warn('Rate limit RPC fallback to local limiter', { key, maxRequests, windowMs, error })
-      return checkRateLimitLocal(key, maxRequests, windowMs)
-    }
-    return data === true || data === 't' || data === 1
-  } catch {
-    return checkRateLimitLocal(key, maxRequests, windowMs)
-  }
 }
 
 const ALLOWED_ORIGINS = [
@@ -102,8 +82,7 @@ export default async function proxy(request: NextRequest) {
     }
   )
 
-  // ── Rate Limiting (Supabase + local fallback) ──
-  // NOTE: In serverless, this still degrades gracefully if Supabase RPC fails.
+  // ── Rate Limiting (in-memory — acceptable for serverless with cold-start reset) ──
   const routeKey = `${ip}:${pathname}`
   if (pathname.startsWith('/api/')) {
     let maxReqs = 30
@@ -114,7 +93,7 @@ export default async function proxy(request: NextRequest) {
 
     if (pathname.startsWith('/api/auth/')) maxReqs = Math.min(maxReqs, 10)
 
-    if (!(await checkRateLimit(supabase, routeKey, maxReqs, 60_000))) {
+    if (!checkRateLimit(routeKey, maxReqs, 60_000)) {
       return NextResponse.json(
         { error: 'Trop de requêtes, réessaie dans une minute' },
         { status: 429 }
@@ -124,8 +103,8 @@ export default async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Skip auth redirect for API, static files, and public pages
-  if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {
+  // Skip auth redirect for API, static files, SW, and public pages
+  if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && pathname !== '/sw.js') {
     const isPublic = publicPaths.some(p => pathname.startsWith(p)) || pathname === '/'
       || pathname.startsWith('/privacy') || pathname.startsWith('/cgu')
       || pathname.startsWith('/delete-data') || pathname === '/offline'
