@@ -26,8 +26,11 @@ export async function POST(request: Request) {
     })
 
     if (authError || !authData.user) {
-      const msg = authError?.message ?? 'Inscription échouée'
-      logger.warn('Signup failed', { error: msg })
+      const isDbError = authError?.message?.includes('Database error saving new user')
+      const msg = isDbError
+        ? "Le service d'inscription est temporairement indisponible, réessaie plus tard"
+        : (authError?.message ?? 'Inscription échouée')
+      logger.error('Signup failed', { error: authError?.message })
       return NextResponse.json({ error: msg }, { status: 400 })
     }
 
