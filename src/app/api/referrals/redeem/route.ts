@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { redeemReferralReward } from '@/lib/referrals'
+import { redeemReferralReward } from '@/lib/referrals-server'
 import { logger } from '@/lib/logger'
 
 export async function POST() {
