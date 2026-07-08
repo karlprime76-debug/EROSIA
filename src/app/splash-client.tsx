@@ -13,14 +13,22 @@ export function SplashClient() {
     done.current = true
 
     const isMobile = window.innerWidth < 640 || 'ontouchstart' in window
-    const timer = setTimeout(async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        router.replace(user ? '/discover' : '/welcome')
-      } catch {
+    const splashDuration = isMobile ? 1200 : 2200
+    const maxWait = 5000
+
+    const timer = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         router.replace('/welcome')
-      }
-    }, isMobile ? 1200 : 2200)
+      }, maxWait)
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        clearTimeout(timeoutId)
+        router.replace(user ? '/discover' : '/welcome')
+      }).catch(() => {
+        clearTimeout(timeoutId)
+        router.replace('/welcome')
+      })
+    }, splashDuration)
 
     return () => clearTimeout(timer)
   }, [router])
