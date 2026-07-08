@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { getCachedMessages, setCachedMessages, clearCache } from '@/lib/chat/cache'
-import { formatMessageTime, formatLastSeen, truncateMessage, groupMessagesByDate, getDayLabel } from '@/lib/chat/utils'
+import { truncateMessage, groupMessagesByDate, getDayLabel } from '@/lib/chat/utils'
 
 // ─────────── Cache tests ───────────
 describe('chat cache', () => {

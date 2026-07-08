@@ -194,7 +194,7 @@ export default function DiscoverPage() {
         }
       }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     })
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(

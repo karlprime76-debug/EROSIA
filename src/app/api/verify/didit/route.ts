@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createVerificationSession } from '@/lib/didit'
 import { logger } from '@/lib/logger'
 
-export async function POST(_request: Request) {
+export async function POST() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
