@@ -72,6 +72,16 @@ export default function ChatPage() {
     }, 50)
   }, [])
 
+  const loadMessageSuggestions = useCallback(async () => {
+    if (!matchId) return
+    clearTimeout(suggTimeoutRef.current)
+    const result = await getMessageSuggestions(matchId)
+    if (result.suggestions.length > 0) {
+      setMsgSuggestions(result.suggestions)
+      setShowMsgSugg(true)
+    }
+  }, [matchId])
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/login'); return }
@@ -111,7 +121,7 @@ export default function ChatPage() {
         if (m.sender_id !== uid) {
           markAsRead(matchId)
           clearTimeout(suggTimeoutRef.current)
-          suggTimeoutRef.current = setTimeout(() => loadMsgSuggestionsRef.current?.(), 3000)
+          suggTimeoutRef.current = setTimeout(() => loadMessageSuggestions(), 3000)
         }
       })
       msgChannel.on('postgres_changes', {
@@ -151,7 +161,7 @@ export default function ChatPage() {
       if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current)
       if (presenceChannelRef.current) supabase.removeChannel(presenceChannelRef.current)
     }
-  }, [matchId, router, toast, scrollToBottom])
+  }, [matchId, router, toast, scrollToBottom, loadMessageSuggestions])
 
   const handleSend = useCallback(async () => {
     const text = input.trim()
@@ -283,20 +293,6 @@ export default function ChatPage() {
     if (result.suggestion) setAiSuggestions([result.suggestion])
     setShowAi(true)
   }, [profile])
-
-  const loadMsgSuggestionsRef = useRef<() => Promise<void>>(async () => {})
-
-  useEffect(() => {
-    loadMsgSuggestionsRef.current = async () => {
-      if (!matchId) return
-      clearTimeout(suggTimeoutRef.current)
-      const result = await getMessageSuggestions(matchId)
-      if (result.suggestions.length > 0) {
-        setMsgSuggestions(result.suggestions)
-        setShowMsgSugg(true)
-      }
-    }
-  }, [matchId])
 
   const loadDateIdeas = useCallback(async () => {
     if (!otherId || loadingDates) return
@@ -578,7 +574,7 @@ export default function ChatPage() {
             <Smile size={18} className="text-secondary" />
           </button>
 
-          <button onClick={() => loadMsgSuggestionsRef.current?.()} aria-label="Suggestions" className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+          <button onClick={loadMessageSuggestions} aria-label="Suggestions" className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
             <Sparkles size={18} className="text-warning" />
           </button>
 

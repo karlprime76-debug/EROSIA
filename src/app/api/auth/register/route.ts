@@ -12,6 +12,20 @@ async function createProfile(userId: string, name: string, age: number) {
   })
 }
 
+async function applyReferralCode(code: string, newUserId: string): Promise<{ error?: string }> {
+  const admin = createAdminClient()
+  const { data: referrer } = await admin.from('profiles').select('id').eq('referral_code', code).maybeSingle()
+  if (!referrer) return { error: 'Code de parrainage invalide' }
+  if (referrer.id === newUserId) return { error: 'Auto-parrainage non autorisé' }
+  const { error } = await admin.from('referrals').insert({
+    referrer_id: referrer.id,
+    referred_id: newUserId,
+    status: 'joined',
+  })
+  if (error) return { error: "Erreur lors de l'application du code de parrainage" }
+  return {}
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -22,6 +36,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password, name, age } = parsed.data
+    const referralCode: string | undefined = body.referralCode
     const origin = process.env.NEXT_PUBLIC_SITE_URL; if (!origin) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
 
     const supabase = await createClient()
@@ -39,6 +54,13 @@ export async function POST(request: Request) {
     if (profileError) {
       logger.error('Profile creation failed', { userId: authData.user.id, error: profileError.message })
       return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
+    }
+
+    if (referralCode) {
+      const refResult = await applyReferralCode(referralCode.toUpperCase(), authData.user.id)
+      if (refResult.error) {
+        logger.warn('Referral code application failed', { userId: authData.user.id, code: referralCode, error: refResult.error })
+      }
     }
 
     return NextResponse.json({ ok: true })

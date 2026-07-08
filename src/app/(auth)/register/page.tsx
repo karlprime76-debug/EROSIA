@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Eye, EyeOff, Sparkles, ArrowRight, Mail, Lock, User, Calendar, Check } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type RegisterValues = { email: string; password: string; name: string; age: number }
@@ -16,8 +16,15 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
+  const [referralCode, setReferralCode] = useState(() =>
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
+  )
+  const [showReferralInput, setShowReferralInput] = useState(() => {
+    if (typeof window !== 'undefined') return !!new URLSearchParams(window.location.search).get('ref')
+    return false
+  })
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
+  const { register: reg, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
   })
 
@@ -28,7 +35,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, referralCode: referralCode || undefined }),
       })
       const json = await res.json()
       if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
@@ -154,7 +161,7 @@ export default function RegisterPage() {
                   </div>
                   <input
                     id="reg-name"
-                    {...register('name')}
+                    {...reg('name')}
                     type="text"
                     placeholder="Ton prénom"
                     autoComplete="given-name"
@@ -172,7 +179,7 @@ export default function RegisterPage() {
                   </div>
                   <input
                     id="reg-email"
-                    {...register('email')}
+                    {...reg('email')}
                     type="email"
                     placeholder="ton@email.com"
                     autoComplete="email"
@@ -190,7 +197,7 @@ export default function RegisterPage() {
                   </div>
                   <input
                     id="reg-password"
-                    {...register('password')}
+                    {...reg('password')}
                     type={showPassword ? 'text' : 'password'}
                     placeholder="8 caractères minimum"
                     autoComplete="new-password"
@@ -216,7 +223,7 @@ export default function RegisterPage() {
                   </div>
                   <input
                     id="reg-age"
-                    {...register('age', { valueAsNumber: true })}
+                    {...reg('age', { valueAsNumber: true })}
                     type="number"
                     placeholder="Ton âge (18+)"
                     min={18}
@@ -252,6 +259,34 @@ export default function RegisterPage() {
                   <a href="/privacy" target="_blank" className="text-primary hover:text-primary underline transition-colors duration-200">politique de confidentialité</a>.
                 </span>
               </label>
+
+              {/* Code de parrainage */}
+              {!showReferralInput ? (
+                <button type="button" onClick={() => setShowReferralInput(true)}
+                  className="text-xs text-muted hover:text-secondary transition-colors duration-200 flex items-center gap-1.5 mx-auto">
+                  <Gift size={13} />
+                  J&rsquo;ai un code de parrainage
+                </button>
+              ) : (
+                <div className="space-y-1.5">
+                  <label htmlFor="reg-ref" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Code de parrainage (optionnel)</label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
+                      <Gift size={15} />
+                    </div>
+                    <input
+                      id="reg-ref"
+                      type="text"
+                      value={referralCode}
+                      onChange={e => setReferralCode(e.target.value.toUpperCase().slice(0, 8))}
+                      placeholder="EX: ABCD1234"
+                      autoComplete="off"
+                      maxLength={8}
+                      className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted tracking-widest font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* CTA */}
               <div className="pt-2">

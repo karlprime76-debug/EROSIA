@@ -2,7 +2,7 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield, Gift, Share2, Users, Copy } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
@@ -28,6 +28,11 @@ export default function SettingsPage() {
   const [nameValue, setNameValue] = useState('')
   const [profileName, setProfileName] = useState('')
   const [savingName, setSavingName] = useState(false)
+  const [referralCode, setReferralCode] = useState('')
+  const [referralStats, setReferralStats] = useState({ total: 0, joined: 0, canRedeem: false, rewarded: false })
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
+  const [redeemMsg, setRedeemMsg] = useState('')
 
   useEffect(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
@@ -40,6 +45,8 @@ export default function SettingsPage() {
       setTravelCity(mode.city ?? '')
     }).catch(logger.error)
     getGhostMode().then(setGhostMode).catch(logger.error)
+    fetch('/api/referrals/code').then(r => r.json()).then(d => { if (d.code) setReferralCode(d.code) }).catch(logger.error)
+    fetch('/api/referrals/stats').then(r => r.json()).then(d => { if (d.total !== undefined) setReferralStats(d) }).catch(logger.error)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('profiles').select('name, visibility, notif_push, notif_email').eq('id', user.id).maybeSingle().then(({ data }) => {
@@ -187,6 +194,68 @@ export default function SettingsPage() {
           icon: Shield, label: 'Centre de sécurité',
           desc: 'Conseils, consentement, blocages et signalements',
           onClick: () => router.push('/safety'),
+        },
+      ],
+    },
+    {
+      title: 'Parrainage',
+      items: [
+        {
+          icon: Gift, label: 'Ton code de parrainage',
+          desc: referralCode || 'Chargement...',
+          render: () => referralCode ? (
+            <div className="flex items-center gap-2 mt-2">
+              <code className="px-3 py-1.5 rounded-lg text-sm font-mono font-bold tracking-widest bg-[var(--surfaceElevated)] border border-[var(--border)]"
+                style={{ color: 'var(--primary)' }}>{referralCode}</code>
+              <button type="button" onClick={() => { navigator.clipboard.writeText(referralCode).then(() => { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000) }).catch(logger.error) }}
+                aria-label="Copier le code" className="rounded-full p-2 hover:bg-[var(--surfaceElevated)] transition">
+                {copiedCode ? <Check size={16} className="text-[var(--successVibrant)]" /> : <Copy size={16} className="text-[var(--textSecondary)]" />}
+              </button>
+              <button type="button" onClick={() => { const url = `${window.location.origin}/register?ref=${referralCode}`; navigator.clipboard.writeText(url).then(() => { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000) }).catch(logger.error) }}
+                aria-label="Copier le lien de parrainage" className="rounded-full p-2 hover:bg-[var(--surfaceElevated)] transition">
+                <Share2 size={16} className="text-[var(--textSecondary)]" />
+              </button>
+            </div>
+          ) : null,
+        },
+        {
+          icon: Users, label: 'Filleuls',
+          desc: `${referralStats.total} invité${referralStats.total > 1 ? 's' : ''}, ${referralStats.joined} inscrit${referralStats.joined > 1 ? 's' : ''}`,
+          render: () => (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                    i <= referralStats.joined ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textMuted)]'
+                  }`}>{i}</div>
+                ))}
+                <span className="text-xs text-[var(--textSecondary)] ml-1">/5</span>
+              </div>
+              {referralStats.rewarded ? (
+                <p className="text-xs text-[var(--successVibrant)] font-medium">✅ Récompense déjà obtenue</p>
+              ) : referralStats.canRedeem ? (
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={async () => {
+                    setRedeeming(true); setRedeemMsg('')
+                    try {
+                      const res = await fetch('/api/referrals/redeem', { method: 'POST' })
+                      const data = await res.json()
+                      if (res.ok) { setRedeemMsg('✅ 30 jours Premium offerts !'); setReferralStats(prev => ({ ...prev, rewarded: true })) }
+                      else { setRedeemMsg(data.error ?? 'Erreur') }
+                    } catch { setRedeemMsg('Erreur réseau') }
+                    finally { setRedeeming(false) }
+                  }} disabled={redeeming}
+                    className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--textOnPrimary)]"
+                    style={{ background: 'linear-gradient(135deg, var(--primary), var(--accentOrange))' }}>
+                    {redeeming ? 'Récompense en cours...' : '🎉 Réclamer 30 jours Premium'}
+                  </button>
+                </div>
+              ) : referralStats.joined > 0 && (
+                <p className="text-xs text-[var(--textSecondary)]">Plus que {5 - referralStats.joined} filleul{5 - referralStats.joined > 1 ? 's' : ''} pour débloquer 30 jours Premium</p>
+              )}
+              {redeemMsg && <p className="text-xs text-[var(--textSecondary)]">{redeemMsg}</p>}
+            </div>
+          ),
         },
       ],
     },
