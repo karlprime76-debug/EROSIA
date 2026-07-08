@@ -38,12 +38,12 @@ export async function POST(request: Request) {
 
     if (blockByTarget) return NextResponse.json({ error: 'Action non autorisée' }, { status: 403 })
 
-    const { data: msgCount } = await admin
+    const { count: msgCount } = await admin
       .from('messages')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .eq('match_id', matchId)
 
-    if (!msgCount || msgCount.length === 0) {
+    if (!msgCount) {
       const { data: targetPrivacy } = await admin
         .from('privacy_settings')
         .select('first_message_permission')

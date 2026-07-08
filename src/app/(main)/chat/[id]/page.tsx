@@ -65,6 +65,7 @@ export default function ChatPage() {
   const msgChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const confirmedIds = useRef(new Set<string>())
 
   const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
@@ -113,6 +114,7 @@ export default function ChatPage() {
         event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
       }, (payload: { new: Record<string, unknown> }) => {
         const m = payload.new as unknown as ChatMessage
+        if (confirmedIds.current.has(m.id)) return
         setMessages(prev => {
           if (prev.some(p => p.id === m.id)) return prev
           return [...prev, m]
@@ -167,16 +169,42 @@ export default function ChatPage() {
     const text = input.trim()
     if (!text || sending) return
     setSending(true)
+    const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const tempMsg = {
+      id: clientId,
+      match_id: matchId,
+      sender_id: myId,
+      text,
+      image_url: null,
+      audio_url: null,
+      video_url: null,
+      gif_url: null,
+      reply_to: null,
+      reply_preview: null,
+      view_once: false,
+      expires_at: null,
+      read_at: null,
+      edited_at: null,
+      deleted_for_all: false,
+      created_at: new Date().toISOString(),
+    } as ChatMessage
+    setMessages(prev => [...prev, tempMsg])
     setInput('')
     setReplyTo(null)
     setShowEmoji(false)
     setShowAi(false)
     setShowMsgSugg(false)
-    const { error } = await sendMessage(matchId, text)
-    if (error) toast("Erreur d'envoi", 'error')
-    setSending(false)
     scrollToBottom()
-  }, [input, sending, matchId, toast, scrollToBottom])
+    const { data, error } = await sendMessage(matchId, text)
+    if (error) {
+      setMessages(prev => prev.filter(m => m.id !== clientId))
+      toast(error, 'error')
+    } else if (data) {
+      confirmedIds.current.add(data.id)
+      setMessages(prev => [...prev.filter(m => m.id !== clientId), data as ChatMessage])
+    }
+    setSending(false)
+  }, [input, sending, matchId, myId, toast, scrollToBottom])
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value)

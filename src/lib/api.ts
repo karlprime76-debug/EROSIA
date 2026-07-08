@@ -218,14 +218,18 @@ export async function getMessages(matchId: string): Promise<{ data: Message[] | 
 
 export async function sendMessage(matchId: string, text: string) {
   try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 8000)
     const res = await fetch('/api/messages/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matchId, text }),
+      signal: ctrl.signal,
     })
+    clearTimeout(t)
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? "Erreur lors de l'envoi" }
-    return { data: data.data as Message | null }
+    return { data: data.data as Message }
   } catch {
     return { error: 'Erreur réseau' }
   }
