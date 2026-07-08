@@ -611,9 +611,9 @@ export default function BoutiquePage() {
         )}
       </div>
 
-      {/* Floating cart bar */}
-      {tab === 'cadeaux' && cart.length > 0 && !showCheckout && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
+      {/* Floating cart bar — portal to escape parent transform/padding context */}
+      {tab === 'cadeaux' && cart.length > 0 && !showCheckout && typeof window === 'object' && createPortal(
+        <div className="fixed bottom-0 left-0 right-0 z-[60] p-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
           <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl">
             <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
               <ShoppingCart size={16} style={{ color: 'var(--primary)' }} />
@@ -628,7 +628,8 @@ export default function BoutiquePage() {
               Commander
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Checkout bottom sheet — portal to escape parent transform/padding context */}
