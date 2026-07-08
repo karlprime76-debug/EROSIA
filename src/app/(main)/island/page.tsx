@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Crown, Check, Copy, Share2, Sparkles, Star, MapPin, Eye, Brain, Gift, Loader, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock, ShoppingCart, X } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { createCheckoutSession, getSubscriptionStatus, getGifts, getMatches, createCartCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
@@ -630,9 +631,9 @@ export default function BoutiquePage() {
         </div>
       )}
 
-      {/* Checkout bottom sheet */}
-      {showCheckout && (
-        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowCheckout(false)}
+      {/* Checkout bottom sheet — portal to escape parent transform/padding context */}
+      {showCheckout && typeof window === 'object' && createPortal(
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowCheckout(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setShowCheckout(false) }}>
           <FocusTrap active={showCheckout}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
@@ -680,7 +681,8 @@ export default function BoutiquePage() {
               {sending ? <><Loader size={16} className="animate-spin" /> Paiement en cours...</> : <><Send size={16} /> Payer {fmt(cartTotal)} F</>}
             </button>
           </div></FocusTrap>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
