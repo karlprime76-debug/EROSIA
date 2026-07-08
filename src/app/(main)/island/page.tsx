@@ -162,9 +162,10 @@ export default function BoutiquePage() {
     }).catch(() => { toast('Erreur chargement des cadeaux', 'error'); setGiftsLoading(false) })
   }, [tab, toast])
 
-  const handleUpgrade = useCallback(async () => {
+  const handleUpgrade = useCallback(async (planId: string) => {
     setUpgrading(true)
-    const { url, error } = await createCheckoutSession()
+    const plan = planId === 'premium_yearly' ? 'yearly' : 'monthly'
+    const { url, error } = await createCheckoutSession(plan)
     if (error) { toast(error, 'error'); setUpgrading(false); return }
     if (url) window.location.href = url
     setUpgrading(false)
@@ -313,7 +314,7 @@ export default function BoutiquePage() {
                       ))}
                     </ul>
                     {plan.id !== 'free' && (
-                      <button type="button" onClick={handleUpgrade} disabled={isCurrent || upgrading}
+                      <button type="button" onClick={() => handleUpgrade(plan.id)} disabled={isCurrent || upgrading}
                         className={`w-full py-3 rounded-full text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-40 ${isCurrent ? 'border border-[var(--border)] text-secondary cursor-default' : 'text-on-primary shadow-lg'}`}
                         style={isCurrent ? undefined : { background: 'linear-gradient(135deg, var(--primary), #FF6B35)' }}>
                         {upgrading ? <span className="flex items-center justify-center gap-2"><Loader size={16} className="animate-spin" /> En cours...</span> : isCurrent ? 'Actuel' : plan.cta}

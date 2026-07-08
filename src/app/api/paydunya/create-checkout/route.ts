@@ -3,19 +3,25 @@ import { createInvoice } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
+    let plan: string = 'monthly'
+    try { const b = await request.json(); if (b.plan === 'yearly') plan = 'yearly' } catch { /* use default monthly */ }
+
+    const amount = plan === 'yearly' ? '50000' : '5000'
+    const desc = plan === 'yearly' ? 'Abonnement Premium Erosia - 1 an' : 'Abonnement Premium Erosia - 1 mois'
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
     let result: { status: string; response_text?: string; token?: string }
     try {
       result = await createInvoice(
-        '5000',
-        'Abonnement Premium Erosia - 1 mois',
-        { user_id: user.id },
+        amount,
+        desc,
+        { user_id: user.id, plan },
         `${siteUrl}/settings`,
         `${siteUrl}/settings?premium=success`,
         `${siteUrl}/api/paydunya/webhook`,

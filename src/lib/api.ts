@@ -483,10 +483,11 @@ export async function getCompatibilityReport(matchId: string) {
 // 9. Typing indicator (no SQL, uses Realtime channels)
 
 // ---- FEATURE 1: Premium / PayDunya ----
-export async function createCheckoutSession(): Promise<{ url?: string; error?: string }> {
+export async function createCheckoutSession(plan: 'monthly' | 'yearly' = 'monthly'): Promise<{ url?: string; error?: string }> {
   try {
     const res = await fetch('/api/paydunya/create-checkout', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error || 'Erreur de paiement' }
