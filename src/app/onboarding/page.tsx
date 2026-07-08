@@ -185,6 +185,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-theme flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8">
+      <h1 className="sr-only">Onboarding</h1>
       {/* Éléments de lueur d'arrière-plan */}
       <div className="pointer-events-none absolute top-10 right-10 w-80 h-80 rounded-full bg-[var(--primary)] blur-[150px] opacity-[0.06]" />
       <div className="pointer-events-none absolute bottom-10 left-10 w-96 h-96 rounded-full bg-[var(--accent-cool)] blur-[150px] opacity-[0.05]" />

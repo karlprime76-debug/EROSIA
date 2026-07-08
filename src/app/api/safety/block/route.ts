@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Safety block POST error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }
@@ -65,7 +65,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Safety block DELETE error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

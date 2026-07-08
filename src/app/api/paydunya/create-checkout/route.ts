@@ -3,13 +3,13 @@ import { createInvoice } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'https://erosia.app'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
     let result: { status: string; response_text?: string; token?: string }
     try {
       result = await createInvoice(
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: paymentUrl })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Create checkout error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

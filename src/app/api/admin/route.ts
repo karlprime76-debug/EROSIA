@@ -25,7 +25,7 @@ export async function GET() {
       payouts: payouts ?? [],
     })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Admin GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
@@ -54,7 +54,7 @@ export async function PATCH(request: Request) {
     }
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Admin PATCH error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

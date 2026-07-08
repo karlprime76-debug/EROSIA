@@ -34,9 +34,11 @@ export async function GET() {
       created_at: r.created_at,
     }))
 
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data: result }, {
+      headers: { 'Cache-Control': 'private, s-maxage=15, stale-while-revalidate=30' },
+    })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Blocked list GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

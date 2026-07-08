@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEvents, createEvent, type CreateEventInput, type EventFilters } from '@/lib/events'
+import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') ?? '1', 10)
     const filters: EventFilters = {}
@@ -22,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await getEvents(filters, page)
 
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })
 
     return NextResponse.json({ data, page }, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
@@ -56,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await createEvent(input, file ?? undefined)
 
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })
 
     return NextResponse.json({ data }, { status: 201 })
   } catch (err) {

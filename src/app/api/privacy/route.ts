@@ -15,12 +15,16 @@ export async function GET() {
     if (!data) {
       const { error: insError } = await supabase.from('privacy_settings').insert({ user_id: user.id })
       if (insError) return NextResponse.json({ error: insError.message }, { status: 400 })
-      return NextResponse.json({ settings: DEFAULT_PRIVACY })
+      return NextResponse.json({ settings: DEFAULT_PRIVACY }, {
+        headers: { 'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60' },
+      })
     }
 
-    return NextResponse.json({ settings: data as PrivacySettings })
+    return NextResponse.json({ settings: data as PrivacySettings }, {
+      headers: { 'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60' },
+    })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Privacy GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }
@@ -52,7 +56,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Privacy PUT error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

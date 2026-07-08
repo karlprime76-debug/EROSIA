@@ -14,13 +14,15 @@ export async function GET() {
     if (auraError || !aura) {
       const result = await computeAndSaveAura(user.id, supabase)
       if (result.error) {
-        logger.error('computeAndSaveAura failed', { userId: user.id, error: result.error })
-        return NextResponse.json({ error: result.error }, { status: 400 })
+        logger.error('computeAndSaveAura failed', { userId: user.id, error: String(result.error ?? 'Erreur') })
+        return NextResponse.json({ error: String(result.error ?? 'Erreur') }, { status: 400 })
       }
       aura = result.data
     }
 
-    return NextResponse.json({ aura })
+    return NextResponse.json({ aura }, {
+      headers: { 'Cache-Control': 'private, s-maxage=30' },
+    })
   } catch (err) {
     logger.error('Aura GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
@@ -34,7 +36,7 @@ export async function POST() {
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const result = await computeAndSaveAura(user.id, supabase)
-    if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
+    if (result.error) return NextResponse.json({ error: String(result.error ?? 'Erreur') }, { status: 400 })
 
     return NextResponse.json({ aura: result.data })
   } catch (err) {

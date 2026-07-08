@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') ?? '1', 10)
 
     const { data, error } = await getActiveStories(page)
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
 
     return NextResponse.json({ groups: data }, {
       headers: {

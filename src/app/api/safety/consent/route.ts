@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Consent POST error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json(data)
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Consent GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }
@@ -74,7 +74,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Consent DELETE error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

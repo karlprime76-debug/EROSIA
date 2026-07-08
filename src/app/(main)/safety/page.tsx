@@ -95,6 +95,7 @@ export default function SafetyPage() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Sécurité</h1>
       <Header router={router} />
 
       <div className="px-4 pb-8 overflow-y-auto flex-1">

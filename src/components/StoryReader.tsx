@@ -120,7 +120,7 @@ function StoryViewer({
         ) : (
           <Image
             src={story.media_url}
-            alt="Story"
+            alt={story.caption || "Story"}
             fill
             className="object-contain bg-[var(--bg)]"
             unoptimized

@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(results)
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Recompute POST error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

@@ -62,6 +62,9 @@ export default function ChatPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const suggTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const msgChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
@@ -95,6 +98,7 @@ export default function ChatPage() {
       markAsRead(matchId)
 
       const msgChannel = supabase.channel(`messages:${matchId}`)
+      msgChannelRef.current = msgChannel
       msgChannel.on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
       }, (payload: { new: Record<string, unknown> }) => {
@@ -124,6 +128,7 @@ export default function ChatPage() {
       msgChannel.subscribe()
 
       const typingChannel = supabase.channel(`typing:match-${matchId}`)
+      typingChannelRef.current = typingChannel
       typingChannel.on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
         setIsTyping(payload.payload?.userId === oId)
         if (payload.payload?.userId === oId) {
@@ -134,17 +139,18 @@ export default function ChatPage() {
       typingChannel.subscribe()
 
       const presenceChannel = supabase.channel(`presence:${oId}`, { config: { presence: { key: '' } } })
+      presenceChannelRef.current = presenceChannel
       presenceChannel.on('presence', { event: 'sync' }, () => {
         setIsOnline(Object.keys(presenceChannel.presenceState()).length > 0)
       })
       presenceChannel.subscribe()
-
-      return () => {
-        supabase.removeChannel(msgChannel)
-        supabase.removeChannel(typingChannel)
-        supabase.removeChannel(presenceChannel)
-      }
     })
+
+    return () => {
+      if (msgChannelRef.current) supabase.removeChannel(msgChannelRef.current)
+      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current)
+      if (presenceChannelRef.current) supabase.removeChannel(presenceChannelRef.current)
+    }
   }, [matchId, router, toast, scrollToBottom])
 
   const handleSend = useCallback(async () => {
@@ -343,6 +349,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-transparent h-full">
+      <h1 className="sr-only">Chat</h1>
       <header className="flex items-center gap-3 px-3 py-3 border-b border-theme/50 bg-theme/80 backdrop-blur-xl z-10">
         <button onClick={() => router.push('/matches')} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-surface transition-colors">
           <ArrowLeft size={20} />

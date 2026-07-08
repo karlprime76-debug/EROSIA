@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion } from 'motion/react'
 import { Check, CheckCheck, Pencil, Trash2, Copy, Reply, Flag, X } from 'lucide-react'
@@ -38,7 +38,7 @@ function useTimeAgo(createdAt: string) {
   return timeAgo
 }
 
-export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport }: {
+export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport }: {
   msg: ChatMessage
   isOwn: boolean
   onReply?: (msg: ChatMessage) => void
@@ -109,7 +109,7 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
         >
           {msg.image_url && (
             <div className="mb-2 -mx-1 -mt-1">
-              <Image src={msg.image_url} alt="Photo" width={300} height={300}
+              <Image src={msg.image_url} alt="Photo partagée" width={300} height={300} loading="lazy"
                 className="rounded-xl w-full max-h-[300px] object-cover cursor-pointer"
                 onClick={() => window.open(msg.image_url!, '_blank')} />
             </div>
@@ -123,7 +123,7 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
 
           {msg.gif_url && (
             <div className="mb-2 -mx-1 -mt-1">
-              <Image src={msg.gif_url} alt="GIF" width={300} height={300}
+              <Image src={msg.gif_url} alt="GIF animé" width={300} height={300} loading="lazy"
                 className="rounded-xl w-full max-h-[200px] object-cover" unoptimized />
             </div>
           )}
@@ -158,7 +158,7 @@ export function MessageBubble({ msg, isOwn, onReply, onEdit, onDelete, onReport 
       </div>
     </motion.div>
   )
-}
+})
 
 function AnimatedActions({ isOwn, show, onCopy, onReply, onEdit, onDelete, onReport }: {
   isOwn: boolean; show: boolean; onCopy: () => void; onReply: () => void

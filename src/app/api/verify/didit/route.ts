@@ -3,13 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createVerificationSession } from '@/lib/didit'
 import { logger } from '@/lib/logger'
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'https://erosia.app'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
     const callbackUrl = `${siteUrl}/api/verify/webhook`
 
     const { sessionId, url } = await createVerificationSession(user.id, callbackUrl)

@@ -22,7 +22,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Erreur lors du chargement du profil', userId: user.id }, { status: 500 })
     }
 
-    return NextResponse.json({ profile: { ...profile, mood: 'discuter' }, userId: user.id })
+    return NextResponse.json({ profile: { ...profile, mood: 'discuter' }, userId: user.id }, {
+      headers: { 'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60' },
+    })
   } catch (err) {
     logger.error('[/api/profile/me] exception', err)
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })

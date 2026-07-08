@@ -14,9 +14,11 @@ export async function GET(
 
     const { id } = await params
     const { data, error } = await getStoryById(id)
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
     if (!data) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
-    return NextResponse.json({ story: data })
+    return NextResponse.json({ story: data }, {
+      headers: { 'Cache-Control': 'private, s-maxage=15, stale-while-revalidate=30' },
+    })
   } catch (err) {
     logger.error('Get story error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
@@ -30,7 +32,7 @@ export async function DELETE(
   try {
     const { id } = await params
     const { error } = await deleteStory(id)
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
     return NextResponse.json({ success: true })
   } catch (err) {
     logger.error('Delete story error', { error: String(err) })

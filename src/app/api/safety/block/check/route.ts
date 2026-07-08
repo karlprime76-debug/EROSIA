@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ blocked: !!data })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Safety block check error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

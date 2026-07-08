@@ -250,6 +250,7 @@ function ProfilePageInner() {
   return (
     <div className="relative min-h-screen bg-theme bg-gradient-to-b from-[var(--bg)] via-[var(--surface)] to-[var(--surfaceSecondary)] p-4">
   <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
+      <h1 className="sr-only">Profil</h1>
       <header className="flex items-center justify-between px-5 pt-6 pb-3 relative">
           <h2 className="text-3xl font-bold">Mon Profil</h2>
           {aura && (

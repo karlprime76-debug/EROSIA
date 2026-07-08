@@ -138,7 +138,7 @@ export async function getProfiles(excludeIds: string[], filters?: { minAge?: num
   return { data: attached, error: error?.message }
 }
 
-export async function getProfile(id: string) {
+export async function getProfile(id: string): Promise<{ data: Profile | null; error: string | null }> {
   const { data } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).maybeSingle()
   if (!data) return { data: null, error: 'Profil introuvable' }
   const attached = await attachScoresAndMood([data])
@@ -181,15 +181,17 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
   return { data: data as Swipe | null, error: error?.message }
 }
 
-export async function getSwipedIds() {
-  const { data, error } = await supabase().from('swipes').select('swiped_id').limit(100)
+export async function getSwipedIds(): Promise<string[]> {
+  const userId = await getCurrentUserId()
+  if (!userId) return []
+  const { data, error } = await supabase().from('swipes').select('swiped_id').eq('swiper_id', userId).limit(100)
   if (error) return []
   return (data ?? []).map(s => s.swiped_id)
 }
 
-export async function getMatches() {
+export async function getMatches(): Promise<{ data: Match[] | null; error?: string }> {
   const userId = await getCurrentUserId()
-  if (!userId) return { error: 'Not authenticated' }
+  if (!userId) return { data: null, error: 'Not authenticated' }
   const { data, error } = await supabase()
     .from('matches').select('*')
     .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
@@ -197,7 +199,7 @@ export async function getMatches() {
   return { data: data as Match[] | null, error: error?.message }
 }
 
-export async function checkForMatch(targetId: string) {
+export async function checkForMatch(targetId: string): Promise<{ isMatch: boolean; match: Match | null }> {
   const { data, error } = await supabase().from('matches').select('*').or(`user1_id.eq.${targetId},user2_id.eq.${targetId}`).maybeSingle() as PostgrestMaybeSingleResponse<Match>
   if (error || !data) return { isMatch: false, match: null }
   const userId = await getCurrentUserId()
@@ -206,7 +208,7 @@ export async function checkForMatch(targetId: string) {
   return { isMatch: otherId === targetId, match: data }
 }
 
-export async function getMessages(matchId: string) {
+export async function getMessages(matchId: string): Promise<{ data: Message[] | null; error?: string }> {
   const { error: authErr } = await assertMatchParticipant(matchId)
   if (authErr) return { data: null, error: authErr }
   const { data, error } = await supabase()
@@ -454,7 +456,7 @@ export async function getQuizAnswers() {
 export async function getCompatibilityBatch(otherUserIds: string[]) {
   const userId = await getCurrentUserId()
   if (!userId || otherUserIds.length === 0) return {}
-  const results = await Promise.all(otherUserIds.map(id =>
+  const results = await Promise.all(otherUserIds.slice(0, 50).map(id =>
     supabase().rpc('get_compatibility', { user_a_id: userId, user_b_id: id })
   ))
   const scores: Record<string, number> = {}
@@ -604,7 +606,7 @@ export async function getModerationQueue() {
   if (!userId) return { data: [], error: 'Not authenticated' }
   const { data: profile } = await supabase().from('profiles').select('is_admin').eq('id', userId).maybeSingle()
   if (!profile?.is_admin) return { data: [], error: 'Accès refusé' }
-  const { data, error } = await supabase().from('moderation_queue').select('*').order('created_at', { ascending: false })
+  const { data, error } = await supabase().from('moderation_queue').select('*').limit(50).order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
 }
 
@@ -988,6 +990,7 @@ export async function getGiftTransactions() {
     .from('gift_transactions')
     .select('*')
     .eq('user_id', userId)
+    .limit(50)
     .order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
 }

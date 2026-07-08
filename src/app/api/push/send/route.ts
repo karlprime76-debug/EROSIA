@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ sent })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Push send error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

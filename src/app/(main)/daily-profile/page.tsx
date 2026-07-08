@@ -48,6 +48,7 @@ function DailyProfileContent() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Profil du jour</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
@@ -56,7 +57,7 @@ function DailyProfileContent() {
       <div className="flex-1 px-4 pb-8 overflow-y-auto">
         <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-surface-elevated mb-4 relative">
           {profile.photos?.[0] ? (
-            <Image src={profile.photos[0]} alt={profile.name} fill className="object-cover" />
+            <Image src={profile.photos[0]} alt={profile.name} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-secondary text-4xl">?</div>
           )}

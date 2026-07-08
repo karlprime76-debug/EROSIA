@@ -36,13 +36,19 @@ const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL,
   'https://erosia.app',
   'http://localhost:3000',
-].filter(Boolean) as string[]
+].filter((s): s is string => Boolean(s))
 
 function originMatchesHost(originHeader: string | null, request: NextRequest): boolean {
   if (!originHeader) return false
   try {
     const originUrl = new URL(originHeader)
-    return originUrl.host === request.headers.get('host')
+    const allowed = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()) ?? []
+    if (allowed.length > 0) {
+      return allowed.includes(originUrl.origin)
+    }
+    // Fallback: check host (with port normalization)
+    const host = request.headers.get('host') ?? ''
+    return originUrl.host === host || originUrl.host === host.replace(/:\d+$/, '')
   } catch {
     return false
   }
@@ -133,7 +139,7 @@ export default async function proxy(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
+    "script-src 'self' 'strict-dynamic' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

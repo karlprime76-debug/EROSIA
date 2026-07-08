@@ -14,8 +14,10 @@ export async function GET(
 
     const { id } = await params
     const { data, error } = await getStoryReactions(id)
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
-    return NextResponse.json({ reactions: data })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
+    return NextResponse.json({ reactions: data }, {
+      headers: { 'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=30' },
+    })
   } catch (err) {
     logger.error('Story reactions list error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })

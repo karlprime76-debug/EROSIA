@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password, name, age } = parsed.data
-    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? request.headers.get('origin') ?? 'http://localhost:3000'
+    const origin = process.env.NEXT_PUBLIC_SITE_URL; if (!origin) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
 
     const supabase = await createClient()
     const { data: authData, error: authError } = await supabase.auth.signUp({

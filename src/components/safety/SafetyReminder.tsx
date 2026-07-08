@@ -64,7 +64,7 @@ export default function SafetyReminder({ open, onDismiss, onProceed, type = 'pho
                   </button>
                 </div>
               </div>
-              <button type="button" onClick={onDismiss}
+              <button type="button" onClick={onDismiss} aria-label="Fermer"
                 className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-surface transition-colors shrink-0">
                 <X className="w-3.5 h-3.5 text-muted" />
               </button>

@@ -13,11 +13,10 @@ export async function subscribeToPush() {
 
   let sub: PushSubscription
   try {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY ?? ''
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_KEY ?? ''
-      ) as unknown as string,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as BufferSource,
     })
   } catch {
     return { error: 'Refus de l\'autorisation push' }

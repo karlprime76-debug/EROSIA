@@ -7,6 +7,7 @@ import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentA
 import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
+import { FocusTrap } from '@/components/FocusTrap'
 import { logger } from '@/lib/logger'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
@@ -169,6 +170,7 @@ function GiftsContent() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Cadeaux</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Boutique cadeaux</h2>
@@ -195,7 +197,7 @@ function GiftsContent() {
         {showPayoutModal && (
           <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
-            <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <FocusTrap active={showPayoutModal}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-[var(--textPrimary)] mb-1">Retirer ton solde</h3>
               <p className="text-xs text-[var(--textSecondary)] mb-4">Solde disponible : <strong className="text-[var(--textPrimary)]">{fmt(balance)} F</strong></p>
               <div className="mb-3">
@@ -217,7 +219,7 @@ function GiftsContent() {
                   {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
                 </button>
               </div>
-            </div>
+            </div></FocusTrap>
           </div>
         )}
 

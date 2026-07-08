@@ -7,7 +7,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params
     const { error } = await leaveEvent(id)
 
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

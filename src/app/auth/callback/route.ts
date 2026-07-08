@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/onboarding'
+  const ALLOWED_REDIRECTS = ['/onboarding', '/discover', '/matches', '/settings', '/profile']
+  const nextParam = searchParams.get('next')
+  const next = nextParam && ALLOWED_REDIRECTS.includes(nextParam) ? nextParam : '/onboarding'
 
   if (code) {
     const supabase = await createClient()

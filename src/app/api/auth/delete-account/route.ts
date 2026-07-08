@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
+    const { password } = await request.json().catch(() => ({})) as { password?: string }
+    if (!password) return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email!, password })
+    if (signInError) return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 })
+
     const admin = createAdminClient()
 
     const uid = user.id
@@ -87,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Delete account error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
   }
 }

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const result = await engine.compute({ userId: user.id, targetId })
     return NextResponse.json(result)
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Compatibility GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

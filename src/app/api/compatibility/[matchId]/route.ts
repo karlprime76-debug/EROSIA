@@ -74,7 +74,9 @@ export async function GET(
       userA, userB,
     )
 
-    return NextResponse.json(report)
+    return NextResponse.json(report, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=120' },
+    })
   } catch (err) {
     logger.error('Compatibility API error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })

@@ -84,8 +84,10 @@ export async function getEvents(
   }
 
   if (filters?.query) {
-    const q = filters.query.replace(/[%_]/g, '')
-    query = query.or(`title.ilike.${q}%,description.ilike.${q}%,location.ilike.${q}%`)
+    const q = filters.query.replace(/[%_.(),]/g, '').trim()
+    if (q) {
+      query = query.or(`title.ilike.${q}%,description.ilike.${q}%,location.ilike.${q}%`)
+    }
   }
 
   const { data, error } = await query

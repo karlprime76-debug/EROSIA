@@ -114,6 +114,7 @@ export default function StoriesPage() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Stories</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Stories</h2>
@@ -193,6 +194,7 @@ export default function StoriesPage() {
                         <button
                           type="button"
                           onClick={() => toggleViews(story.id)}
+                          aria-label="Voir les vues"
                           className="text-[10px] text-[var(--textPrimary)]/70 flex items-center gap-1 bg-[var(--card)]/40 px-1.5 py-0.5 rounded-full"
                         >
                           <Eye size={10} /> {viewsData[story.id]?.length ?? story.view_count ?? 0}
@@ -205,6 +207,7 @@ export default function StoriesPage() {
                         <button
                           type="button"
                           onClick={() => handleDelete(story.id)}
+                          aria-label="Supprimer la story"
                           className="w-6 h-6 rounded-full bg-[var(--card)]/50 flex items-center justify-center hover:bg-[var(--cardHover)]/70"
                         >
                           <Trash2 size={10} />

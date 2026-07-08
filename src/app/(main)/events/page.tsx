@@ -67,6 +67,7 @@ export default function EventsPage() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Événements</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Antennes</h2>
@@ -90,7 +91,7 @@ export default function EventsPage() {
             className="w-full bg-surface-elevated rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border border-theme focus:border-primary/40 transition placeholder:text-secondary"
           />
           {query && (
-            <button type="button" onClick={() => { setQuery(''); searchRef.current?.focus() }}
+            <button type="button" onClick={() => { setQuery(''); searchRef.current?.focus() }} aria-label="Effacer la recherche"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
               <X size={14} />
             </button>

@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server'
 import { updatePosition } from '@/lib/social-space'
+import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
 export async function PUT(request: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { x, y, z, rotationY, animation } = await request.json()
     if (x === undefined || y === undefined || z === undefined) {
       return NextResponse.json({ error: 'x, y, z requis' }, { status: 400 })
     }
 
     const { error } = await updatePosition(x, y, z, rotationY, animation)
-    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
+    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

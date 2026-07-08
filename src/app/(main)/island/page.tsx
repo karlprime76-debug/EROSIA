@@ -6,6 +6,7 @@ import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentA
 import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
+import { FocusTrap } from '@/components/FocusTrap'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
 interface MatchItem { id: string; user1_id: string; user2_id: string }
@@ -155,6 +156,7 @@ export default function BoutiquePage() {
 
   return (
     <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Île</h1>
       <header className="px-5 pt-6 pb-2">
         <h2 className="text-3xl font-bold">Boutique</h2>
         <p className="text-secondary text-sm mt-0.5">Offre des cadeaux à tes matchs</p>
@@ -181,7 +183,7 @@ export default function BoutiquePage() {
         {showPayoutModal && (
           <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
-            <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-surface-elevated rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <FocusTrap active={showPayoutModal}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-surface-elevated rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-theme mb-1">Retirer ton solde</h3>
               <p className="text-xs text-secondary mb-4">Solde disponible : <strong className="text-theme">{fmt(balance)} F</strong></p>
               <div className="mb-3">
@@ -203,7 +205,7 @@ export default function BoutiquePage() {
                   {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
                 </button>
               </div>
-            </div>
+            </div></FocusTrap>
           </div>
         )}
 

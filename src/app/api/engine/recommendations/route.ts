@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result)
   } catch (err) {
-    logger.error('Route error', { error: String(err) })
+    logger.error('Recommendations GET error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

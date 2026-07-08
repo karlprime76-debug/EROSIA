@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MessageCircle, X, Star, Archive, MoreHorizontal, ShieldOff } from 'lucide-react'
@@ -45,7 +45,7 @@ export default function ConversationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<FilterMode>('all')
   const [typingMap, setTypingMap] = useState<Record<string, boolean>>({})
-  const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({})
+  const [onlineMap] = useState<Record<string, boolean>>({})
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const { toast } = useToast()
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
@@ -106,24 +106,18 @@ export default function ConversationsPage() {
       }
       if (!cancelled) setConvs(list)
 
-      list.forEach(c => {
-        const ch = supabase.channel(`typing:match-${c.matchId}`)
-        channelsRef.current.push(ch)
-        ch.on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
-          setTypingMap(prev => ({ ...prev, [c.matchId]: payload.payload?.userId === c.profile.id }))
+      const matchIds = list.map(c => c.matchId)
+      if (matchIds.length > 0) {
+        const typingChannel = supabase.channel('matches-typing')
+        channelsRef.current.push(typingChannel)
+        typingChannel.on('broadcast', { event: 'typing' }, (payload: { payload?: { matchId?: string; userId?: string } }) => {
+          if (payload.payload?.matchId && matchIds.includes(payload.payload.matchId) && payload.payload?.userId) {
+            setTypingMap(prev => ({ ...prev, [payload.payload!.matchId!]: true }))
+            setTimeout(() => setTypingMap(prev => { const n = { ...prev }; delete n[payload.payload!.matchId!]; return n }), 3000)
+          }
         })
-        ch.subscribe()
-      })
-
-      list.forEach(c => {
-        const ch = supabase.channel(`presence:${c.profile.id}`, { config: { presence: { key: '' } } })
-        channelsRef.current.push(ch)
-        ch.on('presence', { event: 'sync' }, () => {
-          const state = ch.presenceState()
-          setOnlineMap(prev => ({ ...prev, [c.profile.id]: Object.keys(state).length > 0 }))
-        })
-        ch.subscribe()
-      })
+        typingChannel.subscribe()
+      }
 
       if (!cancelled) setLoading(false)
     }).catch(() => { toast('Erreur', 'error') })
@@ -172,6 +166,7 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-transparent">
+      <h1 className="sr-only">Mes matchs</h1>
       <header className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-3xl font-bold">Messages</h2>
@@ -242,7 +237,7 @@ export default function ConversationsPage() {
   )
 }
 
-function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen, onUnmatch, onToggleFavorite, onToggleArchive }: {
+const ConversationCard = React.memo(function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen, onUnmatch, onToggleFavorite, onToggleArchive }: {
   conv: ConvItem; myId: string; isOnline: boolean; isTyping: boolean
   menuOpen: string | null; onMenuOpen: (id: string | null) => void
   onUnmatch: (id: string) => void; onToggleFavorite: (id: string) => void; onToggleArchive: (id: string) => void
@@ -305,7 +300,7 @@ function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen
       )}
 
       <div className="relative">
-        <button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); onMenuOpen(menuOpen === conv.matchId ? null : conv.matchId) }}
+        <button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); onMenuOpen(menuOpen === conv.matchId ? null : conv.matchId) }} aria-label="Menu"
           className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-hover">
           <MoreHorizontal size={16} className="text-muted" />
         </button>
@@ -334,4 +329,4 @@ function ConversationCard({ conv, myId, isOnline, isTyping, menuOpen, onMenuOpen
       </div>
     </Link>
   )
-}
+})

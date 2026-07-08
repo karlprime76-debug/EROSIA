@@ -169,10 +169,10 @@ export default function DiscoverPage() {
   const { confirm } = useConfirm()
 
   useEffect(() => {
-    getPrivacySettings().then(r => { if (r.data) setBlurPhotos(r.data.blur_photos) }).catch(logger.error)
-    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(logger.error)
-    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(logger.error)
-    checkPremium().then(setIsPremium).catch(logger.error)
+    getPrivacySettings().then(r => { if (r.data) setBlurPhotos(r.data.blur_photos) }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
+    getSuperLikesRemaining().then(r => setSuperLikesLeft(r ?? SUPER_LIKE_DAILY)).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
+    getDailySwipeCount().then(({ count, limit }) => { setSwipeCount(count); setSwipeLimit(limit) }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
+    checkPremium().then(setIsPremium).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     fetch('/api/profile/me').then(r => r.json()).then((json) => {
       if (json.profile) {
         setMyId(json.profile.id)
@@ -192,7 +192,7 @@ export default function DiscoverPage() {
             }
           }, (err) => logger.error('Discover error', { error: String(err) }))
         }
-      }).catch(logger.error)
+      }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     })
   }, [])
 
@@ -218,7 +218,7 @@ export default function DiscoverPage() {
           setHasMore(data.length >= DISCOVER_PAGE_SIZE)
         }
         setLoading(false)
-      }).catch(logger.error)
+      }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
   }, [myId, toast])
 
@@ -397,6 +397,7 @@ export default function DiscoverPage() {
 
   return (
     <div className="flex-1 flex flex-col">
+      <h1 className="sr-only">Découvrir</h1>
       {/* ─── Header premium ─── */}
       <header className="relative flex items-center justify-between px-4 pt-5 pb-3">
         {/* Glow de titre */}

@@ -5,6 +5,7 @@ export interface Story {
   user_id: string
   media_url: string
   type: 'image' | 'video'
+  caption?: string
   privacy: StoryPrivacy
   compression_quality?: number
   created_at: string
