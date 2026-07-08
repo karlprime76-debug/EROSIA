@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Crown, Check, Copy, Share2, Sparkles, Star, MapPin, Eye, Brain, Gift, Loader, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock } from 'lucide-react'
+import { Crown, Check, Copy, Share2, Sparkles, Star, MapPin, Eye, Brain, Gift, Loader, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock, ShoppingCart, X } from 'lucide-react'
 import { useToast } from '@/components/Toast'
-import { createCheckoutSession, getSubscriptionStatus, getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
+import { createCheckoutSession, getSubscriptionStatus, getGifts, getMatches, createCartCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
 import type { GiftTransaction } from '@/lib/api'
 import { getReferralCode, getReferralStats } from '@/lib/referrals'
 import { logger } from '@/lib/logger'
@@ -34,12 +34,7 @@ const plans: Plan[] = [
     price: '0',
     period: '/mois',
     priceCfa: 0,
-    features: [
-      '20 swipes par jour',
-      'Profils de base',
-      'Chat avec tes matchs',
-      'Stories',
-    ],
+    features: ['20 swipes par jour', 'Profils de base', 'Chat avec tes matchs', 'Stories'],
     cta: 'Actuel',
   },
   {
@@ -49,14 +44,7 @@ const plans: Plan[] = [
     period: '/mois',
     priceCfa: 5000,
     popular: true,
-    features: [
-      'Swipes illimités',
-      'Ghost Mode',
-      'Mode Voyage',
-      'Quiz de compatibilité',
-      'Voir qui t\'a liké',
-      'Badge Premium',
-    ],
+    features: ['Swipes illimités', 'Ghost Mode', 'Mode Voyage', 'Quiz de compatibilité', 'Voir qui t\'a liké', 'Badge Premium'],
     cta: 'S\'abonner',
   },
   {
@@ -65,12 +53,7 @@ const plans: Plan[] = [
     price: '50 000',
     period: '/an',
     priceCfa: 50000,
-    features: [
-      'Tous les avantages Premium',
-      'Économise 10 000 F',
-      'Badge Premium exclusif',
-      'Priorité support',
-    ],
+    features: ['Tous les avantages Premium', 'Économise 10 000 F', 'Badge Premium exclusif', 'Priorité support'],
     cta: 'S\'abonner',
   },
 ]
@@ -84,7 +67,6 @@ const premiumFeatures = [
   { icon: MapPin, label: 'Voir les likes', desc: 'Sait qui t\'a liké avant de swiper' },
 ]
 
-const FEE_PERCENT = 15
 const EUR_TO_XOF = 655.957
 const toXof = (cents: number) => Math.round(cents * EUR_TO_XOF / 100)
 const fmt = (n: number) => n.toLocaleString('fr-FR')
@@ -107,7 +89,8 @@ export default function BoutiquePage() {
   const [gifts, setGifts] = useState<GiftItem[]>([])
   const [matches, setMatches] = useState<MatchItem[]>([])
   const [myId, setMyId] = useState('')
-  const [selectedGift, setSelectedGift] = useState<string | null>(null)
+  const [cart, setCart] = useState<GiftItem[]>([])
+  const [showCheckout, setShowCheckout] = useState(false)
   const [selectedMatch, setSelectedMatch] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -131,11 +114,14 @@ export default function BoutiquePage() {
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
 
+  const toggleCart = useCallback((gift: GiftItem) => {
+    setCart(prev => prev.find(g => g.id === gift.id) ? prev.filter(g => g.id !== gift.id) : [...prev, gift])
+  }, [])
+
+  const cartTotal = cart.reduce((sum, g) => sum + toXof(g.price_cents), 0)
+
   useEffect(() => {
-    getSubscriptionStatus().then(s => {
-      setCurrentTier(s.tier)
-      setLoading(false)
-    })
+    getSubscriptionStatus().then(s => { setCurrentTier(s.tier); setLoading(false) })
   }, [])
 
   useEffect(() => {
@@ -150,36 +136,21 @@ export default function BoutiquePage() {
       if (!data.user) return
       setMyId(data.user.id)
       const uid = data.user.id
-      const [giftsData, receivedData, payAcc] = await Promise.all([
-        getGifts(),
-        getReceivedGifts(),
-        getPaymentAccount(),
-      ])
+      const [giftsData, receivedData, payAcc] = await Promise.all([getGifts(), getReceivedGifts(), getPaymentAccount()])
       if (giftsData.data) setGifts(giftsData.data)
       if (receivedData.data) setReceived(receivedData.data as typeof received)
       if (payAcc) {
         setSavedPayMethod(payAcc.type as 'mobile_money' | 'card')
-        if (payAcc.type === 'mobile_money') {
-          setPayPhone(payAcc.phone ?? ''); setPayOperator(payAcc.operator ?? 'Orange Money'); setPayCountry(payAcc.country ?? 'SN'); setPaySaved(true)
-        } else if (payAcc.type === 'card') {
-          setPayCardLast4(payAcc.card_last4 ?? ''); setPayCardBrand(payAcc.card_brand ?? ''); setPaySaved(true)
-        }
+        if (payAcc.type === 'mobile_money') { setPayPhone(payAcc.phone ?? ''); setPayOperator(payAcc.operator ?? 'Orange Money'); setPayCountry(payAcc.country ?? 'SN'); setPaySaved(true) }
+        else if (payAcc.type === 'card') { setPayCardLast4(payAcc.card_last4 ?? ''); setPayCardBrand(payAcc.card_brand ?? ''); setPaySaved(true) }
       }
-      const [matchData, bal, txns] = await Promise.all([
-        getMatches(),
-        getGiftBalance(),
-        getGiftTransactions(),
-      ])
+      const [matchData, bal, txns] = await Promise.all([getMatches(), getGiftBalance(), getGiftTransactions()])
       if (matchData.data) {
         setMatches(matchData.data)
         const otherIds = matchData.data.map(m => m.user1_id === uid ? m.user2_id : m.user1_id).filter(Boolean)
         if (otherIds.length > 0) {
           const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', otherIds)
-          if (profiles) {
-            const names: Record<string, string> = {}
-            for (const p of profiles) names[p.id] = p.name
-            setMatchNames(names)
-          }
+          if (profiles) { const names: Record<string, string> = {}; for (const p of profiles) names[p.id] = p.name; setMatchNames(names) }
         }
       }
       setBalance(bal)
@@ -198,19 +169,13 @@ export default function BoutiquePage() {
 
   const copyCode = useCallback(() => {
     if (!referralCode) return
-    navigator.clipboard.writeText(referralCode).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(logger.error)
+    navigator.clipboard.writeText(referralCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
   }, [referralCode])
 
   const shareLink = useCallback(() => {
     if (!referralCode) return
     const url = `${window.location.origin}/register?ref=${referralCode}`
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(logger.error)
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
   }, [referralCode])
 
   const handleRedeem = useCallback(async () => {
@@ -218,43 +183,31 @@ export default function BoutiquePage() {
     try {
       const res = await fetch('/api/referrals/redeem', { method: 'POST' })
       const data = await res.json()
-      if (res.ok) {
-        setRedeemMsg('30 jours Premium offerts !')
-        setReferralStats(prev => ({ ...prev, rewarded: true }))
-        getSubscriptionStatus().then(s => setCurrentTier(s.tier))
-      } else {
-        setRedeemMsg(data.error ?? 'Erreur')
-      }
-    } catch {
-      setRedeemMsg('Erreur réseau')
-    } finally {
-      setRedeeming(false)
-    }
+      if (res.ok) { setRedeemMsg('30 jours Premium offerts !'); setReferralStats(prev => ({ ...prev, rewarded: true })); getSubscriptionStatus().then(s => setCurrentTier(s.tier)) }
+      else setRedeemMsg(data.error ?? 'Erreur')
+    } catch { setRedeemMsg('Erreur réseau') }
+    finally { setRedeeming(false) }
   }, [])
 
   const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
-  const selectedGiftData = gifts.find(g => g.id === selectedGift)
 
-  const handleGiftSend = async () => {
-    if (!selectedGift || !selectedMatch) return
+  const handleCheckout = async () => {
+    if (!selectedMatch || cart.length === 0) return
     setSending(true)
     try {
       const match = matches.find(m => m.id === selectedMatch)
       if (!match) return
-      const result = await createGiftCheckout(selectedGift, getOtherId(match), selectedMatch, giftMessage || undefined, payPhone || undefined, payOperator || undefined)
+      const result = await createCartCheckout(cart.map(g => g.id), getOtherId(match), selectedMatch, giftMessage || undefined, payPhone || undefined, payOperator || undefined)
+      if (result.error) { toast(result.error, 'error'); setSending(false); return }
       if (result.data?.sent) {
-        toast('Demande de paiement envoyée sur votre téléphone. Confirmez le paiement dans votre application Mobile Money.', 'success')
-        setSelectedGift(null)
+        toast('Demande de paiement envoyée sur votre téléphone.', 'success')
+        setCart([]); setShowCheckout(false)
         return
       }
       if (result.data?.url) { window.location.href = result.data.url; return }
-      toast(result.error ?? 'Erreur de paiement', 'error')
-    } catch (err) {
-      logger.error('handleGiftSend error', { error: String(err) })
-      toast('Erreur lors de l\'envoi du cadeau', 'error')
-    } finally {
-      setSending(false)
-    }
+    } catch {
+      toast('Erreur lors de l\'envoi', 'error')
+    } finally { setSending(false) }
   }
 
   const handlePayout = async () => {
@@ -265,18 +218,11 @@ export default function BoutiquePage() {
       const { error, message } = await requestPayout(amount)
       if (error) { toast(error, 'error'); return }
       toast(message ?? `Retrait de ${fmt(amount)} F effectué !`, 'success')
-      setShowPayoutModal(false)
-      setPayoutAmount('')
-      const b = await getGiftBalance()
-      setBalance(b)
-      const t = await getGiftTransactions()
-      if (t.data) setTransactions(t.data)
-    } catch (err) {
-      logger.error('handlePayout error', { error: String(err) })
-      toast('Erreur lors du retrait', 'error')
-    } finally {
-      setPayoutProcessing(false)
-    }
+      setShowPayoutModal(false); setPayoutAmount('')
+      setBalance(await getGiftBalance())
+      const t = await getGiftTransactions(); if (t.data) setTransactions(t.data)
+    } catch { toast('Erreur lors du retrait', 'error') }
+    finally { setPayoutProcessing(false) }
   }
 
   const handleSavePayment = async () => {
@@ -289,8 +235,7 @@ export default function BoutiquePage() {
       const { error } = await savePaymentAccount({ type: 'card', card_last4: payCardLast4, card_brand: payCardBrand })
       if (error) { toast(error, 'error'); return }
     }
-    setPaySaved(true)
-    setShowPaymentConfig(false)
+    setPaySaved(true); setShowPaymentConfig(false)
   }
 
   const isPremium = currentTier === 'premium'
@@ -311,26 +256,17 @@ export default function BoutiquePage() {
         <p className="text-secondary text-sm mt-0.5">Abonnements, cadeaux et parrainage</p>
       </header>
 
-      {/* Tabs */}
       <div className="flex gap-1 px-4 mt-3">
         {allTabs.map(t => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === t
-                ? 'text-on-primary shadow-lg shadow-[var(--primary)]/20'
-                : 'text-secondary bg-[var(--surfaceElevated)]'
-            }`}
-            style={tab === t ? { background: 'var(--primary)' } : undefined}
-          >
+          <button key={t} type="button" onClick={() => setTab(t)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t ? 'text-on-primary shadow-lg shadow-[var(--primary)]/20' : 'text-secondary bg-[var(--surfaceElevated)]'}`}
+            style={tab === t ? { background: 'var(--primary)' } : undefined}>
             {tabLabels[t]}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4 mt-4">
+      <div className={`flex-1 px-4 overflow-y-auto space-y-4 mt-4 ${tab === 'cadeaux' && cart.length > 0 ? 'pb-24' : 'pb-8'}`}>
         {tab === 'abonnements' && (
           <>
             {isPremium && (
@@ -344,9 +280,7 @@ export default function BoutiquePage() {
                 </div>
               </div>
             )}
-
             <p className="text-xs text-secondary uppercase tracking-wider px-1 font-semibold">Nos formules</p>
-
             <div className="space-y-3">
               {plans.map(plan => {
                 const isCurrent = plan.id === 'free' ? !isPremium : plan.id === 'premium_monthly' && isPremium
@@ -354,9 +288,7 @@ export default function BoutiquePage() {
                   <div key={plan.id} className={`glass-card rounded-2xl p-5 relative transition-all duration-200 ${plan.popular ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]' : ''}`}>
                     {plan.popular && (
                       <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-4 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg"
-                        style={{ background: 'linear-gradient(135deg, var(--primary), #FF6B35)', color: 'white' }}>
-                        Plus populaire
-                      </span>
+                        style={{ background: 'linear-gradient(135deg, var(--primary), #FF6B35)', color: 'white' }}>Plus populaire</span>
                     )}
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -367,17 +299,13 @@ export default function BoutiquePage() {
                         </div>
                       </div>
                       {plan.id === 'premium_yearly' && (
-                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold"
-                          style={{ background: 'var(--successVibrant)/15', color: 'var(--successVibrant)' }}>
-                          -17%
-                        </span>
+                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'var(--successVibrant)/15', color: 'var(--successVibrant)' }}>-17%</span>
                       )}
                     </div>
                     <ul className="space-y-2 mb-4">
                       {plan.features.map(f => (
                         <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--textSecondary)' }}>
-                          <Check size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--successVibrant)' }} />
-                          {f}
+                          <Check size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--successVibrant)' }} />{f}
                         </li>
                       ))}
                     </ul>
@@ -385,16 +313,13 @@ export default function BoutiquePage() {
                       <button type="button" onClick={handleUpgrade} disabled={isCurrent || upgrading}
                         className={`w-full py-3 rounded-full text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-40 ${isCurrent ? 'border border-[var(--border)] text-secondary cursor-default' : 'text-on-primary shadow-lg'}`}
                         style={isCurrent ? undefined : { background: 'linear-gradient(135deg, var(--primary), #FF6B35)' }}>
-                        {upgrading ? (
-                          <span className="flex items-center justify-center gap-2"><Loader size={16} className="animate-spin" /> En cours...</span>
-                        ) : isCurrent ? 'Actuel' : plan.cta}
+                        {upgrading ? <span className="flex items-center justify-center gap-2"><Loader size={16} className="animate-spin" /> En cours...</span> : isCurrent ? 'Actuel' : plan.cta}
                       </button>
                     )}
                   </div>
                 )
               })}
             </div>
-
             <p className="text-xs text-secondary uppercase tracking-wider px-1 font-semibold pt-2">Fonctionnalités Premium</p>
             <div className="grid grid-cols-2 gap-2">
               {premiumFeatures.map(f => (
@@ -422,15 +347,11 @@ export default function BoutiquePage() {
                   <Wallet size={20} className="text-[var(--textOnPrimary)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-[var(--textSecondary)] uppercase tracking-wider">Mon portefeuille</p>
+                  <p className="text-[10px] text-secondary uppercase tracking-wider">Mon portefeuille</p>
                   <p className="text-2xl font-bold text-[var(--textPrimary)]">{fmt(balance)} F</p>
                 </div>
-                <button type="button" onClick={() => {
-                  if (balance <= 0) return
-                  if (!paySaved) { setShowPaymentConfig(true); return }
-                  setShowPayoutModal(true)
-                }} disabled={balance <= 0}
-                  className="px-4 py-2 rounded-full text-xs font-semibold text-[var(--textOnPrimary)] disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
+                <button type="button" onClick={() => { if (balance <= 0) return; if (!paySaved) { setShowPaymentConfig(true); return } setShowPayoutModal(true) }}
+                  disabled={balance <= 0} className="px-4 py-2 rounded-full text-xs font-semibold text-[var(--textOnPrimary)] disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
                   <ArrowUpRight size={14} /> Retirer
                 </button>
               </div>
@@ -440,21 +361,21 @@ export default function BoutiquePage() {
                   onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
                   <FocusTrap active={showPayoutModal}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
                     <h3 className="text-lg font-bold text-[var(--textPrimary)] mb-1">Retirer ton solde</h3>
-                    <p className="text-xs text-[var(--textSecondary)] mb-4">Solde disponible : <strong className="text-[var(--textPrimary)]">{fmt(balance)} F</strong></p>
+                    <p className="text-xs text-secondary mb-4">Solde disponible : <strong className="text-[var(--textPrimary)]">{fmt(balance)} F</strong></p>
                     <div className="mb-3">
-                      <label className="text-xs text-[var(--textSecondary)] mb-1 block">Montant (F)</label>
+                      <label className="text-xs text-secondary mb-1 block">Montant (F)</label>
                       <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance} aria-label="Montant du retrait"
                         className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
                     </div>
                     <div className="mb-4">
-                      <label className="text-xs text-[var(--textSecondary)] mb-1 block">Moyen de retrait</label>
+                      <label className="text-xs text-secondary mb-1 block">Moyen de retrait</label>
                       <div className="px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm flex items-center gap-2">
                         {savedPayMethod === 'card' ? <CreditCard size={16} /> : <Smartphone size={16} />}
-                        <span className="text-[var(--textSecondary)]">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
+                        <span className="text-secondary">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--textSecondary)]">Annuler</button>
+                      <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[var(--border)] text-secondary">Annuler</button>
                       <button type="button" onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
                         className="flex-1 py-3 rounded-full text-sm font-semibold text-[var(--textOnPrimary)] disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: 'var(--primary)' }}>
                         {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
@@ -466,60 +387,58 @@ export default function BoutiquePage() {
 
               <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
                 className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
-                {savedPayMethod === 'card' ? <CreditCard size={20} className="text-[var(--textSecondary)]" /> : <Smartphone size={20} className="text-[var(--textSecondary)]" />}
+                {savedPayMethod === 'card' ? <CreditCard size={20} className="text-secondary" /> : <Smartphone size={20} className="text-secondary" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Moyen de paiement</p>
-                  <p className="text-xs text-[var(--textSecondary)]">
-                    {paySaved ? (savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`) : 'Ajouter un moyen de paiement'}
-                  </p>
+                  <p className="text-xs text-secondary">{paySaved ? (savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`) : 'Ajouter un moyen de paiement'}</p>
                 </div>
-                <ChevronRight size={16} className="text-[var(--textMuted)]" />
+                <ChevronRight size={16} className="text-muted" />
               </button>
 
               {showPaymentConfig && (
                 <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>
                       <Smartphone size={16} className="mx-auto mb-1" /> Mobile Money
                     </button>
                     <button type="button" onClick={() => { setPayMethod('card'); setPaySaved(false) }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>
                       <CreditCard size={16} className="mx-auto mb-1" /> Carte bancaire
                     </button>
                   </div>
                   {payMethod === 'mobile_money' ? (
                     <>
                       <div>
-                        <label className="text-xs text-[var(--textSecondary)] mb-1 block">Pays</label>
+                        <label className="text-xs text-secondary mb-1 block">Pays</label>
                         <select value={payCountry} onChange={e => { setPayCountry(e.target.value); setPayOperator(countries.find(c => c.code === e.target.value)?.operators[0] ?? '') }}
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                           {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs text-[var(--textSecondary)] mb-1 block">Opérateur</label>
+                        <label className="text-xs text-secondary mb-1 block">Opérateur</label>
                         <select value={payOperator} onChange={e => setPayOperator(e.target.value)}
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                           {countryOps.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs text-[var(--textSecondary)] mb-1 block">Numéro de téléphone</label>
+                        <label className="text-xs text-secondary mb-1 block">Numéro de téléphone</label>
                         <input value={payPhone} onChange={e => setPayPhone(e.target.value)} placeholder="+221 77 123 45 67" aria-label="Numéro de téléphone"
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
                       </div>
                     </>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-xs text-[var(--textSecondary)] text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
+                      <p className="text-xs text-secondary text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
                       <div>
-                        <label className="text-xs text-[var(--textSecondary)] mb-1 block">4 derniers chiffres</label>
+                        <label className="text-xs text-secondary mb-1 block">4 derniers chiffres</label>
                         <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric" aria-label="4 derniers chiffres de la carte"
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
                       </div>
                       <div>
-                        <label className="text-xs text-[var(--textSecondary)] mb-1 block">Marque</label>
+                        <label className="text-xs text-secondary mb-1 block">Marque</label>
                         <select value={payCardBrand} onChange={e => setPayCardBrand(e.target.value)}
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
                           <option value="Visa">Visa</option>
@@ -543,54 +462,32 @@ export default function BoutiquePage() {
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[var(--primary)]/10">
                     <span className="text-2xl opacity-40">🎁</span>
                   </div>
-                  <p className="text-sm text-[var(--textSecondary)]">Aucun cadeau disponible pour le moment.</p>
+                  <p className="text-sm text-secondary">Aucun cadeau disponible pour le moment.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-3">
-                  {gifts.map(g => (
-                    <button type="button" key={g.id} onClick={() => setSelectedGift(g.id)}
-                      className={`bg-[var(--card)] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${selectedGift === g.id ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]' : 'border-[var(--border)]'}`}>
-                      <span className="text-3xl block mb-1">{g.emoji || '🎁'}</span>
-                      <p className="text-[10px] font-medium truncate">{g.name}</p>
-                      <p className="text-[10px] text-[var(--primary)] font-bold">{fmt(toXof(g.price_cents))} F</p>
-                      <p className="text-[8px] text-[var(--textSecondary)]">+{FEE_PERCENT}% frais</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {selectedGift && selectedGiftData && (
-                <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
-                  <p className="text-sm text-center">
-                    <strong>{selectedGiftData.name}</strong> — Total : <strong className="text-[var(--primary)]">{fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F</strong>
-                    <br /><span className="text-xs text-[var(--textSecondary)]">dont {FEE_PERCENT}% de frais</span>
-                  </p>
-                  <div>
-                    <label className="text-xs text-[var(--textSecondary)] mb-1 block">Destinataire</label>
-                    <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none">
-                      <option value="">Sélectionner un match...</option>
-                      {matches.map(m => (
-                        <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-[var(--textSecondary)] mb-1 block">Message (optionnel)</label>
-                    <textarea value={giftMessage} onChange={e => setGiftMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
-                      rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none focus:border-[var(--primary)] resize-none" />
-                    <p className="text-[10px] text-right text-[var(--textSecondary)]">{giftMessage.length}/200</p>
-                  </div>
-                  <button type="button" onClick={handleGiftSend} disabled={!selectedMatch || sending}
-                    className="w-full py-3.5 rounded-full font-semibold text-[var(--textOnPrimary)] disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
-                    <Send size={16} /> {sending ? 'Paiement en cours...' : `Payer ${fmt(toXof(selectedGiftData.price_cents * (1 + FEE_PERCENT / 100)))} F`}
-                  </button>
+                  {gifts.map(g => {
+                    const inCart = cart.some(c => c.id === g.id)
+                    return (
+                      <button type="button" key={g.id} onClick={() => toggleCart(g)}
+                        className={`relative bg-[var(--card)] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${inCart ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]' : 'border-[var(--border)]'}`}>
+                        {inCart && (
+                          <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center">
+                            <Check size={12} />
+                          </span>
+                        )}
+                        <span className="text-3xl block mb-1">{g.emoji || '🎁'}</span>
+                        <p className="text-[10px] font-medium truncate">{g.name}</p>
+                        <p className="text-[10px] text-primary font-bold">{fmt(toXof(g.price_cents))} F</p>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
 
               {transactions.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--textSecondary)] uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
                     <History size={14} /> Historique des transactions
                   </h3>
                   <div className="space-y-2">
@@ -604,13 +501,11 @@ export default function BoutiquePage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium">{isCredit ? 'Cadeau reçu' : 'Retrait demandé'}</p>
-                            <p className="text-[10px] text-[var(--textSecondary)]">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+                            <p className="text-[10px] text-secondary">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
                           </div>
                           <div className="text-right">
-                            <p className={`text-sm font-bold ${isCredit ? 'text-[var(--successVibrant)]' : 'text-[var(--primary)]'}`}>
-                              {isCredit ? '+' : '-'}{fmt(t.amount_cents)} F
-                            </p>
-                            <p className={`text-[10px] ${t.status === 'completed' ? 'text-[var(--successVibrant)]' : t.status === 'pending' ? 'text-[var(--warningVibrant)]' : 'text-[var(--textSecondary)]'}`}>
+                            <p className={`text-sm font-bold ${isCredit ? 'text-[var(--successVibrant)]' : 'text-[var(--primary)]'}`}>{isCredit ? '+' : '-'}{fmt(t.amount_cents)} F</p>
+                            <p className={`text-[10px] ${t.status === 'completed' ? 'text-[var(--successVibrant)]' : t.status === 'pending' ? 'text-[var(--warningVibrant)]' : 'text-secondary'}`}>
                               {t.status === 'completed' ? 'Effectué' : t.status === 'pending' ? 'En attente' : t.status}
                             </p>
                           </div>
@@ -623,14 +518,14 @@ export default function BoutiquePage() {
 
               {received.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-[var(--textSecondary)] uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
+                  <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
                   <div className="space-y-2">
                     {received.slice(0, 5).map(r => (
                       <div key={r.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
                         <span className="text-2xl">{r.gift?.emoji || '🎁'}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
-                          <p className="text-xs text-[var(--textSecondary)]">De {r.sender?.name || 'Inconnu'}</p>
+                          <p className="text-xs text-secondary">De {r.sender?.name || 'Inconnu'}</p>
                         </div>
                         {r.gift?.price_cents && (
                           <div className="text-right">
@@ -655,35 +550,25 @@ export default function BoutiquePage() {
               <h3 className="text-lg font-bold" style={{ color: 'var(--textPrimary)' }}>Parraine tes amis</h3>
               <p className="text-sm text-secondary mt-1">Invite tes amis à rejoindre Erosia et gagne <strong className="text-primary">30 jours Premium</strong> pour chaque tranche de <strong>5 filleuls</strong>.</p>
             </div>
-
             <div className="glass-card rounded-2xl p-5">
               <p className="text-xs text-secondary uppercase tracking-wider font-semibold mb-3">Ton code de parrainage</p>
               {referralCode ? (
                 <div className="flex items-center gap-2">
                   <code className="flex-1 px-4 py-3 rounded-xl text-base font-mono font-bold tracking-[0.3em] text-center"
-                    style={{ background: 'var(--surfaceElevated)', border: '1px solid var(--border)', color: 'var(--primary)' }}>
-                    {referralCode}
-                  </code>
-                  <button type="button" onClick={copyCode} aria-label="Copier le code"
-                    className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
+                    style={{ background: 'var(--surfaceElevated)', border: '1px solid var(--border)', color: 'var(--primary)' }}>{referralCode}</code>
+                  <button type="button" onClick={copyCode} aria-label="Copier le code" className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
                     {copied ? <Check size={16} className="text-[var(--successVibrant)]" /> : <Copy size={16} style={{ color: 'var(--textSecondary)' }} />}
                   </button>
-                  <button type="button" onClick={shareLink} aria-label="Copier le lien de parrainage"
-                    className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
+                  <button type="button" onClick={shareLink} aria-label="Copier le lien de parrainage" className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
                     <Share2 size={16} style={{ color: 'var(--textSecondary)' }} />
                   </button>
                 </div>
-              ) : (
-                <div className="animate-pulse h-12 rounded-xl" style={{ background: 'var(--surfaceElevated)' }} />
-              )}
+              ) : <div className="animate-pulse h-12 rounded-xl" style={{ background: 'var(--surfaceElevated)' }} />}
             </div>
-
             <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Tes filleuls</p>
-                <span className="text-xs font-medium" style={{ color: 'var(--textSecondary)' }}>
-                  <strong className="text-primary">{referralStats.joined}</strong> inscrits sur <strong>5</strong>
-                </span>
+                <span className="text-xs font-medium text-secondary"><strong className="text-primary">{referralStats.joined}</strong> inscrits sur <strong>5</strong></span>
               </div>
               <div className="flex items-center gap-1.5 mb-4">
                 {[1, 2, 3, 4, 5].map(i => (
@@ -692,9 +577,7 @@ export default function BoutiquePage() {
                 ))}
               </div>
               {referralStats.rewarded ? (
-                <p className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--successVibrant)' }}>
-                  <Check size={16} /> Récompense déjà obtenue
-                </p>
+                <p className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--successVibrant)' }}><Check size={16} /> Récompense déjà obtenue</p>
               ) : referralStats.canRedeem ? (
                 <button type="button" onClick={handleRedeem} disabled={redeeming}
                   className="w-full py-3 rounded-full text-sm font-semibold text-on-primary transition-all active:scale-[0.98] disabled:opacity-50"
@@ -702,15 +585,10 @@ export default function BoutiquePage() {
                   {redeeming ? 'Récompense en cours...' : '🎉 Réclamer 30 jours Premium'}
                 </button>
               ) : (
-                <p className="text-sm text-secondary">
-                  {referralStats.joined > 0
-                    ? `Plus que ${5 - referralStats.joined} filleul${5 - referralStats.joined > 1 ? 's' : ''} pour débloquer 30 jours Premium`
-                    : 'Partage ton code avec tes amis pour commencer'}
-                </p>
+                <p className="text-sm text-secondary">{referralStats.joined > 0 ? `Plus que ${5 - referralStats.joined} filleul${5 - referralStats.joined > 1 ? 's' : ''} pour débloquer 30 jours Premium` : 'Partage ton code avec tes amis pour commencer'}</p>
               )}
               {redeemMsg && <p className="text-sm text-secondary mt-2">{redeemMsg}</p>}
             </div>
-
             <div className="glass-card rounded-2xl p-5">
               <p className="text-xs text-secondary uppercase tracking-wider font-semibold mb-3">Comment ça marche</p>
               <div className="space-y-3">
@@ -720,10 +598,7 @@ export default function BoutiquePage() {
                   { step: '3', text: 'Quand 5 amis ont rejoint, tu débloques 30 jours Premium' },
                 ].map(s => (
                   <div key={s.step} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: 'var(--primary)/15', color: 'var(--primary)' }}>
-                      {s.step}
-                    </div>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'var(--primary)/15', color: 'var(--primary)' }}>{s.step}</div>
                     <p className="text-sm" style={{ color: 'var(--textSecondary)' }}>{s.text}</p>
                   </div>
                 ))}
@@ -732,6 +607,79 @@ export default function BoutiquePage() {
           </div>
         )}
       </div>
+
+      {/* Floating cart bar */}
+      {tab === 'cadeaux' && cart.length > 0 && !showCheckout && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
+          <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <ShoppingCart size={16} style={{ color: 'var(--primary)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--textPrimary)' }}>{cart.length} cadeau{cart.length > 1 ? 'x' : ''}</p>
+              <p className="text-xs font-bold" style={{ color: 'var(--primary)' }}>{fmt(cartTotal)} F</p>
+            </div>
+            <button type="button" onClick={() => { setShowCheckout(true); setSelectedMatch(''); setGiftMessage('') }}
+              className="px-5 py-2.5 rounded-full text-sm font-semibold text-on-primary transition-all active:scale-95 shadow-lg"
+              style={{ background: 'linear-gradient(135deg, var(--primary), #FF6B35)' }}>
+              Commander
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout bottom sheet */}
+      {showCheckout && (
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowCheckout(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowCheckout(false) }}>
+          <FocusTrap active={showCheckout}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold" style={{ color: 'var(--textPrimary)' }}>Commander</h3>
+              <button type="button" onClick={() => setShowCheckout(false)} aria-label="Fermer" className="p-1.5 rounded-full hover:bg-[var(--surfaceElevated)] transition">
+                <X size={20} style={{ color: 'var(--textSecondary)' }} />
+              </button>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {cart.map(g => (
+                <div key={g.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[var(--surfaceElevated)]">
+                  <span className="text-xl">{g.emoji || '🎁'}</span>
+                  <span className="flex-1 text-sm font-medium" style={{ color: 'var(--textPrimary)' }}>{g.name}</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>{fmt(toXof(g.price_cents))} F</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-3 pt-2 border-t border-[var(--border)]">
+                <span className="text-sm font-semibold" style={{ color: 'var(--textPrimary)' }}>Total</span>
+                <span className="text-base font-black" style={{ color: 'var(--primary)' }}>{fmt(cartTotal)} F</span>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label className="text-xs text-secondary mb-1 block">Destinataire</label>
+              <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none">
+                <option value="">Sélectionner un match...</option>
+                {matches.map(m => (
+                  <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-secondary mb-1 block">Message (optionnel)</label>
+              <textarea value={giftMessage} onChange={e => setGiftMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
+                rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none focus:border-[var(--primary)] resize-none" />
+              <p className="text-[10px] text-right text-secondary">{giftMessage.length}/200</p>
+            </div>
+
+            <button type="button" onClick={handleCheckout} disabled={!selectedMatch || sending}
+              className="w-full py-3.5 rounded-full font-semibold text-on-primary disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{ background: 'var(--primary)' }}>
+              {sending ? <><Loader size={16} className="animate-spin" /> Paiement en cours...</> : <><Send size={16} /> Payer {fmt(cartTotal)} F</>}
+            </button>
+          </div></FocusTrap>
+        </div>
+      )}
     </div>
   )
 }

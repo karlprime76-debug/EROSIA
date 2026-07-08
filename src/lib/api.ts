@@ -950,6 +950,23 @@ export async function createGiftCheckout(giftId: string, receiverId: string, mat
   }
 }
 
+export async function createCartCheckout(giftIds: string[], receiverId: string, matchId: string, message?: string, phone?: string, operator?: string) {
+  try {
+    const res = await fetch('/api/paydunya/create-cart-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ giftIds, receiverId, matchId, message, phone, operator }),
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error || 'Erreur de paiement' }
+    if (data.sent) return { data: { sent: true as const }, error: null }
+    if (!data.url) return { error: 'URL de paiement manquante' }
+    return { data: { url: data.url as string }, error: null }
+  } catch {
+    return { error: 'Erreur réseau. Vérifie ta connexion.' }
+  }
+}
+
 // ---- GIFT WALLET / BALANCE ----
 export async function getGiftBalance() {
   const userId = await getCurrentUserId()

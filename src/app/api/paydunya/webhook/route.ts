@@ -77,37 +77,41 @@ export async function POST(request: NextRequest) {
     const matchId = customData.match_id
     const message = customData.message ?? null
 
-    if (userId && !giftId) {
+    if (userId && !giftId && !customData.cart_gift_ids) {
       await admin.from('profiles').update({
         subscription_tier: 'premium',
         premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       }).eq('id', userId)
     }
 
-    if (userId && giftId && receiverId && matchId) {
-      const { data: gift } = await admin.from('gifts').select('*').eq('id', giftId).maybeSingle()
-      if (gift) {
-        const { data: sentGift } = await admin.from('sent_gifts').insert({
-          sender_id: userId,
-          receiver_id: receiverId,
-          gift_id: giftId,
-          match_id: matchId,
-          message: message,
-          amount_paid: gift.price_cents,
-          fee_cents: Math.round(gift.price_cents * 0.15),
-          status: 'completed',
-        }).select().single()
+    const giftIds: string[] = giftId ? [giftId] : customData.cart_gift_ids ? JSON.parse(customData.cart_gift_ids) : []
 
-        if (sentGift) {
-          const fee = Math.round(gift.price_cents * 0.15)
-          const netAmount = gift.price_cents - fee
-          await admin.from('gift_transactions').insert({
-            user_id: receiverId,
-            type: 'gift_received',
-            amount_cents: netAmount,
-            sent_gift_id: sentGift.id,
+    if (userId && giftIds.length > 0 && receiverId && matchId) {
+      const { data: gifts } = await admin.from('gifts').select('*').in('id', giftIds)
+      if (gifts) {
+        for (const gift of gifts) {
+          const { data: sentGift } = await admin.from('sent_gifts').insert({
+            sender_id: userId,
+            receiver_id: receiverId,
+            gift_id: gift.id,
+            match_id: matchId,
+            message: message,
+            amount_paid: gift.price_cents,
+            fee_cents: Math.round(gift.price_cents * 0.15),
             status: 'completed',
-          })
+          }).select().single()
+
+          if (sentGift) {
+            const fee = Math.round(gift.price_cents * 0.15)
+            const netAmount = gift.price_cents - fee
+            await admin.from('gift_transactions').insert({
+              user_id: receiverId,
+              type: 'gift_received',
+              amount_cents: netAmount,
+              sent_gift_id: sentGift.id,
+              status: 'completed',
+            })
+          }
         }
 
         try {
@@ -115,8 +119,8 @@ export async function POST(request: NextRequest) {
             user_id: receiverId,
             actor_id: userId,
             type: 'gift',
-            title: 'Cadeau reçu !',
-            message: 'Tu as reçu un cadeau !',
+            title: 'Cadeaux reçus !',
+            message: `Tu as reçu ${gifts.length} cadeau(x) !`,
           })
         } catch (e) {
           logger.error('Notification insert failed (non-blocking)', { error: String(e) })
