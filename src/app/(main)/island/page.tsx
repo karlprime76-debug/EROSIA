@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Crown, Check, Copy, Share2, Sparkles, Star, MapPin, Eye, Brain, Gift, Loader, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock, ShoppingCart, X } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { createCheckoutSession, getSubscriptionStatus, getGifts, getMatches, createCartCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
@@ -113,6 +113,7 @@ export default function BoutiquePage() {
   const [giftsLoading, setGiftsLoading] = useState(true)
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
+  const giftsLoadedRef = useRef(false)
 
   const toggleCart = useCallback((gift: GiftItem) => {
     setCart(prev => prev.find(g => g.id === gift.id) ? prev.filter(g => g.id !== gift.id) : [...prev, gift])
@@ -131,7 +132,8 @@ export default function BoutiquePage() {
   }, [tab])
 
   useEffect(() => {
-    if (tab !== 'cadeaux' || gifts.length > 0) return
+    if (tab !== 'cadeaux' || giftsLoadedRef.current) return
+    giftsLoadedRef.current = true
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return
       setMyId(data.user.id)
