@@ -91,6 +91,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   <Link
                     key={href}
                     href={href}
+                    aria-label={label}
                     className="relative flex-1 flex flex-col items-center gap-1 py-2 rounded-xl group transition-all duration-200 active:scale-[0.93]"
                   >
                     {/* Fond actif */}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { redeemReferralReward } from '@/lib/referrals'
+import { logger } from '@/lib/logger'
 
 export async function POST() {
   try {
@@ -13,6 +14,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    logger.error('Referral redeem error', { error: String(err) })
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

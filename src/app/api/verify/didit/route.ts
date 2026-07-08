@@ -9,7 +9,7 @@ export async function POST(_request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
     const callbackUrl = `${siteUrl}/api/verify/webhook`
 
     const { sessionId, url } = await createVerificationSession(user.id, callbackUrl)

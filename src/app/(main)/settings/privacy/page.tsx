@@ -222,6 +222,7 @@ export default function PrivacyPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-transparent min-h-screen">
+      <h1 className="sr-only">Confidentialité</h1>
       <header className="flex items-center gap-3 px-3 py-3 border-b border-[var(--border)]/50 bg-[var(--bg)]/80 backdrop-blur-xl z-10 sticky top-0">
         <button onClick={() => router.back()} aria-label="Retour" className="p-2 -ml-1 rounded-xl hover:bg-[var(--surfaceElevated)] transition-colors">
           <ArrowLeft size={20} />

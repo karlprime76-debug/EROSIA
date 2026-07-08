@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const totalCents = Math.round(gift.price_cents * (1 + feePercent / 100))
     const amountFCFA = Math.round(totalCents * EUR_TO_XOF / 100)
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) throw new Error('NEXT_PUBLIC_SITE_URL not configured')
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
 
     let result: { status: string; response_text?: string; token?: string }
     try {

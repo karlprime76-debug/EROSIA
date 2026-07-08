@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getReferralStats } from '@/lib/referrals'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -11,6 +12,7 @@ export async function GET() {
     const stats = await getReferralStats()
     return NextResponse.json(stats)
   } catch (err) {
+    logger.error('Referral stats error', { error: String(err) })
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

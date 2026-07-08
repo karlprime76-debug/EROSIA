@@ -24,6 +24,7 @@ export default function ResetPasswordPage() {
   if (done) {
     return (
     <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
+      <h1 className="sr-only">Mot de passe mis à jour</h1>
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -52,6 +53,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
+      <h1 className="sr-only">Nouveau mot de passe</h1>
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

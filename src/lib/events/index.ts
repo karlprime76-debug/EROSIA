@@ -140,6 +140,7 @@ export async function getParticipants(eventId: string): Promise<{ data: EventPar
     .eq('event_id', eventId)
     .eq('status', 'accepted')
     .order('created_at', { ascending: true })
+    .limit(100)
 
   return { data: data as EventParticipant[] ?? [], error: error?.message }
 }

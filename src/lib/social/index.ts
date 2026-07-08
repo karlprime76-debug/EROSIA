@@ -14,6 +14,7 @@ export async function getRooms(): Promise<{ data: Room[]; error?: string }> {
     .from('rooms')
     .select('*')
     .order('name')
+    .limit(50)
 
   return { data: data as Room[] ?? [], error: error?.message }
 }
@@ -131,6 +132,7 @@ export async function getPresence(roomId: string): Promise<{ data: PresenceWithP
     .eq('room_id', roomId)
     .gte('last_active_at', new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString())
     .order('entered_at', { ascending: true })
+    .limit(100)
 
   return { data: data as PresenceWithProfile[] ?? [], error: error?.message }
 }

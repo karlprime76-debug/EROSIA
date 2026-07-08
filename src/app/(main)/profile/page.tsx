@@ -276,7 +276,7 @@ function ProfilePageInner() {
                 <div className="w-full h-full rounded-full overflow-hidden bg-hover">
                   {profile?.photos?.[0] ? (
                     <button type="button" onClick={() => setLightboxIdx(0)} className="w-full h-full">
-                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" loading="lazy" />
+                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" priority />
                     </button>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-secondary text-3xl">?</div>

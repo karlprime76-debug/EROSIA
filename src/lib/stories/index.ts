@@ -171,6 +171,7 @@ export async function getStoryReactions(storyId: string): Promise<{ data: StoryR
     .select('*, profile:profiles!story_reactions_user_id_fkey(name, photos)')
     .eq('story_id', storyId)
     .order('created_at', { ascending: false })
+    .limit(50)
 
   return { data: data as StoryReaction[] ?? [], error: error?.message }
 }
@@ -264,6 +265,7 @@ export async function getMyStories(): Promise<{ data: Story[]; error?: string }>
     .eq('user_id', user.id)
     .gte('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
+    .limit(30)
 
   return { data: data as Story[] ?? [], error: error?.message }
 }

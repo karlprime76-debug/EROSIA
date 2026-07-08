@@ -24,6 +24,7 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
+        <h1 className="sr-only">Email envoyé</h1>
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -53,6 +54,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center px-5 safe-pb safe-pt">
+      <h1 className="sr-only">Mot de passe oublié</h1>
       <motion.div
         initial={{ opacity: 0, y: 32, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

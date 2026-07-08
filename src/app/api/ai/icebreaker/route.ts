@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       .from('matches')
       .select('user1_id, user2_id')
       .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+      .limit(100)
     const isMatched = matches?.some(m =>
       (m.user1_id === user.id && m.user2_id === targetId) ||
       (m.user1_id === targetId && m.user2_id === user.id)
