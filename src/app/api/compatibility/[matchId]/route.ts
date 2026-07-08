@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ensureCriteriaRegistered } from '@/lib/engine/compat-center/setup'
 import { computeCompatibility } from '@/lib/engine/compat-center/engine'
 import type { ProfileSnapshot } from '@/lib/engine/compat-center/types'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   _request: Request,
@@ -75,7 +76,7 @@ export async function GET(
 
     return NextResponse.json(report)
   } catch (err) {
-    console.error('Compatibility API error:', err)
+    logger.error('Compatibility API error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

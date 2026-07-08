@@ -6,7 +6,7 @@ export async function POST() {
   try {
     const { error } = await leaveRoom()
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

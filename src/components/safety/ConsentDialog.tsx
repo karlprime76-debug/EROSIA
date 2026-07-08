@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'motion/react'
 import { Shield, Check, X } from 'lucide-react'
+import { FocusTrap } from '@/components/FocusTrap'
 
 interface ConsentDialogProps {
   open: boolean
@@ -36,6 +37,7 @@ export default function ConsentDialog({
           onClick={onCancel}
           onKeyDown={e => { if (e.key === 'Escape') onCancel() }}
         >
+          <FocusTrap>
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -71,6 +73,7 @@ export default function ConsentDialog({
               </button>
             )}
           </motion.div>
+          </FocusTrap>
         </motion.div>
       )}
     </AnimatePresence>

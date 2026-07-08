@@ -49,7 +49,7 @@ export default function SettingsPage() {
           if (data.notif_push !== null) setNotifPush(data.notif_push)
           if (data.notif_email !== null) setNotifEmail(data.notif_email)
         }
-      }, console.error)
+      }, (err) => logger.error('Settings error', { error: String(err) }))
     }).catch(logger.error).finally(() => setSettingsLoaded(true))
   }, [router])
 
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                         const { data: { user } } = await supabase.auth.getUser()
                         if (!user) { setSavingName(false); return }
                         const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
-                        if (error) { console.error(error); setSavingName(false); return }
+                        if (error) { logger.error('Save profile error', { error: String(error) }); setSavingName(false); return }
                         setProfileName(nameValue.trim())
                         setSavingName(false); setEditingName(false)
                       } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                   const { data: { user } } = await supabase.auth.getUser()
                   if (!user) { setSavingName(false); return }
                   const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
-                  if (error) { console.error(error); setSavingName(false); return }
+                  if (error) { logger.error('Save profile error', { error: String(error) }); setSavingName(false); return }
                   setProfileName(nameValue.trim())
                   setSavingName(false); setEditingName(false)
                 } catch (err) { logger.error('Error saving name', err); setSavingName(false) }

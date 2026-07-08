@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (err) {
+    logger.error('Delete match error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
   }
 }

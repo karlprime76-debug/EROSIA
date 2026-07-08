@@ -7,8 +7,9 @@ import { ArrowLeft, Trash2, Eye, Heart, Loader } from 'lucide-react'
 import { checkPremium } from '@/lib/api'
 import { getActiveStories, deleteStory, uploadStory, getStoryViews, getStoryReactions } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
-import { StoryReader } from '@/components/StoryReader'
-import { StoryCreator } from '@/components/StoryCreator'
+import dynamic from 'next/dynamic'
+const StoryReader = dynamic(() => import('@/components/StoryReader').then(m => ({ default: m.StoryReader })), { ssr: false })
+const StoryCreator = dynamic(() => import('@/components/StoryCreator').then(m => ({ default: m.StoryCreator })), { ssr: false })
 import type { StoryGroup, StoryView, StoryPrivacy } from '@/lib/stories/types'
 
 export default function StoriesPage() {
@@ -59,20 +60,24 @@ export default function StoriesPage() {
   }, [hasMore, page, load, isLoadingMore])
 
   const handleUpload = async (file: File, privacy: StoryPrivacy) => {
-    const result = await uploadStory(file, privacy)
-    if (result.error) { toast(result.error, 'error'); return }
-    toast('Story publiée ✓', 'success')
-    setGroups([]); setPage(1); setHasMore(true)
-    await load(1)
+    try {
+      const result = await uploadStory(file, privacy)
+      if (result.error) { toast(result.error, 'error'); return }
+      toast('Story publiée ✓', 'success')
+      setGroups([]); setPage(1); setHasMore(true)
+      await load(1)
+    } catch { toast('Erreur lors de la publication', 'error') }
   }
 
   const handleDelete = async (storyId: string) => {
-    const { error } = await deleteStory(storyId)
-    if (error) { toast(error, 'error'); return }
-    setGroups(prev => prev.map(g => ({
-      ...g,
-      stories: g.stories.filter(s => s.id !== storyId),
-    })).filter(g => g.stories.length > 0))
+    try {
+      const { error } = await deleteStory(storyId)
+      if (error) { toast(error, 'error'); return }
+      setGroups(prev => prev.map(g => ({
+        ...g,
+        stories: g.stories.filter(s => s.id !== storyId),
+      })).filter(g => g.stories.length > 0))
+    } catch { toast('Erreur lors de la suppression', 'error') }
   }
 
   const openReader = (index: number) => {
@@ -83,14 +88,16 @@ export default function StoriesPage() {
   const toggleViews = async (storyId: string) => {
     if (expandedViews === storyId) { setExpandedViews(null); return }
     setExpandedViews(storyId)
-    if (!viewsData[storyId]) {
-      const { data } = await getStoryViews(storyId)
-      if (data) setViewsData(v => ({ ...v, [storyId]: data }))
-    }
-    if (!reactionsData[storyId]) {
-      const { data } = await getStoryReactions(storyId)
-      if (data) setReactionsData(r => ({ ...r, [storyId]: data.length }))
-    }
+    try {
+      if (!viewsData[storyId]) {
+        const { data } = await getStoryViews(storyId)
+        if (data) setViewsData(v => ({ ...v, [storyId]: data }))
+      }
+      if (!reactionsData[storyId]) {
+        const { data } = await getStoryReactions(storyId)
+        if (data) setReactionsData(r => ({ ...r, [storyId]: data.length }))
+      }
+    } catch { toast('Erreur', 'error') }
   }
 
   if (loading) return (

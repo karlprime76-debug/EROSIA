@@ -83,3 +83,34 @@ BEGIN
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Récupère l'ID d'un utilisateur par email
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(p_email TEXT)
+RETURNS UUID
+SECURITY DEFINER
+SET search_path = extensions, public
+AS $$
+DECLARE
+  v_user_id UUID;
+BEGIN
+  SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
+  RETURN v_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Met à jour le mot de passe d'un utilisateur (hash bcrypt)
+CREATE OR REPLACE FUNCTION public.update_password(p_email TEXT, p_password TEXT)
+RETURNS BOOLEAN
+SECURITY DEFINER
+SET search_path = extensions, public
+AS $$
+DECLARE
+  v_hashed TEXT;
+BEGIN
+  v_hashed := crypt(p_password, gen_salt('bf', 10));
+  UPDATE auth.users
+  SET encrypted_password = v_hashed, updated_at = NOW()
+  WHERE email = p_email;
+  RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;

@@ -7,6 +7,7 @@ import { getGifts, getMatches, createGiftCheckout, getReceivedGifts, getPaymentA
 import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
 interface MatchItem { id: string; user1_id: string; user2_id: string }
@@ -117,7 +118,7 @@ function GiftsContent() {
       if (result.data?.url) { window.location.href = result.data.url; return }
       toast(result.error ?? 'Erreur de paiement', 'error')
     } catch (err) {
-      console.error('handleSend error', err)
+      logger.error('handleSend error', { error: String(err) })
       toast('Erreur lors de l\'envoi du cadeau', 'error')
     } finally {
       setSending(false)
@@ -139,7 +140,7 @@ function GiftsContent() {
       const t = await getGiftTransactions()
       if (t.data) setTransactions(t.data)
     } catch (err) {
-      console.error('handlePayout error', err)
+      logger.error('handlePayout error', { error: String(err) })
       toast('Erreur lors du retrait', 'error')
     } finally {
       setPayoutProcessing(false)

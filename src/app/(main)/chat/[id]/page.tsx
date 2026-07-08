@@ -1,20 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, markAsRead, getAIIcebreaker, createDuel } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, markAsRead, getAIIcebreaker, createDuel, getMessageSuggestions } from '@/lib/api'
+import { logger } from '@/lib/logger'
 import { useToast } from '@/components/Toast'
 import { MessageBubble } from '@/components/chat/MessageBubble'
 import { TypingIndicator } from '@/components/chat/TypingIndicator'
 import { OnlineStatus, OnlineBadge } from '@/components/chat/OnlineStatus'
 import type { DateSuggestion } from '@/lib/date-suggestions'
-import ConsentDialog from '@/components/safety/ConsentDialog'
-import SafetyReminder from '@/components/safety/SafetyReminder'
-import ReportSheet from '@/components/safety/ReportSheet'
+import dynamic from 'next/dynamic'
+const ConsentDialog = dynamic(() => import('@/components/safety/ConsentDialog'), { ssr: false })
+const SafetyReminder = dynamic(() => import('@/components/safety/SafetyReminder'), { ssr: false })
+const ReportSheet = dynamic(() => import('@/components/safety/ReportSheet'), { ssr: false })
 import { reportUser, blockUser, logConsent } from '@/lib/safety/api'
 
 import { motion, AnimatePresence } from 'motion/react'
@@ -49,6 +51,8 @@ export default function ChatPage() {
   const [showSafety, setShowSafety] = useState(false)
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null)
   const [showReport, setShowReport] = useState(false)
+  const [msgSuggestions, setMsgSuggestions] = useState<string[]>([])
+  const [showMsgSugg, setShowMsgSugg] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -56,6 +60,7 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const suggTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback((smooth = true) => {
@@ -99,7 +104,11 @@ export default function ChatPage() {
           return [...prev, m]
         })
         scrollToBottom()
-        if (m.sender_id !== uid) markAsRead(matchId)
+        if (m.sender_id !== uid) {
+          markAsRead(matchId)
+          clearTimeout(suggTimeoutRef.current)
+          suggTimeoutRef.current = setTimeout(() => loadMsgSuggestionsRef.current?.(), 3000)
+        }
       })
       msgChannel.on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
@@ -138,7 +147,7 @@ export default function ChatPage() {
     })
   }, [matchId, router, toast, scrollToBottom])
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const text = input.trim()
     if (!text || sending) return
     setSending(true)
@@ -146,18 +155,24 @@ export default function ChatPage() {
     setReplyTo(null)
     setShowEmoji(false)
     setShowAi(false)
+    setShowMsgSugg(false)
     const { error } = await sendMessage(matchId, text)
     if (error) toast("Erreur d'envoi", 'error')
     setSending(false)
     scrollToBottom()
-  }
+  }, [input, sending, matchId, toast, scrollToBottom])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+    if (e.target.value) setShowMsgSugg(false)
+  }, [])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
-  }
+  }, [handleSend])
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -256,14 +271,28 @@ export default function ChatPage() {
     router.push('/matches')
   }
 
-  const loadAiSuggestions = async () => {
+  const loadAiSuggestions = useCallback(async () => {
     if (!profile) return
     const result = await getAIIcebreaker(profile.id)
     if (result.suggestion) setAiSuggestions([result.suggestion])
     setShowAi(true)
-  }
+  }, [profile])
 
-  const loadDateIdeas = async () => {
+  const loadMsgSuggestionsRef = useRef<() => Promise<void>>(async () => {})
+
+  useEffect(() => {
+    loadMsgSuggestionsRef.current = async () => {
+      if (!matchId) return
+      clearTimeout(suggTimeoutRef.current)
+      const result = await getMessageSuggestions(matchId)
+      if (result.suggestions.length > 0) {
+        setMsgSuggestions(result.suggestions)
+        setShowMsgSugg(true)
+      }
+    }
+  }, [matchId])
+
+  const loadDateIdeas = useCallback(async () => {
     if (!otherId || loadingDates) return
     setLoadingDates(true)
     try {
@@ -278,7 +307,7 @@ export default function ChatPage() {
     } finally {
       setLoadingDates(false)
     }
-  }
+  }, [otherId, loadingDates, toast])
 
   const sendDateSuggestion = async (s: DateSuggestion) => {
     const text = `💌 Idée de date : ${s.type}\n${s.description}\nBudget : ${s.budget} · ${s.distance}`
@@ -339,7 +368,7 @@ export default function ChatPage() {
         </div>
 
         <div className="relative">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-surface transition-colors">
+          <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" className="p-2 rounded-xl hover:bg-surface transition-colors">
             <MoreHorizontal size={18} />
           </button>
           {menuOpen && (
@@ -366,7 +395,7 @@ export default function ChatPage() {
                   const { error } = await blockUser(otherId)
                   if (error) toast(error, 'error')
                   else { toast('Utilisateur bloqué', 'success'); logConsent(myId, 'user_blocked', otherId) }
-                })() }}
+                })().catch(logger.error) }}
                   className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5 text-error">
                   <ShieldOff size={14} /> Bloquer
                 </button>
@@ -456,7 +485,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={14} className="text-warning" />
               <span className="text-xs font-medium text-warning">Suggestions</span>
-              <button onClick={() => setShowAi(false)} className="ml-auto p-1"><X size={14} className="text-muted" /></button>
+              <button onClick={() => setShowAi(false)} aria-label="Fermer" className="ml-auto p-1"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-wrap gap-2">
               {aiSuggestions.map((s, i) => (
@@ -477,7 +506,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2 mb-2">
               <Heart size={14} className="text-primary" />
               <span className="text-xs font-medium text-primary">Idées de date</span>
-              <button onClick={() => setDateSuggestions([])} className="ml-auto p-1"><X size={14} className="text-muted" /></button>
+              <button onClick={() => setDateSuggestions([])} aria-label="Fermer" className="ml-auto p-1"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-col gap-2">
               {loadingDates ? (
@@ -500,42 +529,67 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showMsgSugg && msgSuggestions.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
+            className="px-3 py-2 border-t border-theme/50 bg-theme/95">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={12} className="text-warning" />
+              <span className="text-[10px] font-medium text-warning/70 uppercase tracking-wider">Réponse suggérée</span>
+              <button onClick={() => setShowMsgSugg(false)} aria-label="Fermer" className="ml-auto p-0.5"><X size={12} className="text-muted" /></button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {msgSuggestions.map((s, i) => (
+                <button key={i} onClick={() => { setInput(s); setShowMsgSugg(false); inputRef.current?.focus() }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs bg-surface border border-theme text-secondary hover:border-primary/30 hover:text-theme transition-colors">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {replyTo && (
         <div className="px-3 py-2 border-t border-theme/50 bg-theme/95 flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-medium text-primary">En réponse</p>
             <p className="text-xs text-secondary truncate">{replyTo.text || '📎 Pièce jointe'}</p>
           </div>
-          <button onClick={() => setReplyTo(null)} className="p-1"><X size={14} className="text-muted" /></button>
+          <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="p-1"><X size={14} className="text-muted" /></button>
         </div>
       )}
 
       <div className="px-3 pb-3 pt-2 border-t border-theme/50 bg-theme/95">
         <div className="flex items-end gap-2">
-          <button onClick={() => fileRef.current?.click()} className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+          <button onClick={() => fileRef.current?.click()} aria-label="Joindre une photo" className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
             <ImageIcon size={18} className="text-secondary" />
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
 
-          <button onClick={() => setShowEmoji(!showEmoji)} className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+          <button onClick={() => setShowEmoji(!showEmoji)} aria-label="Émojis" className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
             <Smile size={18} className="text-secondary" />
+          </button>
+
+          <button onClick={() => loadMsgSuggestionsRef.current?.()} aria-label="Suggestions" className="p-2.5 rounded-xl hover:bg-surface transition-colors shrink-0">
+            <Sparkles size={18} className="text-warning" />
           </button>
 
           <div className="flex-1 flex items-end gap-2 bg-surface rounded-2xl px-3 py-1 border border-theme focus-within:border-primary/30 transition-colors">
             <input
-              ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+              ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
               placeholder="Écrivez un message..."
               className="flex-1 bg-transparent text-sm py-2 outline-none text-theme placeholder:text-muted min-w-0"
               maxLength={5000}
             />
             {input.trim() ? (
-              <button onClick={handleSend} disabled={sending}
+              <button onClick={handleSend} disabled={sending} aria-label="Envoyer"
                 className="p-2 shrink-0 text-theme disabled:opacity-30 transition-all active:scale-90"
                 style={{ color: 'var(--primary)' }}>
                 <Send size={18} />
               </button>
             ) : (
-              <button onClick={handleVoiceToggle}
+              <button onClick={handleVoiceToggle} aria-label={isRecording ? "Arrêter" : "Message vocal"}
                 className="p-2 shrink-0 transition-all active:scale-90"
                 style={{ color: isRecording ? 'var(--error)' : 'var(--textSecondary)' }}>
                 {isRecording ? <Square size={18} /> : <Mic size={18} />}
@@ -576,7 +630,7 @@ export default function ChatPage() {
   )
 }
 
-function DateSeparator({ messages }: { messages: ChatMessage[] }) {
+const DateSeparator = React.memo(function DateSeparator({ messages }: { messages: ChatMessage[] }) {
   const seen = new Set<string>()
   const separators: { date: string; label: string }[] = []
   for (const msg of messages) {
@@ -597,6 +651,6 @@ function DateSeparator({ messages }: { messages: ChatMessage[] }) {
       ))}
     </>
   )
-}
+})
 
 

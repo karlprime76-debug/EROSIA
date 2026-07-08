@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Heart } from 'lucide-react'
 import { getDateIdeas, getMyDateIdeas, saveDateIdea, removeDateIdea } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface DateIdea {
   id: string
@@ -22,6 +23,7 @@ export default function DateIdeasPage() {
   const [myIdeaIds, setMyIdeaIds] = useState<Set<string>>(new Set())
   const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     Promise.all([
@@ -31,8 +33,8 @@ export default function DateIdeasPage() {
       if (ideasData.data) setIdeas(ideasData.data as DateIdea[])
       if (myData.data) setMyIdeaIds(new Set((myData.data as MyDateIdea[]).map(m => m.idea_id)))
       setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [category])
+    }).catch(() => { setLoading(false); toast('Erreur chargement des idées', 'error') })
+  }, [category, toast])
 
   const toggle = async (ideaId: string) => {
     if (myIdeaIds.has(ideaId)) {

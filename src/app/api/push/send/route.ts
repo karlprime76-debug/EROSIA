@@ -4,14 +4,15 @@ import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { logger } from '@/lib/logger'
 
+const vapidSubject = process.env.VAPID_SUBJECT?.trim()
+const subject = vapidSubject && !vapidSubject.startsWith('mailto:')
+  ? `mailto:${vapidSubject}`
+  : (vapidSubject ?? 'mailto:contact@erosia.app')
+
 if (!process.env.NEXT_PUBLIC_VAPID_KEY || !process.env.VAPID_PRIVATE_KEY) {
   logger.warn('VAPID keys not configured — push notifications disabled')
 } else {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT ?? 'mailto:contact@erosia.app',
-    process.env.NEXT_PUBLIC_VAPID_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  )
+  webpush.setVapidDetails(subject, process.env.NEXT_PUBLIC_VAPID_KEY, process.env.VAPID_PRIVATE_KEY)
 }
 
 export async function POST(request: Request) {

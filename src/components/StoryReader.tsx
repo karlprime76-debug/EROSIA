@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { X, Trash2 } from 'lucide-react'
 import type { StoryGroup, Story } from '@/lib/stories/types'
+import { FocusTrap } from '@/components/FocusTrap'
 
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '🔥', '😢', '👍']
 
@@ -143,6 +144,7 @@ function StoryViewer({
                 key={emoji}
                 type="button"
                 onClick={() => { onReact(emoji); setShowReactions(false) }}
+                aria-label={emoji}
                 className={`text-2xl transition-all active:scale-150 hover:scale-125 ${myReaction === emoji ? 'scale-125' : 'opacity-70 hover:opacity-100'}`}
               >
                 {emoji}
@@ -157,6 +159,7 @@ function StoryViewer({
           <button
             type="button"
             onClick={() => onDelete(story.id)}
+            aria-label="Supprimer"
             className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition"
           >
             <Trash2 size={14} />
@@ -249,7 +252,7 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
   const hasNext = storyIdx < (currentGroup.stories.length - 1) || groupIdx < groups.length - 1
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col">
+    <FocusTrap><div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col">
       <div className="relative flex-1">
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-3 pb-2 bg-gradient-to-b from-[var(--bg)]/50 to-transparent">
           <div className="flex items-center gap-2 flex-1">
@@ -269,7 +272,7 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
             <span className="text-[10px] text-[var(--textMuted)]">
               {storyIdx + 1}/{currentGroup.stories.length}
             </span>
-            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center hover:bg-[var(--cardHover)] transition">
+            <button type="button" onClick={onClose} aria-label="Fermer" className="w-8 h-8 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center hover:bg-[var(--cardHover)] transition">
               <X size={16} />
             </button>
           </div>
@@ -288,6 +291,6 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
           myReaction={myReactions[currentStory.id] ?? null}
         />
       </div>
-    </div>
+    </div></FocusTrap>
   )
 }

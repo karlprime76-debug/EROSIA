@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Erosia',
   description: 'Rencontre · Immersion · Passion',
   other: {
-    'theme-color': '#070708',
+    'theme-color': process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#070708',
   },
 }
 

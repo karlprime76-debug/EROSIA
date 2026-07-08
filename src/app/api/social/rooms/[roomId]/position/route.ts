@@ -14,7 +14,7 @@ export async function PUT(req: NextRequest) {
 
     const { error } = await updatePosition(x, y, z, rotation_y, animation as Animation | undefined)
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

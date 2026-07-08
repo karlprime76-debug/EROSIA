@@ -12,7 +12,7 @@ export async function POST(
     if (!emoji) return NextResponse.json({ error: 'emoji requis' }, { status: 400 })
 
     const { error } = await addStoryReaction(id, emoji)
-    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

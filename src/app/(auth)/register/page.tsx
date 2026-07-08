@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
@@ -13,7 +12,6 @@ import { Button } from '@/components/ui/button'
 type RegisterValues = { email: string; password: string; name: string; age: number }
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [success, setSuccess] = useState(false)
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -34,10 +32,6 @@ export default function RegisterPage() {
       })
       const json = await res.json()
       if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
-      if (json.autoLogin) {
-        router.push('/')
-        return
-      }
       setSuccess(true)
     } catch {
       setServerError('Erreur réseau')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MessageCircle, X, Star, Archive, MoreHorizontal, ShieldOff } from 'lucide-react'
@@ -48,15 +48,24 @@ export default function ConversationsPage() {
   const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({})
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const { toast } = useToast()
+  const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
 
   useEffect(() => {
+    let cancelled = false
     supabase.auth.getUser().then(async ({ data }) => {
+      if (cancelled) return
       if (!data.user) { setLoading(false); return }
       setMyId(data.user.id)
       const uid = data.user.id
 
-      const { data: matches } = await supabase
-        .from('matches').select('*').or(`user1_id.eq.${uid},user2_id.eq.${uid}`).order('created_at', { ascending: false })
+      let matches
+      try {
+        const res = await supabase
+          .from('matches').select('*').or(`user1_id.eq.${uid},user2_id.eq.${uid}`).order('created_at', { ascending: false })
+        matches = res.data
+      } catch {
+        toast('Erreur lors du chargement des matchs', 'error')
+      }
 
       const list: ConvItem[] = []
       if (matches) {
@@ -64,14 +73,24 @@ export default function ConversationsPage() {
         const { data: pData } = await supabase.from('profiles').select('id,name,age,photos,mood,trust_score,energy_score').in('id', otherIds)
         const profiles = (pData || []) as Array<{ id: string; name: string; age: number | null; photos: string[]; mood: string | null; trust_score: number | null; energy_score: number | null }>
 
+        const matchIds = matches.map(m => m.id)
+        const { data: allLastMsgs } = await supabase
+          .from('messages')
+          .select('match_id, text, image_url, created_at, sender_id')
+          .in('match_id', matchIds)
+          .order('created_at', { ascending: false })
+
+        const lastMsgByMatch: Record<string, { match_id: string; text: string | null; image_url: string | null; created_at: string; sender_id: string }> = {}
+        if (allLastMsgs) {
+          for (const msg of allLastMsgs) {
+            if (!lastMsgByMatch[msg.match_id]) lastMsgByMatch[msg.match_id] = msg
+          }
+        }
+
         for (const m of matches) {
           const otherId = m.user1_id === uid ? m.user2_id : m.user1_id
           const p = profiles.find(p => p.id === otherId)
           if (!p) continue
-
-          const { data: lastMsg } = await supabase
-            .from('messages').select('text,image_url,created_at,sender_id')
-            .eq('match_id', m.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
           list.push({
             matchId: m.id,
@@ -79,16 +98,17 @@ export default function ConversationsPage() {
               id: p.id, name: p.name, age: p.age, photos: p.photos || [],
               mood: p.mood || null, trust_score: p.trust_score ?? undefined, energy_score: p.energy_score ?? undefined,
             },
-            lastMessage: lastMsg || null,
+            lastMessage: lastMsgByMatch[m.id] || null,
             unreadCount: 0,
             isTyping: false, isFavorite: false, isArchived: false,
           })
         }
       }
-      setConvs(list)
+      if (!cancelled) setConvs(list)
 
       list.forEach(c => {
         const ch = supabase.channel(`typing:match-${c.matchId}`)
+        channelsRef.current.push(ch)
         ch.on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
           setTypingMap(prev => ({ ...prev, [c.matchId]: payload.payload?.userId === c.profile.id }))
         })
@@ -97,6 +117,7 @@ export default function ConversationsPage() {
 
       list.forEach(c => {
         const ch = supabase.channel(`presence:${c.profile.id}`, { config: { presence: { key: '' } } })
+        channelsRef.current.push(ch)
         ch.on('presence', { event: 'sync' }, () => {
           const state = ch.presenceState()
           setOnlineMap(prev => ({ ...prev, [c.profile.id]: Object.keys(state).length > 0 }))
@@ -104,9 +125,15 @@ export default function ConversationsPage() {
         ch.subscribe()
       })
 
-      setLoading(false)
-    })
-  }, [])
+      if (!cancelled) setLoading(false)
+    }).catch(() => { toast('Erreur', 'error') })
+
+    return () => {
+      cancelled = true
+      channelsRef.current.forEach(ch => supabase.removeChannel(ch))
+      channelsRef.current = []
+    }
+  }, [toast])
 
   const filtered = useMemo(() => {
     let result = [...convs]

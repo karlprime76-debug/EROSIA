@@ -27,23 +27,11 @@ export default function LoginPage() {
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
       if (authError) {
-        if (authError.message.includes('Invalid login credentials') || authError.message.includes('Email not confirmed')) {
-          const msg = authError.message.includes('Invalid login credentials')
-            ? 'Email ou mot de passe incorrect'
-            : 'Email non confirmé — vérifie ta boîte mail'
-          setError(msg)
-          return
-        }
-        const res = await fetch('/api/auth/custom-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        })
-        if (!res.ok) {
-          setError('Erreur de connexion')
-          return
-        }
-        router.push('/')
+        setError(authError.message === 'Invalid login credentials'
+          ? 'Email ou mot de passe incorrect'
+          : authError.message === 'Email not confirmed'
+            ? 'Email non confirmé — vérifie ta boîte mail'
+            : authError.message)
         return
       }
       router.push('/')

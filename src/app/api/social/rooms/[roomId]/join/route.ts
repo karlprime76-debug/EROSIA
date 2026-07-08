@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ roo
       animation,
     })
 
-    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
 
     return NextResponse.json({ presence: data }, { status: 201 })
   } catch (err) {

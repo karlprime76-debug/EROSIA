@@ -48,17 +48,21 @@ export default function EventsPage() {
     e.participants?.filter(p => p.status === 'accepted').length ?? 0
 
   const handleToggle = async (eventId: string, join: boolean) => {
-    const { error } = join ? await joinEvent(eventId) : await leaveEvent(eventId)
-    if (error) { toast(error, 'error'); return }
-    await fetchEvents()
+    try {
+      const { error } = join ? await joinEvent(eventId) : await leaveEvent(eventId)
+      if (error) { toast(error, 'error'); return }
+      await fetchEvents()
+    } catch { toast('Erreur', 'error') }
   }
 
   const handleCreate = async (input: CreateEventInput, file?: File) => {
-    const { error } = await createEvent(input, file)
-    if (error) { toast(error, 'error'); return }
-    toast('Événement créé ✓', 'success')
-    setShowForm(false)
-    await fetchEvents()
+    try {
+      const { error } = await createEvent(input, file)
+      if (error) { toast(error, 'error'); return }
+      toast('Événement créé ✓', 'success')
+      setShowForm(false)
+      await fetchEvents()
+    } catch { toast('Erreur', 'error') }
   }
 
   return (

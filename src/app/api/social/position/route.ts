@@ -10,7 +10,7 @@ export async function PUT(request: Request) {
     }
 
     const { error } = await updatePosition(x, y, z, rotationY, animation)
-    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
 
     return NextResponse.json({ success: true })
   } catch (err) {

@@ -9,7 +9,7 @@ export async function POST(
   try {
     const { id } = await params
     const { error } = await addStoryView(id)
-    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
     return NextResponse.json({ success: true })
   } catch (err) {
     logger.error('Story view error', { error: String(err) })

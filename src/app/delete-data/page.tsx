@@ -4,8 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 export default function DeleteDataPage() {
+  const { toast } = useToast()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -16,13 +18,15 @@ export default function DeleteDataPage() {
     if (loading) return
     setError('')
     setLoading(true)
-    const { error: authError } = await supabase.auth.signInWithOtp({ email })
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
-    }
-    setSent(true)
+    try {
+      const { error: authError } = await supabase.auth.signInWithOtp({ email })
+      if (authError) {
+        setError(authError.message)
+        setLoading(false)
+        return
+      }
+      setSent(true)
+    } catch { toast('Erreur', 'error'); setLoading(false) }
   }
 
   if (sent) {

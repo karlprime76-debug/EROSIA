@@ -31,8 +31,10 @@ export const metadata: Metadata = {
   },
 }
 
+const THEME_COLOR = process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D92D4A'
+
 export const viewport: Viewport = {
-  themeColor: '#D92D4A',
+  themeColor: THEME_COLOR,
   width: 'device-width',
   initialScale: 1,
 }
@@ -41,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`h-full antialiased ${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content={process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#D92D4A'} />
+        <meta name="theme-color" content={THEME_COLOR} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>

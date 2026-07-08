@@ -7,7 +7,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params
     const { data, error } = await getParticipants(id)
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ data })
   } catch (err) {

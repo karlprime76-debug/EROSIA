@@ -107,7 +107,8 @@ export async function POST(request: Request) {
 
     await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', tx?.id)
     return NextResponse.json({ error: 'Échec du paiement. Contacte le support.' }, { status: 500 })
-  } catch {
+  } catch (err) {
+    logger.error('Payout error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

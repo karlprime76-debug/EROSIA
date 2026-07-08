@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { analyzeProfile } from '@/lib/coach'
 import { getProfile } from '@/lib/api'
 import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { profileId } = await req.json()
 
     if (!profileId) {

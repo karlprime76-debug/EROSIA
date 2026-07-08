@@ -55,7 +55,7 @@ function ContrastValidator() {
   const { resolvedTheme } = useTheme()
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || process.env.NODE_ENV !== 'development') return
 
     const checkContrast = () => {
       const styles = window.getComputedStyle(document.documentElement)

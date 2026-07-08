@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { createDuel, getProfiles, checkPremium } from '@/lib/api'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 interface NewDuelProfile {
   id: string
@@ -42,7 +43,7 @@ export default function NewDuelPage() {
       await createDuel(selectedA, selectedB)
       router.push('/duels')
     } catch (err) {
-      console.error('handleCreate error', err)
+      logger.error('handleCreate error', { error: String(err) })
       toast('Erreur lors de la création du duel', 'error')
     } finally {
       setCreating(false)

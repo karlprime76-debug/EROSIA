@@ -1,15 +1,30 @@
-// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.89), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.90)
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { verifyToken } from '@/lib/custom-auth'
 
-const rateMap = new Map<string, { count: number; resetAt: number }>()
+const kvUrl = process.env.KV_URL ?? process.env.UPSTASH_REDIS_REST_URL
+const kvToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN
 
-function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+const fallbackRateMap = new Map<string, { count: number; resetAt: number }>()
+
+async function checkRateLimit(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
+  if (kvUrl && kvToken) {
+    const { Ratelimit } = await import('@upstash/ratelimit')
+    const { Redis } = await import('@upstash/redis')
+    const redis = new Redis({ url: kvUrl, token: kvToken })
+    const ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(maxRequests, `${windowMs}ms`),
+      analytics: true,
+      prefix: 'erosia',
+    })
+    const { success } = await ratelimit.limit(key)
+    return success
+  }
+  // Fallback en mémoire si KV pas configuré (dev)
   const now = Date.now()
-  const entry = rateMap.get(key)
+  const entry = fallbackRateMap.get(key)
   if (!entry || now > entry.resetAt) {
-    rateMap.set(key, { count: 1, resetAt: now + windowMs })
+    fallbackRateMap.set(key, { count: 1, resetAt: now + windowMs })
     return true
   }
   if (entry.count >= maxRequests) return false
@@ -94,7 +109,7 @@ export default async function proxy(request: NextRequest) {
 
     if (pathname.startsWith('/api/auth/')) maxReqs = Math.min(maxReqs, 10)
 
-    if (!checkRateLimit(routeKey, maxReqs, 60_000)) {
+    if (!await checkRateLimit(routeKey, maxReqs, 60_000)) {
       return NextResponse.json(
         { error: 'Trop de requêtes, réessaie dans une minute' },
         { status: 429 }
@@ -103,22 +118,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   let user = null
-  try {
-    const result = await supabase.auth.getUser()
-    user = result.data?.user ?? null
-  } catch {
-    // GoTrue down — ignore
-  }
-
-  if (!user) {
-    const token = request.cookies.get('custom_auth_token')?.value
-    if (token) {
-      const payload = await verifyToken(token)
-      if (payload) {
-        user = { id: payload.sub, email: payload.email } as any
-      }
-    }
-  }
+  const result = await supabase.auth.getUser()
+  user = result.data?.user ?? null
 
   // Skip auth redirect for API, static files, SW, and public pages
   if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && pathname !== '/sw.js') {

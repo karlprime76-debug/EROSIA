@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ roo
 
     const { data, error } = await getPresence(roomId)
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ presence: data })
   } catch (err) {

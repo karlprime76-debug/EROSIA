@@ -25,6 +25,23 @@ const SUPER_LIKE_DAILY = 1
 const DISCOVER_PAGE_SIZE = 20
 
 const REPORT_REASONS = ['Compte faux', 'Harcèlement', 'Spam', 'Contenu inapproprié', 'Autre'] as const
+const logoStyle = { fontFamily: 'var(--font-display)' }
+const passBtnStyle = {
+  background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
+  backdropFilter: 'blur(20px)',
+  borderColor: 'color-mix(in srgb, var(--error) 20%, transparent)',
+  boxShadow: '0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
+} as const
+const likeBtnStyle = {
+  background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
+  backdropFilter: 'blur(20px)',
+  borderColor: 'color-mix(in srgb, var(--success) 20%, transparent)',
+  boxShadow: '0 0 20px color-mix(in srgb, var(--success) 8%, transparent), 0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
+} as const
+const reportBtnStyle = {
+  background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
+  backdropFilter: 'blur(20px)',
+} as const
 
 const lookingForLabel = (v: string) => ({ friendship: 'Amitié', casual: 'Plan cul', fwb: 'FWB', serious: 'Sérieux', open: 'Libre' }[v] ?? v)
 const moodLabel = (v: string) => ({ discuter: '💬 Discuter', rencontre: '🔥 Rencontre', disponible_ce_soir: '🍷 Dispo ce soir', relation_serieuse: '💕 Sérieux', chill: '🎮 Chill', de_passage: '🌍 De passage' }[v] ?? v)
@@ -173,7 +190,7 @@ export default function DiscoverPage() {
               setMyLookingForInternal(data.looking_for ?? 'friendship')
               setMyMoodInternal(data.mood ?? 'discuter')
             }
-          }, console.error)
+          }, (err) => logger.error('Discover error', { error: String(err) }))
         }
       }).catch(logger.error)
     })
@@ -265,7 +282,7 @@ export default function DiscoverPage() {
   const fetchProfiles = async (extraBlocked: string[] = [], pageNum = 1) => {
     const swiped = await getSwipedIds()
     const blocked = await getBlockedIds()
-    const exclude = [...swiped, ...blocked, ...extraBlocked]
+    const exclude = [...swiped, ...blocked, ...extraBlocked, myId].filter(Boolean)
     const opts = { ...filters, lookingFor: filters.lookingFor || undefined }
     let result
     if (filters.city.trim()) {
@@ -389,7 +406,7 @@ export default function DiscoverPage() {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] flex items-center justify-center shadow-glow border border-light/10 transition-transform duration-200 group-hover:scale-105">
             <Heart size={15} fill="white" className="text-theme" />
           </div>
-          <span className="text-xl font-bold text-theme tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Erosia</span>
+          <span className="text-xl font-bold text-theme tracking-tight" style={logoStyle}>Erosia</span>
         </Link>
 
         <div className="flex items-center gap-1.5">
@@ -402,7 +419,7 @@ export default function DiscoverPage() {
           )}
 
           {hasSwiped && (
-            <button type="button" onClick={handleRewind} aria-label="Annuler le swipe"
+            <button type="button" onClick={handleRewind} aria-label="Revenir en arrière"
               className="w-9 h-9 rounded-full border border-light/6 bg-card/3 flex items-center justify-center transition-all duration-200 hover:border-light/15 hover:bg-card/6 active:scale-90">
               <RotateCcw size={14} className="text-[var(--text-muted)]" />
             </button>
@@ -653,7 +670,9 @@ export default function DiscoverPage() {
                     <div className="flex items-baseline gap-2">
                       <h2 className="text-[22px] font-bold text-theme leading-tight">
                         {current.name}
-                        {current.is_verified && <BadgeCheck size={17} className="inline ml-1.5 text-info drop-shadow-[0_0_8px_var(--info)]" />}
+                        {current.is_verified
+                          ? <BadgeCheck size={17} className="inline ml-1.5 text-info drop-shadow-[0_0_8px_var(--info)]" />
+                          : <span className="inline ml-1.5 text-[10px] font-semibold text-[var(--warning)] border border-[var(--warning)]/30 rounded-full px-2 py-0.5">Non vérifié</span>}
                       </h2>
                       {current.age && <span className="text-lg text-theme/75 font-semibold">{current.age}</span>}
                     </div>
@@ -682,12 +701,7 @@ export default function DiscoverPage() {
                     {/* Pass */}
                     <button type="button" onClick={() => swipe('pass')} aria-label="Passer"
                       className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
-                      style={{
-                        background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
-                        backdropFilter: 'blur(20px)',
-                        borderColor: 'color-mix(in srgb, var(--error) 20%, transparent)',
-                        boxShadow: '0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
-                      }}>
+                      style={passBtnStyle}>
                       <X size={24} className="text-error" />
                     </button>
 
@@ -728,19 +742,14 @@ export default function DiscoverPage() {
                     {/* Like */}
                     <button type="button" onClick={() => swipe('like')} aria-label="Like"
                       className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
-                      style={{
-                        background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
-                        backdropFilter: 'blur(20px)',
-                        borderColor: 'color-mix(in srgb, var(--success) 20%, transparent)',
-                        boxShadow: '0 0 20px color-mix(in srgb, var(--success) 8%, transparent), 0 4px 20px color-mix(in srgb, var(--bg) 40%, transparent)',
-                      }}>
+                      style={likeBtnStyle}>
                       <Heart size={24} className="text-success" />
                     </button>
 
                     {/* Signaler */}
                     <button type="button" onClick={() => setShowReportModal(true)} aria-label="Signaler"
                       className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border border-light/5"
-                      style={{ background: 'color-mix(in srgb, var(--bg) 75%, transparent)', backdropFilter: 'blur(20px)' }}>
+                      style={reportBtnStyle}>
                       <Flag size={14} className="text-theme/25" />
                     </button>
                   </div>

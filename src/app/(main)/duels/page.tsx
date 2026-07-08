@@ -7,6 +7,7 @@ import { getDuels, voteDuel } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import Image from 'next/image'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 interface DuelItem {
   id: string
@@ -44,7 +45,7 @@ export default function DuelsPage() {
       const { data } = await getDuels()
       if (data) setDuels(data)
     } catch (err) {
-      console.error('handleVote error', err)
+      logger.error('handleVote error', { error: String(err) })
       toast('Erreur lors du vote', 'error')
     }
   }

@@ -8,6 +8,7 @@ import { getEventById, joinEvent, leaveEvent, getParticipants, deleteEvent, type
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { useConfirm } from '@/components/ConfirmDialog'
+import { logger } from '@/lib/logger'
 
 const CATEGORY_EMOJIS: Record<string, string> = {
   sport: '⚽', culture: '🎨', food: '🍽️', music: '🎵',
@@ -30,11 +31,11 @@ export default function EventDetailPage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setMyId(data.user.id)
-    })
+    }).catch(logger.error)
     Promise.all([
       getEventById(id).then(r => setEvent(r.data)),
       getParticipants(id).then(r => setParticipants(r.data)),
-    ]).finally(() => setLoading(false))
+    ]).catch(logger.error).finally(() => setLoading(false))
   }, [id])
 
   if (loading) return (

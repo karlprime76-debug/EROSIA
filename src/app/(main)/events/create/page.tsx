@@ -10,10 +10,12 @@ export default function CreateEventPage() {
   const { toast } = useToast()
 
   const handleSubmit = async (input: CreateEventInput, file?: File) => {
-    const { data, error } = await createEvent(input, file)
-    if (error) { toast(error, 'error'); return }
-    toast('Événement créé ✓', 'success')
-    router.push(`/events/${data?.id}`)
+    try {
+      const { data, error } = await createEvent(input, file)
+      if (error) { toast(error, 'error'); return }
+      toast('Événement créé ✓', 'success')
+      router.push(`/events/${data?.id}`)
+    } catch { toast('Erreur', 'error') }
   }
 
   return <EventForm onSubmit={handleSubmit} onClose={() => router.back()} />

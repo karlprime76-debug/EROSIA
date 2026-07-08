@@ -5,6 +5,8 @@ import { ArrowLeft, Camera, Loader, X } from 'lucide-react'
 import Image from 'next/image'
 import type { CreateEventInput, EventCategory } from '@/lib/events'
 import { EVENT_CATEGORIES } from '@/lib/events'
+import { FocusTrap } from '@/components/FocusTrap'
+import { useToast } from '@/components/Toast'
 
 interface EventFormProps {
   onSubmit: (input: CreateEventInput, file?: File) => Promise<void>
@@ -12,6 +14,7 @@ interface EventFormProps {
 }
 
 export function EventForm({ onSubmit, onClose }: EventFormProps) {
+  const { toast } = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
@@ -55,7 +58,8 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
         max_participants: maxParticipants ? parseInt(maxParticipants, 10) : undefined,
         category: category === 'other' ? undefined : category,
       }, file ?? undefined)
-    } finally {
+    } catch { toast('Erreur', 'error') }
+    finally {
       setLoading(false)
     }
   }
@@ -64,7 +68,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center">
-      <div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto border border-[var(--border)]">
+      <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto border border-[var(--border)]">
         <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[var(--border)]">
           <button type="button" onClick={onClose} aria-label="Fermer" className="p-1">
             <ArrowLeft size={20} />
@@ -189,7 +193,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
             {loading ? 'Création...' : 'Créer l\'événement'}
           </button>
         </form>
-      </div>
+      </div></FocusTrap>
     </div>
   )
 }

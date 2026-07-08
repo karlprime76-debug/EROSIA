@@ -45,9 +45,11 @@ export default function QuizPage() {
 
   const handleSave = async () => {
     setSaving(true)
-    const entries = Object.entries(answers).map(([questionId, answerIndex]) => ({ questionId, answerIndex }))
-    await saveQuizAnswers(entries)
-    setDone(true)
+    try {
+      const entries = Object.entries(answers).map(([questionId, answerIndex]) => ({ questionId, answerIndex }))
+      await saveQuizAnswers(entries)
+      setDone(true)
+    } catch { toast('Erreur', 'error') }
     setSaving(false)
   }
 

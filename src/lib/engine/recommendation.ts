@@ -59,7 +59,7 @@ async function getRecommendations(input: RecommendInput, db: SupabaseClientLike)
   }
 
   if (filters.city) {
-    query = query.ilike('location', `%${filters.city}%`)
+    query = query.ilike('location', `${filters.city}%`)
   }
 
   const { data: profiles, count } = await query

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await getEvents(filters, page)
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ data, page }, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await createEvent(input, file ?? undefined)
 
-    if (error) return NextResponse.json({ error }, { status: 500 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 500 })
 
     return NextResponse.json({ data }, { status: 201 })
   } catch (err) {

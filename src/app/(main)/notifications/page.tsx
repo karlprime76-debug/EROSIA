@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, MessageCircle, Sparkles, BadgeCheck, ArrowLeft, Bell, type LucideIcon } from 'lucide-react'
 import { getNotifications, markNotificationRead } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface Notification {
   id: string
@@ -33,6 +34,7 @@ const labelMap: Record<string, string> = {
 
 export default function NotificationsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -44,14 +46,16 @@ export default function NotificationsPage() {
   }, [])
 
   const handleClick = async (n: Notification) => {
-    if (!n.read) await markNotificationRead(n.id)
-    if (n.type === 'match') {
-      router.push('/matches')
-    } else if (n.type === 'message') {
-      router.push(`/chat/${n.actor_id}`)
-    } else {
-      router.push('/profile')
-    }
+    try {
+      if (!n.read) await markNotificationRead(n.id)
+      if (n.type === 'match') {
+        router.push('/matches')
+      } else if (n.type === 'message') {
+        router.push(`/chat/${n.actor_id}`)
+      } else {
+        router.push('/profile')
+      }
+    } catch { toast('Erreur', 'error') }
   }
 
   return (

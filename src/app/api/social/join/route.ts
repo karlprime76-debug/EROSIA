@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     if (!spaceId) return NextResponse.json({ error: 'spaceId requis' }, { status: 400 })
 
     const { data, error } = await joinSpace(spaceId, x, y, z)
-    if (error) return NextResponse.json({ error }, { status: 400 })
+    if (error) return NextResponse.json({ error: error ?? 'Erreur' }, { status: 400 })
 
     return NextResponse.json({ presence: data })
   } catch (err) {

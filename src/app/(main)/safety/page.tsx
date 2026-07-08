@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, Shield, Lock, Heart, MessageCircle, AlertTriangle, User, ShieldOff, Check, Loader2, FileText } from 'lucide-react'
 import { getSafetyTips, getBlockedUsers, unblockUser, revokeConsent, getSafetySummary } from '@/lib/safety/api'
+import { logger } from '@/lib/logger'
 import type { SafetyTip, BlockedUser, SafetySummary } from '@/lib/safety/types'
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string; size?: number; style?: React.CSSProperties }>> = {
@@ -17,7 +18,7 @@ const categoryIcons: Record<string, React.ComponentType<{ className?: string; si
 
 const categoryColors: Record<string, string> = {
   dating: 'var(--successVibrant)',
-  privacy: '#3B82F6',
+  privacy: 'var(--info)',
   security: 'var(--warningVibrant)',
   consent: 'var(--primary)',
 }
@@ -49,7 +50,7 @@ export default function SafetyPage() {
       if (tipsRes.data) setTips(tipsRes.data)
       if (blocksRes.data) setBlockedUsers(blocksRes.data)
       if (summaryRes.data) setSummary(summaryRes.data)
-    }).finally(() => setLoading(false))
+    }).catch(logger.error).finally(() => setLoading(false))
   }, [])
 
   const filteredTips = useMemo(() => {
@@ -101,7 +102,7 @@ export default function SafetyPage() {
         {summary && (
           <div className="grid grid-cols-3 gap-2 mb-5">
             <SummaryCard icon={ShieldOff} label="Bloqués" value={summary.blockedCount} color="var(--warningVibrant)" />
-            <SummaryCard icon={FileText} label="Actions" value={summary.recentConsentActions} color="#3B82F6" />
+            <SummaryCard icon={FileText} label="Actions" value={summary.recentConsentActions} color="var(--info)" />
             <SummaryCard icon={Check} label="Consentement" value={summary.hasActiveConsent ? 'Actif' : 'Retiré'} color={summary.hasActiveConsent ? 'var(--successVibrant)' : 'var(--primary)'} />
           </div>
         )}

@@ -31,6 +31,8 @@
   --accentWarm: #E8A87C;
   --accentCool: #7C8AE8;
   --accentOrange: #C85A17;
+  --accentPurple: #A78BFA;
+  --accentPink: #F472B6;
 
   /* ── Text (WCAG AA compliant) ── */
   --textPrimary: #F5F0EB;        /* on #070708 → ratio 16.4:1 */
@@ -70,6 +72,8 @@
   --accent-warm: var(--accentWarm);
   --accent-cool: var(--accentCool);
   --accent-orange: var(--accentOrange);
+  --accent-purple: var(--accentPurple);
+  --accent-pink: var(--accentPink);
   --shadow-glow: var(--shadowGlow);
   --glass-deep-bg: var(--glassDeepBg);
   --glass-border: var(--glassBorder);
@@ -210,6 +214,8 @@
   --accent-warm: var(--accentWarm);
   --accent-cool: var(--accentCool);
   --accent-orange: var(--accentOrange);
+  --accent-purple: var(--accentPurple);
+  --accent-pink: var(--accentPink);
   --shadow-glow: var(--shadowGlow);
   --glass-deep-bg: var(--glassDeepBg);
   --glass-border: var(--glassBorder);

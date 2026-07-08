@@ -10,44 +10,38 @@ const features = [
     icon: Flame, 
     title: 'Découvre des profils', 
     desc: 'Swipe et trouve des âmes passionnées près de chez toi.',
-    color: '#D92D4A', 
-    glow: 'rgba(217,45,74,0.06)' 
+    color: 'var(--primary)', 
   },
   { 
     icon: MessageCircle, 
     title: 'Chat en temps réel', 
     desc: 'Messages riches, vocaux, réactions et chat éphémère.',
-    color: '#34D399', 
-    glow: 'rgba(52,211,153,0.05)' 
+    color: 'var(--success)', 
   },
   { 
     icon: Gift, 
     title: 'Boutique cadeaux', 
     desc: 'Envoie des cadeaux virtuels via Mobile Money ou carte.',
-    color: '#FBBF24', 
-    glow: 'rgba(251,191,36,0.05)', 
+    color: 'var(--warning)', 
     badge: 'Nouveau' 
   },
   { 
     icon: MapPin, 
     title: 'Voyage spatial', 
     desc: 'Trouve des profils autour de toi avec la géolocalisation.',
-    color: '#60A5FA', 
-    glow: 'rgba(96,165,250,0.05)' 
+    color: 'var(--info)', 
   },
   { 
     icon: Shield, 
     title: 'Confiance & Trust', 
     desc: 'Profils authentifiés par selfie et certifiés par l’IA.',
-    color: '#A78BFA', 
-    glow: 'rgba(167,139,250,0.05)' 
+    color: 'var(--accent-purple)', 
   },
   { 
     icon: Star, 
     title: 'Duels & Quiz', 
     desc: 'Découvre ta compatibilité via des mini-jeux amusants.',
-    color: '#F472B6', 
-    glow: 'rgba(244,114,182,0.05)' 
+    color: 'var(--accent-pink)', 
   },
 ]
 
@@ -164,7 +158,7 @@ export default function WelcomePage() {
                 <div 
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-2xl" 
                   style={{
-                    background: `radial-gradient(circle at center, ${color}15 0%, transparent 70%)`
+                    background: `radial-gradient(circle at center, color-mix(in srgb, ${color} 8%, transparent) 0%, transparent 70%)`
                   }}
                 />
 
@@ -172,8 +166,8 @@ export default function WelcomePage() {
                   <div 
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                     style={{ 
-                      backgroundColor: `${color}0d`,
-                      borderColor: `${color}20`
+                      backgroundColor: `color-mix(in srgb, ${color} 5%, transparent)`,
+                      borderColor: `color-mix(in srgb, ${color} 13%, transparent)`
                     }}
                   >
                     <Icon size={18} style={{ color }} />
@@ -185,9 +179,9 @@ export default function WelcomePage() {
                         <span 
                           className="text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider border"
                           style={{
-                            backgroundColor: 'rgba(251,191,36,0.15)',
+                            backgroundColor: 'color-mix(in srgb, var(--warning) 15%, transparent)',
                             color: 'var(--warning)',
-                            borderColor: 'rgba(251,191,36,0.30)'
+                            borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)'
                           }}
                         >
                           {badge}

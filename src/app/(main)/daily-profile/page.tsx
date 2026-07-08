@@ -6,6 +6,7 @@ import { ArrowLeft, Star } from 'lucide-react'
 import { getDailyProfile, checkForMatch, createSwipe } from '@/lib/api'
 import Image from 'next/image'
 import { useToast } from '@/components/Toast'
+import { logger } from '@/lib/logger'
 
 function DailyProfileContent() {
   const router = useRouter()
@@ -38,7 +39,7 @@ function DailyProfileContent() {
       if (isMatch) toast('C\'est un match ! 🔥', 'success')
       setProfilePromise(getDailyProfile())
     } catch (err) {
-      console.error('handleLike error', err)
+      logger.error('handleLike error', { error: String(err) })
       toast('Erreur lors du like', 'error')
     } finally {
       setLiking(false)

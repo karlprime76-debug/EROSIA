@@ -1,18 +1,3 @@
-<!-- BEGIN:erosia-audit-register -->
-# Audit inscription (Jul 2026)
-
-## Problème : POST /api/auth/register → 400 silencieux
-- **Cause racine** : L'API Supabase Auth renvoie systématiquement 500 avec `"Database error saving new user"` — infrastructure Supabase en panne (compute capacity degraded dans toutes les régions, voir [status.supabase.com](https://status.supabase.com))
-- Ce n'est PAS un bug applicatif : le code Zod, route handler, et profile creation sont corrects
-- `supabase.auth.signUp()` et `admin.auth.admin.createUser()` échouent tous les deux — l'auth schema de Supabase ne peut pas écrire en base
-- En attendant la résolution par Supabase, le route affiche désormais `"Le service d'inscription est temporairement indisponible, réessaie plus tard"` et loggue via `logger.error` (visible en prod Vercel)
-
-## Modifications apportées
-- `src/app/api/auth/register/route.ts` :
-  - `logger.warn` → `logger.error` pour que les échecs signup apparaissent dans les logs Vercel
-  - Message utilisateur en français si l'erreur contient "Database error saving new user"
-<!-- END:erosia-audit-register -->
-
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
@@ -39,7 +24,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Web Push** : notifications push via VAPID
 
 ## Architecture fichiers
-- `src/lib/api.ts` — fonctions API (à splitter par domaine)
+- `src/lib/api.ts` — fonctions API (à splitter par domaine); contient `getCurrentUserId()` qui utilise `supabase().auth.getUser()`
 - `src/lib/supabase/` — clients (browser, server, admin)
 - `src/lib/sanitize.ts` — assainissement texte
 - `src/lib/paydunya.ts` — création de factures
@@ -48,10 +33,28 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `src/lib/engine/` — moteur de recommandation (compatibilité, spark score)
 - `src/lib/privacy.ts` — types, helpers, API wrapper pour privacy settings
 - `src/app/api/privacy/` — API REST GET/PUT privacy settings
-- `src/app/api/` — autres routes API REST
-- `src/app/(main)/settings/privacy/` — UI paramètres confidentialité
+- `src/app/api/auth/register/route.ts` — inscription via GoTrue + création profil
+- `src/app/api/profile/me/route.ts` — use SSR client auth
+- `src/proxy.ts` — middleware: auth + rate limiting via Upstash Redis (Vercel KV)
+- `src/app/(auth)/login/page.tsx` — signInWithPassword
+- `src/app/(auth)/register/page.tsx` — POST /api/auth/register
+- `src/app/(auth)/forgot-password/page.tsx` — appelle `resetPassword()` de api.ts
+- `src/app/(auth)/reset-password/page.tsx` — `updateUser({ password })` via GoTrue
 - `src/app/(main)/chat/[id]/` — page de chat + error boundary
-- `supabase/migration_v16_privacy_mode.sql` — migration DB privacy
+- `supabase/migration_v19_create_auth_user.sql` — fix NULLs + `verify_password()` + RPCs
+- `supabase/migration_v20_auth_config.sql` — supprimé (inapplicable)
+
+## Déploiement Vercel
+Variables d'environnement à définir dans Vercel (cf .env.example) :
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
+- `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_PRIMARY_COLOR`
+- `KV_URL`, `KV_REST_API_TOKEN` (rate limiting, ignorer si Vercel KV non activé)
+- `NEXT_PUBLIC_VAPID_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `PUSH_API_KEY`
+- `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `PAYDUNYA_MODE`
+- `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_WEBHOOK_SECRET`
+
+Le service email intégré Supabase (Resend) est actif par défaut sur free plan — templates en anglais uniquement. Pour les personnaliser en français, passer au plan Pro ou configurer un SMTP custom.
+
 ## URLs
 - **Production** : https://erosia-app.vercel.app
 - **Supabase Studio** : https://supabase.com/dashboard/project/vxycbjwmovfzywyvrjql

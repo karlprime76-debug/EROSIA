@@ -35,6 +35,14 @@ vi.mock('@/lib/supabase/client', () => ({
 
 import { signOut, createSwipe, sendMessage } from '../api'
 
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch mock'))
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('signOut', () => {
   beforeEach(() => {
     vi.clearAllMocks()

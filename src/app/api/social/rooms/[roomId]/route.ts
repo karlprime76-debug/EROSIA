@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ roo
       getPresence(roomId),
     ])
 
-    if (roomResult.error) return NextResponse.json({ error: roomResult.error }, { status: 500 })
+    if (roomResult.error) return NextResponse.json({ error: roomResult.error ?? 'Erreur' }, { status: 500 })
     if (!roomResult.data) return NextResponse.json({ error: 'Salon introuvable' }, { status: 404 })
 
     return NextResponse.json({

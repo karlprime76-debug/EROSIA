@@ -10,6 +10,7 @@ import { validateFile, sanitizeFilename } from '@/lib/media'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 
 const STEPS = ['Photos', 'Profil', 'Vérification', 'Célébration']
 
@@ -20,11 +21,11 @@ const SUGGESTED_INTERESTS = [
 ]
 
 const RELATION_TYPES = [
-  { id: 'serious', label: 'Relation sérieuse', desc: 'Pour construire à long terme.', icon: Heart, color: '#D92D4A' },
-  { id: 'casual', label: 'Aventure', desc: 'Des rencontres légères et passionnées.', icon: Flame, color: '#FF3B5C' },
-  { id: 'fwb', label: 'Complicité & FWB', desc: 'Pas de prise de tête, complicité d’abord.', icon: Coffee, color: '#E8A87C' },
-  { id: 'friendship', label: 'Amitié sincère', desc: 'Rencontrer du monde, partager.', icon: Users, color: '#60A5FA' },
-  { id: 'open', label: 'Relation libre', desc: 'Explorer de multiples horizons.', icon: Sparkles, color: '#A78BFA' },
+  { id: 'serious', label: 'Relation sérieuse', desc: 'Pour construire à long terme.', icon: Heart, color: 'var(--primary)' },
+  { id: 'casual', label: 'Aventure', desc: 'Des rencontres légères et passionnées.', icon: Flame, color: 'var(--primary-light)' },
+  { id: 'fwb', label: 'Complicité & FWB', desc: 'Pas de prise de tête, complicité d’abord.', icon: Coffee, color: 'var(--accent-warm)' },
+  { id: 'friendship', label: 'Amitié sincère', desc: 'Rencontrer du monde, partager.', icon: Users, color: 'var(--info)' },
+  { id: 'open', label: 'Relation libre', desc: 'Explorer de multiples horizons.', icon: Sparkles, color: 'var(--accent-purple)' },
 ]
 
 export default function OnboardingPage() {
@@ -61,7 +62,7 @@ export default function OnboardingPage() {
           }
         })
     }).catch((err) => {
-      console.error('Auth error', err)
+      logger.error('Auth error', { error: String(err) })
       toast('Erreur de chargement', 'error')
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +86,7 @@ export default function OnboardingPage() {
         await updateProfile(userId, { photos: updatedPhotos })
       }
     } catch (err) {
-      console.error('handleAddPhoto error', err)
+      logger.error('handleAddPhoto error', { error: String(err) })
       toast('Erreur lors de l\'ajout de la photo', 'error')
     } finally {
       setUploading(null)
@@ -100,7 +101,7 @@ export default function OnboardingPage() {
       await updateProfile(userId, { photos: updatedPhotos })
       toast('Photo supprimée', 'success')
     } catch (err) {
-      console.error('delete photo error', err)
+      logger.error('delete photo error', { error: String(err) })
     }
   }
 
@@ -146,7 +147,7 @@ export default function OnboardingPage() {
       })
       setStep(2)
     } catch (err) {
-      console.error('handleFinishProfile error', err)
+      logger.error('handleFinishProfile error', { error: String(err) })
       toast('Erreur lors de la sauvegarde du profil', 'error')
     } finally {
       setSaving(false)
@@ -170,7 +171,7 @@ export default function OnboardingPage() {
       })
       setVerifDone(true)
     } catch (err) {
-      console.error('handleVerifPhoto error', err)
+      logger.error('handleVerifPhoto error', { error: String(err) })
       toast('Erreur lors du téléchargement', 'error')
     } finally {
       setVerifUploading(false)
@@ -391,8 +392,8 @@ export default function OnboardingPage() {
                             <div 
                               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105"
                               style={{ 
-                                backgroundColor: isSelected ? `${type.color}15` : 'color-mix(in srgb, var(--textPrimary) 3%, transparent)',
-                                border: `1px solid ${isSelected ? `${type.color}30` : 'color-mix(in srgb, var(--textPrimary) 5%, transparent)'}`
+                                backgroundColor: isSelected ? `color-mix(in srgb, ${type.color} 8%, transparent)` : 'color-mix(in srgb, var(--textPrimary) 3%, transparent)',
+                                border: `1px solid ${isSelected ? `color-mix(in srgb, ${type.color} 19%, transparent)` : 'color-mix(in srgb, var(--textPrimary) 5%, transparent)'}`
                               }}
                             >
                               <Icon size={16} style={{ color: isSelected ? type.color : 'var(--textSecondary)' }} />

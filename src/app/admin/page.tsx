@@ -57,8 +57,7 @@ export default function AdminPage() {
       const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
       if (data?.is_admin) {
         setIsAdmin(true)
-        loadData()
-        loadAdminData()
+        await Promise.all([loadData(), loadAdminData()])
       }
       setChecking(false)
     }).catch(logger.error)

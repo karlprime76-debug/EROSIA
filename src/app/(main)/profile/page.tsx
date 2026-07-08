@@ -10,7 +10,7 @@ class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError
   }
   static getDerivedStateFromError() { return { hasError: true } }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ProfilePage error:', error, info.componentStack)
+    logger.error('ProfilePage error', { error: String(error), componentStack: info.componentStack })
   }
   render() {
     if (this.state.hasError) {
