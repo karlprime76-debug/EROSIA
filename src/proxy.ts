@@ -139,7 +139,7 @@ export default async function proxy(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'strict-dynamic' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
