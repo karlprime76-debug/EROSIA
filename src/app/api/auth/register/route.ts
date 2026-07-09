@@ -34,7 +34,8 @@ export async function POST(request: Request) {
 
     const { email, password, name, age } = parsed.data
     const referralCode: string | undefined = body.referralCode
-    const origin = process.env.NEXT_PUBLIC_SITE_URL; if (!origin) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
+    const rawOrigin = process.env.NEXT_PUBLIC_SITE_URL; if (!rawOrigin) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
+    const origin = rawOrigin.replace(/\/+$/, '')
 
     const supabase = await createClient()
     const { data: authData, error: authError } = await supabase.auth.signUp({
