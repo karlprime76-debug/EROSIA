@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff, Film } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, markAsRead, getAIIcebreaker, createDuel, getMessageSuggestions } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, sendAudioMessage, markAsRead, getAIIcebreaker, createDuel, getMessageSuggestions } from '@/lib/api'
 import { logger } from '@/lib/logger'
 import { useToast } from '@/components/Toast'
 import { MessageBubble } from '@/components/chat/MessageBubble'
@@ -277,16 +277,9 @@ export default function ChatPage() {
       recorder.ondataavailable = e => chunksRef.current.push(e.data)
       recorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const path = `chat_audio/${matchId}/${Date.now()}-${user.id}.webm`
-        const { error: uploadErr } = await supabase.storage.from('chat_audio').upload(path, blob)
-        if (uploadErr) { toast("Erreur d'envoi vocal", 'error'); return }
-        const { data: { publicUrl } } = supabase.storage.from('chat_audio').getPublicUrl(path)
-        await supabase.from('messages').insert({
-          match_id: matchId, sender_id: user.id, audio_url: publicUrl,
-        })
-        scrollToBottom()
+        const { error } = await sendAudioMessage(matchId, blob)
+        if (error) toast(error, 'error')
+        else scrollToBottom()
         stream.getTracks().forEach(t => t.stop())
       }
       recorder.start()

@@ -64,9 +64,15 @@ export interface Message {
   text: string | null
   image_url: string | null
   audio_url?: string
+  video_url?: string
+  gif_url?: string
+  reply_to?: string
+  reply_preview?: { text: string | null; sender_id: string } | null
+  view_once: boolean
   expires_at?: string
   read_at?: string
-  view_once?: boolean
+  edited_at?: string
+  deleted_for_all: boolean
   created_at: string
 }
 
@@ -309,6 +315,29 @@ export async function reportProfile(reportedId: string, reason: string) {
   if (!userId) return { error: 'Not authenticated' }
   const { error } = await supabase().from('reports').insert({ reporter_id: userId, reported_id: reportedId, reason })
   return { error: error?.message }
+}
+
+export async function sendAudioMessage(matchId: string, blob: Blob) {
+  try {
+    const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' })
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 15000)
+    const fd = new FormData()
+    fd.append('matchId', matchId)
+    fd.append('audio', file)
+    const res = await fetch('/api/messages/audio', {
+      method: 'POST',
+      signal: ctrl.signal,
+      body: fd,
+    })
+    clearTimeout(t)
+    const data = await res.json()
+    if (!res.ok) return { error: data.error ?? "Erreur lors de l'envoi vocal" }
+    return { data: data.data as Message }
+  } catch (err) {
+    logger.error('sendAudioMessage error', { error: String(err) })
+    return { error: 'Erreur réseau' }
+  }
 }
 
 export async function sendPhotoMessage(matchId: string, file: File) {
