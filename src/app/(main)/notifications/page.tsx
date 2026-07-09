@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, MessageCircle, Sparkles, BadgeCheck, ArrowLeft, Bell, type LucideIcon } from 'lucide-react'
+import { Heart, MessageCircle, Sparkles, BadgeCheck, ArrowLeft, Bell, Gift, type LucideIcon } from 'lucide-react'
 import { getNotifications, markNotificationRead } from '@/lib/api'
 import { useToast } from '@/components/Toast'
 
@@ -13,6 +13,7 @@ interface Notification {
   type: string
   read: boolean
   created_at: string
+  metadata?: Record<string, string>
   actor: { name: string; photos: string[] } | null
 }
 
@@ -21,6 +22,7 @@ const iconMap: Record<string, LucideIcon> = {
   flirt: Sparkles,
   message: MessageCircle,
   super_like: Sparkles,
+  gift: Gift,
   verification: BadgeCheck,
 }
 
@@ -29,7 +31,8 @@ const labelMap: Record<string, string> = {
   flirt: 'Quelqu\'un t\'a envoyé un clin d\'œil',
   message: 'Nouveau message',
   super_like: 'Super like reçu !',
-  verification: 'Vérification de compte',
+  gift: 'Cadeau reçu !',
+  verification: 'Compte vérifié',
 }
 
 export default function NotificationsPage() {
@@ -51,12 +54,27 @@ export default function NotificationsPage() {
         await markNotificationRead(n.id)
         window.dispatchEvent(new CustomEvent('notif-read'))
       }
-      if (n.type === 'match') {
-        router.push('/matches')
-      } else if (n.type === 'message') {
-        router.push(`/chat/${n.actor_id}`)
-      } else {
-        router.push('/island')
+      switch (n.type) {
+        case 'match':
+          router.push(n.metadata?.match_id ? `/chat/${n.metadata.match_id}` : '/matches')
+          break
+        case 'message':
+          router.push(n.metadata?.match_id ? `/chat/${n.metadata.match_id}` : '/matches')
+          break
+        case 'flirt':
+          router.push('/matches')
+          break
+        case 'super_like':
+          router.push('/matches')
+          break
+        case 'gift':
+          router.push('/profile')
+          break
+        case 'verification':
+          router.push('/verify')
+          break
+        default:
+          router.push('/island')
       }
     } catch { toast('Erreur', 'error') }
   }
