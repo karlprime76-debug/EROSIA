@@ -13,8 +13,8 @@ const tabs = [
   { href: '/matches', icon: Heart, label: 'Matchs' },
   { href: '/stories', icon: Film, label: 'Stories' },
   { href: '/notifications', icon: Bell, label: 'Actus' },
-  { href: '/island', icon: User, label: 'Profil' },
   { href: '/profile', icon: ShoppingBag, label: 'Boutique' },
+  { href: '/island', icon: User, label: 'Profil' },
 ]
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff } from 'lucide-react'
+import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff, Film } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
 import { getMessages, sendMessage, sendPhotoMessage, markAsRead, getAIIcebreaker, createDuel, getMessageSuggestions } from '@/lib/api'
@@ -53,6 +53,7 @@ export default function ChatPage() {
   const [showReport, setShowReport] = useState(false)
   const [msgSuggestions, setMsgSuggestions] = useState<string[]>([])
   const [showMsgSugg, setShowMsgSugg] = useState(false)
+  const [hasStories, setHasStories] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -101,6 +102,7 @@ export default function ChatPage() {
 
       const oId = match.user1_id === uid ? match.user2_id : match.user1_id
       setOtherId(oId)
+      supabase.from('stories').select('id', { count: 'exact', head: true }).eq('user_id', oId).gte('expires_at', new Date().toISOString()).then(({ count }) => { if (count && count > 0) setHasStories(true) })
       const { data: p } = await supabase.from('profiles').select('id,name,photos,age,mood').eq('id', oId).single()
       if (p) setProfile(p)
 
@@ -390,8 +392,8 @@ export default function ChatPage() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-hover ring-2 ring-theme">
+          <button onClick={() => router.push('/stories')} className="relative shrink-0">
+            <div className={`w-10 h-10 rounded-full overflow-hidden bg-hover ring-2 ${hasStories ? 'ring-[var(--primary)]' : 'ring-theme'}`}>
               {profile?.photos?.[0] ? (
                 <Image src={profile.photos[0]} alt={profile.name} width={40} height={40} className="object-cover w-full h-full" />
               ) : (
@@ -399,7 +401,7 @@ export default function ChatPage() {
               )}
             </div>
             <div className="absolute -bottom-0.5 -right-0.5"><OnlineStatus isOnline={isOnline} size="sm" /></div>
-          </div>
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm truncate">{profile?.name || 'Chat'}</h3>
@@ -421,6 +423,12 @@ export default function ChatPage() {
                   className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
                   <BarChart3 size={14} className="text-success" /> Compatibilité
                 </button>
+                {hasStories && (
+                  <button onClick={() => { setMenuOpen(false); router.push('/stories') }}
+                    className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
+                    <Film size={14} className="text-primary" /> Voir ses stories
+                  </button>
+                )}
                 <button onClick={() => { setMenuOpen(false); loadAiSuggestions() }}
                   className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
                   <Sparkles size={14} className="text-warning" /> Suggestions IA

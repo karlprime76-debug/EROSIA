@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Trash2, Eye, Heart, Loader } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Eye, Heart, Loader } from 'lucide-react'
 import { checkPremium } from '@/lib/api'
 import { getActiveStories, deleteStory, uploadStory, getStoryViews, getStoryReactions } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
@@ -17,6 +17,7 @@ export default function StoriesPage() {
   const [groups, setGroups] = useState<StoryGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [readerOpen, setReaderOpen] = useState(false)
   const [readerIndex, setReaderIndex] = useState(0)
   const [expandedViews, setExpandedViews] = useState<string | null>(null)
@@ -117,7 +118,28 @@ export default function StoriesPage() {
       <h1 className="sr-only">Stories</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
-        <h2 className="text-2xl font-bold">Stories</h2>
+        <h2 className="text-2xl font-bold flex-1">Stories</h2>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Ajouter une story"
+          className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center active:scale-90"
+        >
+          <Plus size={18} className="text-[var(--textOnPrimary)]" />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/mp4,video/quicktime"
+          capture="environment"
+          onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            await handleUpload(file, 'public')
+            e.target.value = ''
+          }}
+          className="hidden"
+        />
       </header>
 
       <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-none">
