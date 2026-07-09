@@ -1,4 +1,3 @@
-import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
@@ -23,18 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
-    const admin = createAdminClient()
-    const otherId = match.user1_id === user.id ? match.user2_id : match.user1_id
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_match', {
+      match_id: matchId,
+      requesting_user_id: user.id,
+    })
 
-    const results = await Promise.allSettled([
-      admin.from('swipes').delete().or(`and(swiper_id.eq.${user.id},swiped_id.eq.${otherId}),and(swiper_id.eq.${otherId},swiped_id.eq.${user.id})`),
-      admin.from('messages').delete().eq('match_id', matchId),
-      admin.from('matches').delete().eq('id', matchId),
-    ])
-
-    const errors = results.filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason)
-    if (errors.length > 0) {
-      return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
+    if (rpcError || rpcResult?.error) {
+      return NextResponse.json({ error: rpcResult?.error ?? 'Erreur lors de la suppression' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })

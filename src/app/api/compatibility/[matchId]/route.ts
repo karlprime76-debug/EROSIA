@@ -4,6 +4,7 @@ import { ensureCriteriaRegistered } from '@/lib/engine/compat-center/setup'
 import { computeCompatibility } from '@/lib/engine/compat-center/engine'
 import type { ProfileSnapshot } from '@/lib/engine/compat-center/types'
 import { logger } from '@/lib/logger'
+import { z } from 'zod'
 
 export async function GET(
   _request: Request,
@@ -11,6 +12,8 @@ export async function GET(
 ) {
   try {
     const { matchId } = await params
+    const parsed = z.string().uuid().safeParse(matchId)
+    if (!parsed.success) return NextResponse.json({ error: 'ID de match invalide' }, { status: 400 })
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })

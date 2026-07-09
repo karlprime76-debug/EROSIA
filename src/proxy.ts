@@ -111,6 +111,7 @@ export default async function proxy(request: NextRequest) {
     if (pathname === '/api/auth/register') maxReqs = 10
     else if (pathname === '/api/auth/delete-account') maxReqs = 5
     else if (pathname === '/api/auth/callback') maxReqs = 10
+    else if (pathname === '/api/delete-match') maxReqs = 5
     else if (pathname.includes('/paydunya/')) maxReqs = 10
 
     if (pathname.startsWith('/api/auth/')) maxReqs = Math.min(maxReqs, 10)

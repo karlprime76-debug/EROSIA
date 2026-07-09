@@ -38,10 +38,14 @@ interface ConvItem {
 
 type FilterMode = 'all' | 'unread' | 'favorites'
 
+const PAGE_SIZE = 50
+
 export default function ConversationsPage() {
   const [convs, setConvs] = useState<ConvItem[]>([])
   const [myId, setMyId] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<FilterMode>('all')
   const [typingMap, setTypingMap] = useState<Record<string, boolean>>({})
@@ -49,6 +53,61 @@ export default function ConversationsPage() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const { toast } = useToast()
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
+  const pageRef = useRef(0)
+
+  const loadMatches = async (uid: string, page: number, _append: boolean) => {
+    const from = page * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+    let matches
+    try {
+      const res = await supabase
+        .from('matches').select('*').or(`user1_id.eq.${uid},user2_id.eq.${uid}`).order('created_at', { ascending: false }).range(from, to)
+      matches = res.data
+    } catch {
+      toast('Erreur lors du chargement des matchs', 'error')
+      return { list: [] as ConvItem[], hasMore: false }
+    }
+
+    if (!matches || matches.length < PAGE_SIZE) setHasMore(false)
+    const list: ConvItem[] = []
+    if (matches && matches.length > 0) {
+      const otherIds = matches.map(m => m.user1_id === uid ? m.user2_id : m.user1_id)
+      const { data: pData } = await supabase.from('profiles').select('id,name,age,photos,mood,trust_score,energy_score').in('id', otherIds)
+      const profiles = (pData || []) as Array<{ id: string; name: string; age: number | null; photos: string[]; mood: string | null; trust_score: number | null; energy_score: number | null }>
+
+      const matchIds = matches.map(m => m.id)
+      const { data: allLastMsgs } = await supabase
+        .from('messages')
+        .select('match_id, text, image_url, created_at, sender_id')
+        .in('match_id', matchIds)
+        .order('created_at', { ascending: false })
+
+      const lastMsgByMatch: Record<string, { match_id: string; text: string | null; image_url: string | null; created_at: string; sender_id: string }> = {}
+      if (allLastMsgs) {
+        for (const msg of allLastMsgs) {
+          if (!lastMsgByMatch[msg.match_id]) lastMsgByMatch[msg.match_id] = msg
+        }
+      }
+
+      for (const m of matches) {
+        const otherId = m.user1_id === uid ? m.user2_id : m.user1_id
+        const p = profiles.find(p => p.id === otherId)
+        if (!p) continue
+
+        list.push({
+          matchId: m.id,
+          profile: {
+            id: p.id, name: p.name, age: p.age, photos: p.photos || [],
+            mood: p.mood || null, trust_score: p.trust_score ?? undefined, energy_score: p.energy_score ?? undefined,
+          },
+          lastMessage: lastMsgByMatch[m.id] || null,
+          unreadCount: 0,
+          isTyping: false, isFavorite: false, isArchived: false,
+        })
+      }
+    }
+    return { list, hasMore: matches ? matches.length >= PAGE_SIZE : false }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -58,52 +117,7 @@ export default function ConversationsPage() {
       setMyId(data.user.id)
       const uid = data.user.id
 
-      let matches
-      try {
-        const res = await supabase
-          .from('matches').select('*').or(`user1_id.eq.${uid},user2_id.eq.${uid}`).order('created_at', { ascending: false })
-        matches = res.data
-      } catch {
-        toast('Erreur lors du chargement des matchs', 'error')
-      }
-
-      const list: ConvItem[] = []
-      if (matches) {
-        const otherIds = matches.map(m => m.user1_id === uid ? m.user2_id : m.user1_id)
-        const { data: pData } = await supabase.from('profiles').select('id,name,age,photos,mood,trust_score,energy_score').in('id', otherIds)
-        const profiles = (pData || []) as Array<{ id: string; name: string; age: number | null; photos: string[]; mood: string | null; trust_score: number | null; energy_score: number | null }>
-
-        const matchIds = matches.map(m => m.id)
-        const { data: allLastMsgs } = await supabase
-          .from('messages')
-          .select('match_id, text, image_url, created_at, sender_id')
-          .in('match_id', matchIds)
-          .order('created_at', { ascending: false })
-
-        const lastMsgByMatch: Record<string, { match_id: string; text: string | null; image_url: string | null; created_at: string; sender_id: string }> = {}
-        if (allLastMsgs) {
-          for (const msg of allLastMsgs) {
-            if (!lastMsgByMatch[msg.match_id]) lastMsgByMatch[msg.match_id] = msg
-          }
-        }
-
-        for (const m of matches) {
-          const otherId = m.user1_id === uid ? m.user2_id : m.user1_id
-          const p = profiles.find(p => p.id === otherId)
-          if (!p) continue
-
-          list.push({
-            matchId: m.id,
-            profile: {
-              id: p.id, name: p.name, age: p.age, photos: p.photos || [],
-              mood: p.mood || null, trust_score: p.trust_score ?? undefined, energy_score: p.energy_score ?? undefined,
-            },
-            lastMessage: lastMsgByMatch[m.id] || null,
-            unreadCount: 0,
-            isTyping: false, isFavorite: false, isArchived: false,
-          })
-        }
-      }
+      const { list } = await loadMatches(uid, 0, false)
       if (!cancelled) setConvs(list)
 
       const matchIds = list.map(c => c.matchId)
@@ -144,6 +158,16 @@ export default function ConversationsPage() {
     })
     return result
   }, [convs, searchQuery, filter])
+
+  const handleLoadMore = async () => {
+    if (!myId || loadingMore) return
+    setLoadingMore(true)
+    pageRef.current += 1
+    const uid = myId
+    const { list } = await loadMatches(uid, pageRef.current, true)
+    setConvs(prev => [...prev, ...list])
+    setLoadingMore(false)
+  }
 
   const handleUnmatch = async (matchId: string) => {
     setConvs(prev => prev.filter(c => c.matchId !== matchId))
@@ -230,6 +254,12 @@ export default function ConversationsPage() {
                 onToggleArchive={toggleArchive}
               />
             ))}
+            {hasMore && (
+              <button onClick={handleLoadMore} disabled={loadingMore}
+                className="w-full py-3 text-sm text-secondary hover:text-theme transition-colors disabled:opacity-50">
+                {loadingMore ? 'Chargement...' : 'Voir plus'}
+              </button>
+            )}
           </div>
         )}
       </div>

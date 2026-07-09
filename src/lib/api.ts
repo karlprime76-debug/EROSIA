@@ -189,13 +189,16 @@ export async function getSwipedIds(): Promise<string[]> {
   return (data ?? []).map(s => s.swiped_id)
 }
 
-export async function getMatches(): Promise<{ data: Match[] | null; error?: string }> {
+export async function getMatches(page = 0, pageSize = 50): Promise<{ data: Match[] | null; error?: string }> {
   const userId = await getCurrentUserId()
   if (!userId) return { data: null, error: 'Not authenticated' }
+  const from = page * pageSize
+  const to = from + pageSize - 1
   const { data, error } = await supabase()
     .from('matches').select('*')
     .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-    .limit(100)
+    .order('created_at', { ascending: false })
+    .range(from, to)
   return { data: data as Match[] | null, error: error?.message }
 }
 
