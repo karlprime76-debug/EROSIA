@@ -2,45 +2,44 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
-import { Flame, MessageCircle, Gift, MapPin, Shield, Star, Sparkles, ArrowRight } from 'lucide-react'
+import { Heart, MessageCircle, Gift, MapPin, Shield, Sparkles, Infinity, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const features = [
   { 
-    icon: Flame, 
-    title: 'Découvre des profils', 
-    desc: 'Swipe et trouve des âmes passionnées près de chez toi.',
+    icon: Heart, 
+    title: 'Matchs authentiques', 
+    desc: 'Notre algorithme de compatibilité te connecte aux âmes qui résonnent vraiment avec toi.',
     color: 'var(--primary)', 
   },
   { 
     icon: MessageCircle, 
     title: 'Chat en temps réel', 
-    desc: 'Messages riches, vocaux, réactions et chat éphémère.',
+    desc: 'Messages, vocaux, réactions éphémères : laisse parler ton cœur sans filtre.',
     color: 'var(--success)', 
   },
   { 
     icon: Gift, 
     title: 'Boutique cadeaux', 
-    desc: 'Envoie des cadeaux virtuels via Mobile Money ou carte.',
+    desc: 'Surprends avec des cadeaux virtuels via Mobile Money ou carte bancaire.',
     color: 'var(--warning)', 
-    badge: 'Nouveau' 
   },
   { 
     icon: MapPin, 
-    title: 'Voyage spatial', 
-    desc: 'Trouve des profils autour de toi avec la géolocalisation.',
+    title: 'À proximité', 
+    desc: 'Explore des profils autour de toi grâce à la géolocalisation et trouve l\'amour près de chez toi.',
     color: 'var(--info)', 
   },
   { 
     icon: Shield, 
-    title: 'Confiance & Trust', 
-    desc: 'Profils authentifiés par selfie et certifiés par l’IA.',
+    title: 'Profils vérifiés', 
+    desc: 'Chaque profil est authentifié par selfie et IA. Fini les faux comptes.',
     color: 'var(--accent-purple)', 
   },
   { 
-    icon: Star, 
-    title: 'Duels & Quiz', 
-    desc: 'Découvre ta compatibilité via des mini-jeux amusants.',
+    icon: Infinity, 
+    title: 'Affinité & Auras', 
+    desc: 'Ton aura de compatibilité évolue avec tes interactions. Les connexions les plus fortes émergent naturellement.',
     color: 'var(--accent-pink)', 
   },
 ]
@@ -83,7 +82,7 @@ export default function WelcomePage() {
             className="inline-flex items-center gap-2 rounded-full border border-light bg-surface px-4 py-1.5 text-xs text-secondary shadow-sm backdrop-blur-md"
           >
             <Sparkles className="text-primary" size={14} />
-            Une nouvelle ère de rencontres premium
+            Là où les cœurs authentiques se rencontrent
           </motion.div>
 
           <motion.h1
@@ -92,8 +91,8 @@ export default function WelcomePage() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
             className="text-[clamp(2.25rem,6vw,4rem)] font-bold text-theme leading-[1.05] tracking-[-0.03em]"
           >
-            Là où les cœurs<br />
-            <span className="text-gradient-primary">se rencontrent.</span>
+            L&rsquo;amour véritable<br />
+            <span className="text-gradient-primary">commence ici.</span>
           </motion.h1>
 
           <motion.div
@@ -109,7 +108,7 @@ export default function WelcomePage() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="text-secondary text-base sm:text-lg max-w-md leading-relaxed"
           >
-            Rencontres immersives en 3D, auras de compatibilité, cadeaux virtuels et profils vérifiés. Explorez un univers conçu pour des connexions intenses et mémorables.
+            Erosia est bien plus qu&rsquo;une app de rencontres : c&rsquo;est un univers où les connexions authentiques prennent vie. Profils vérifiés, affinités invisibles, cadeaux du cœur — chaque détail est pensé pour t&rsquo;aider à trouver l&rsquo;amour que tu mérites.
           </motion.p>
 
           <motion.div
@@ -146,7 +145,7 @@ export default function WelcomePage() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
             className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3"
           >
-            {features.map(({ icon: Icon, title, desc, color, badge }, i) => (
+            {features.map(({ icon: Icon, title, desc, color }, i) => (
               <motion.div
                 key={title}
                 initial={{ opacity: 0, y: 15 }}
@@ -173,21 +172,7 @@ export default function WelcomePage() {
                     <Icon size={18} style={{ color }} />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-theme tracking-wide">{title}</h3>
-                      {badge && (
-                        <span 
-                          className="text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider border"
-                          style={{
-                            backgroundColor: 'color-mix(in srgb, var(--warning) 15%, transparent)',
-                            color: 'var(--warning)',
-                            borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)'
-                          }}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="text-sm font-semibold text-theme tracking-wide">{title}</h3>
                     <p className="text-xs text-secondary leading-relaxed">{desc}</p>
                   </div>
                 </div>

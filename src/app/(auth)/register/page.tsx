@@ -69,9 +69,9 @@ export default function RegisterPage() {
             <Check size={36} className="text-on-primary" strokeWidth={2.5} />
           </motion.div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-theme tracking-tight">Inscription réussie !</h2>
+            <h2 className="text-2xl font-bold text-theme tracking-tight">Bienvenue sur Erosia !</h2>
             <p className="text-sm text-secondary max-w-xs mx-auto leading-relaxed">
-              Vérifie ta boîte mail pour confirmer ton compte, puis reviens te connecter.
+              Ton compte est prêt. Connecte-toi dès maintenant et commence l&rsquo;aventure.
             </p>
           </div>
           <Link href="/login">
