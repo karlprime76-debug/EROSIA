@@ -26,7 +26,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { id } = await params
+    const { data: event } = await getEventById(id)
+    if (!event) return NextResponse.json({ error: 'Événement introuvable' }, { status: 404 })
+    if (event.creator_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+
     const { error } = await deleteEvent(id)
 
     if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })

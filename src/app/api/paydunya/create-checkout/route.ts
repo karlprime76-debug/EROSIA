@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createInvoice } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createCheckoutSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -9,8 +10,10 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    let plan: string = 'monthly'
-    try { const b = await request.json(); if (b.plan === 'yearly') plan = 'yearly' } catch { /* use default monthly */ }
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch { body = {} }
+    const parsed = createCheckoutSchema.safeParse(body)
+    const plan: string = parsed.success ? (parsed.data.plan ?? 'monthly') : 'monthly'
 
     const amount = plan === 'yearly' ? '50000' : '5000'
     const desc = plan === 'yearly' ? 'Abonnement Premium Erosia - 1 an' : 'Abonnement Premium Erosia - 1 mois'

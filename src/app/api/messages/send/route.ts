@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { sendMessageSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -9,10 +10,16 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { matchId, text } = await request.json()
-    if (!matchId || !text?.trim()) {
-      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    let requestBody: Record<string, unknown>
+    try { requestBody = await request.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
+    const parsed = sendMessageSchema.safeParse(requestBody)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+    const { matchId, text } = parsed.data
 
     const admin = createAdminClient()
 

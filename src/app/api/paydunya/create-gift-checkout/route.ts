@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createInvoice, sendMobileMoneyPayment } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createGiftCheckoutSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -16,13 +17,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
 
-    const { giftId, receiverId, matchId, message, phone, operator } = body as {
-      giftId?: string; receiverId?: string; matchId?: string; message?: string
-      phone?: string; operator?: string
+    const parsed = createGiftCheckoutSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
-    if (!giftId || !receiverId || !matchId) {
-      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
-    }
+
+    const { gift_id: giftId, recipient_id: receiverId, message } = parsed.data
+    const matchId = (body as Record<string, unknown>).matchId as string
+    const phone = (body as Record<string, unknown>).phone as string | undefined
+    const operator = (body as Record<string, unknown>).operator as string | undefined
 
     const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).maybeSingle()
     if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })

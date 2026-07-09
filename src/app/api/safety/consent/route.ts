@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { consentSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
 export async function POST(req: Request) {
@@ -9,16 +9,23 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const body = await req.json()
-    if (!body.action_type || typeof body.action_type !== 'string') {
-      return NextResponse.json({ error: 'action_type requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
+    const parsed = consentSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
+    const { action_type, target_user_id, metadata } = parsed.data
 
     const { error } = await supabase.from('consent_log').insert({
       user_id: user.id,
-      action_type: body.action_type,
-      target_user_id: body.target_user_id || null,
-      metadata: body.metadata || {},
+      action_type,
+      target_user_id: target_user_id || null,
+      metadata: metadata || {},
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })

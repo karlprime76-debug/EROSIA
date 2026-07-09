@@ -1,4 +1,5 @@
 import { supabase as sbClient } from '@/lib/supabase/client'
+import { validateFile } from '@/lib/media'
 import type { EventItem, EventParticipant, CreateEventInput, EventFilters } from './types'
 
 export type { EventItem, EventParticipant, CreateEventInput, EventFilters, EventCategory } from './types'
@@ -21,6 +22,8 @@ export async function createEvent(
   let image_url: string | null = null
 
   if (file) {
+    const err = validateFile(file, 'photo')
+    if (err) return { data: null, error: err }
     onProgress?.(10)
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
     const fileName = `events/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`

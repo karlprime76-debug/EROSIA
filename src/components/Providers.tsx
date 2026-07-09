@@ -1,9 +1,9 @@
 'use client'
 
-import React from 'react'
+import type { ReactNode } from 'react'
 import { Toaster } from 'sonner'
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: ReactNode }) {
   return (
     <>
       {children}

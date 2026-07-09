@@ -1,4 +1,5 @@
 import { supabase as sbClient } from '@/lib/supabase/client'
+import { validateFile } from '@/lib/media'
 import { compressImage, isVideo } from './media'
 import type { Story, StoryView, StoryReaction, StoryGroup, StoryPrivacy } from './types'
 
@@ -11,7 +12,7 @@ function supabase() {
 
 const PAGE_SIZE = 30
 
-export async function getActiveStories(page = 1): Promise<{ data: StoryGroup[]; error?: string }> {
+export async function getActiveStories(page = 1, options?: { baseUrl?: string }): Promise<{ data: StoryGroup[]; error?: string }> {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { data: [], error: 'Not authenticated' }
 
@@ -31,12 +32,16 @@ export async function getActiveStories(page = 1): Promise<{ data: StoryGroup[]; 
   if (error) return { data: [], error: error.message }
 
   const userIds = [...new Set((data ?? []).map(s => s.user_id))]
-  const { data: privacyRows } = await supabase()
-    .from('privacy_settings')
-    .select('user_id, story_visibility')
-    .in('user_id', userIds)
+  const origin = options?.baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  const res = await fetch(`${origin}/api/privacy/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetUserIds: userIds }),
+  })
+  const json: { data?: Array<{ user_id: string; story_visibility: string }> } = await res.json()
+  const privacyRows = json.data ?? []
 
-  const privacyMap = new Map((privacyRows ?? []).map(r => [r.user_id, r.story_visibility as string]))
+  const privacyMap = new Map(privacyRows.map(r => [r.user_id, r.story_visibility]))
 
   const { data: myMatchIds } = await supabase()
     .from('matches')
@@ -183,6 +188,9 @@ export async function uploadStory(
 ): Promise<{ data: Story | null; error?: string }> {
   const { data: { user } } = await supabase().auth.getUser()
   if (!user) return { data: null, error: 'Not authenticated' }
+
+  const validationErr = validateFile(file, 'story')
+  if (validationErr) return { data: null, error: validationErr }
 
   let uploadFile = file
 

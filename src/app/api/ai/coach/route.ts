@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { analyzeProfile } from '@/lib/coach'
 import { getProfile } from '@/lib/api'
 import { logger } from '@/lib/logger'
+import { coachSchema } from '@/lib/validations'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,11 +11,17 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { profileId } = await req.json()
-
-    if (!profileId) {
-      return NextResponse.json({ error: 'profileId requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
+    const parsed = coachSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
+    const { profileId } = parsed.data
 
     const { data: profile, error } = await getProfile(profileId)
     if (error || !profile) {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { reportSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
 export async function POST(req: Request) {
@@ -9,31 +9,25 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const body = await req.json()
-    if (!body.reported_id || !body.reason) {
-      return NextResponse.json({ error: 'reported_id et reason requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+    }
+    const parsed = reportSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    const allowedReasons = [
-      'comportement_inapproprié',
-      'harcèlement',
-      'contenu_offensant',
-      'faux_profil',
-      'demande_argent',
-      'spam',
-      'autre',
-    ]
-    if (!allowedReasons.includes(body.reason)) {
-      return NextResponse.json({ error: 'Motif invalide' }, { status: 400 })
-    }
+    const { reported_id, reason, description, match_id, message_id } = parsed.data
 
     const { error } = await supabase.from('reports').insert({
       reporter_id: user.id,
-      reported_id: body.reported_id,
-      reason: body.reason,
-      description: body.description || null,
-      match_id: body.match_id || null,
-      message_id: body.message_id || null,
+      reported_id,
+      reason,
+      description: description || null,
+      match_id: match_id || null,
+      message_id: message_id || null,
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
@@ -41,8 +35,8 @@ export async function POST(req: Request) {
     await supabase.from('consent_log').insert({
       user_id: user.id,
       action_type: 'report_submitted',
-      target_user_id: body.reported_id,
-      metadata: { reason: body.reason },
+      target_user_id: reported_id,
+      metadata: { reason },
     })
 
     return NextResponse.json({ success: true })

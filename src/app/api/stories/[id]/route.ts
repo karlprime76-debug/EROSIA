@@ -30,7 +30,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { id } = await params
+    const { data: story } = await getStoryById(id)
+    if (!story) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
+    if (story.user_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+
     const { error } = await deleteStory(id)
     if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
     return NextResponse.json({ success: true })

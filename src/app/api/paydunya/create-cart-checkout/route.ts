@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createInvoice, sendMobileMoneyPayment } from '@/lib/paydunya'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createCartCheckoutSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -14,13 +15,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
 
-    const { giftIds, receiverId, matchId, message, phone, operator } = body as {
-      giftIds?: string[]; receiverId?: string; matchId?: string; message?: string
-      phone?: string; operator?: string
+    const parsed = createCartCheckoutSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
-    if (!giftIds?.length || !receiverId || !matchId) {
-      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
-    }
+
+    const { giftIds } = parsed.data
+    const receiverId = (body as Record<string, unknown>).receiverId as string
+    const matchId = (body as Record<string, unknown>).matchId as string
+    const message = (body as Record<string, unknown>).message as string | undefined
+    const phone = (body as Record<string, unknown>).phone as string | undefined
+    const operator = (body as Record<string, unknown>).operator as string | undefined
 
     const { data: gifts } = await supabase.from('gifts').select('*').in('id', giftIds)
     if (!gifts || gifts.length !== giftIds.length) {

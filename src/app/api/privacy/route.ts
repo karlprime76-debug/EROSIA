@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_PRIVACY } from '@/lib/privacy'
 import type { PrivacySettings } from '@/lib/privacy'
 import { logger } from '@/lib/logger'
+import { updatePrivacySchema } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -36,14 +37,15 @@ export async function PUT(req: Request) {
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const body = await req.json()
-    const allowed = [
-      'profile_visible', 'visible_to_compatible_only', 'hide_exact_age', 'hide_exact_distance',
-      'blur_photos', 'first_message_permission', 'story_visibility', 'online_status_visibility',
-      'read_receipts', 'auto_block_reported',
-    ]
+    const parsed = updatePrivacySchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
     const updates: Record<string, unknown> = {}
-    for (const key of allowed) {
-      if (key in body) updates[key] = body[key]
+    for (const [key, value] of Object.entries(parsed.data)) {
+      if (value !== undefined) updates[key] = value
     }
     if (Object.keys(updates).length === 0) return NextResponse.json({ error: 'Aucune mise à jour' }, { status: 400 })
 

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEvents, createEvent, type CreateEventInput, type EventFilters } from '@/lib/events'
+import { validateFile } from '@/lib/media'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createEventSchema } from '@/lib/validations'
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,21 +44,37 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
 
-    const input: CreateEventInput = {
+    const body = {
       title: formData.get('title') as string,
       description: formData.get('description') as string | undefined,
+      date: formData.get('event_date') as string | undefined,
       location: formData.get('location') as string | undefined,
-      event_date: formData.get('event_date') as string | undefined,
       max_participants: formData.get('max_participants')
         ? parseInt(formData.get('max_participants') as string, 10)
         : undefined,
-      category: formData.get('category') as CreateEventInput['category'],
+      category: formData.get('category') as string | undefined,
+    }
+
+    const parsed = createEventSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
+    const input: CreateEventInput = {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      location: parsed.data.location,
+      event_date: parsed.data.date,
+      max_participants: parsed.data.max_participants,
+      category: parsed.data.category as CreateEventInput['category'],
     }
 
     const file = formData.get('image') as File | null
 
-    if (!input.title?.trim()) {
-      return NextResponse.json({ error: 'Le titre est requis' }, { status: 400 })
+    if (file) {
+      const err = validateFile(file, 'photo')
+      if (err) return NextResponse.json({ error: err }, { status: 400 })
     }
 
     const { data, error } = await createEvent(input, file ?? undefined)

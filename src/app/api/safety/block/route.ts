@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { blockSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
 export async function POST(req: Request) {
@@ -9,17 +9,24 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const body = await req.json()
-    if (!body.blocked_id) {
-      return NextResponse.json({ error: 'blocked_id requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+    }
+    const parsed = blockSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    if (body.blocked_id === user.id) {
+    const { blocked_id } = parsed.data
+
+    if (blocked_id === user.id) {
       return NextResponse.json({ error: 'Vous ne pouvez pas vous bloquer vous-même' }, { status: 400 })
     }
 
     const { error } = await supabase.from('blocked_users').upsert(
-      { blocker_id: user.id, blocked_id: body.blocked_id },
+      { blocker_id: user.id, blocked_id },
       { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: false },
     )
 
@@ -28,7 +35,7 @@ export async function POST(req: Request) {
     await supabase.from('consent_log').insert({
       user_id: user.id,
       action_type: 'user_blocked',
-      target_user_id: body.blocked_id,
+      target_user_id: blocked_id,
     })
 
     return NextResponse.json({ success: true })
@@ -44,23 +51,30 @@ export async function DELETE(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const body = await req.json()
-    if (!body.blocked_id) {
-      return NextResponse.json({ error: 'blocked_id requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
     }
+    const parsed = blockSchema.safeParse(body)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
+    }
+
+    const { blocked_id } = parsed.data
 
     const { error } = await supabase
       .from('blocked_users')
       .delete()
       .eq('blocker_id', user.id)
-      .eq('blocked_id', body.blocked_id)
+      .eq('blocked_id', blocked_id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
     await supabase.from('consent_log').insert({
       user_id: user.id,
       action_type: 'user_unblocked',
-      target_user_id: body.blocked_id,
+      target_user_id: blocked_id,
     })
 
     return NextResponse.json({ success: true })

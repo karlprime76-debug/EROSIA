@@ -96,7 +96,7 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
 
 export async function signOut() {
   const { error } = await supabase().auth.signOut()
-  supabase().auth.signOut({ scope: 'local' }).catch(() => {})
+  supabase().auth.signOut({ scope: 'local' }).catch((err) => { logger.error('signOut local error', { error: String(err) }) })
   return { error: error?.message ?? null }
 }
 
@@ -230,7 +230,8 @@ export async function sendMessage(matchId: string, text: string) {
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? "Erreur lors de l'envoi" }
     return { data: data.data as Message }
-  } catch {
+  } catch (err) {
+    logger.error('sendMessage error', { error: String(err) })
     return { error: 'Erreur réseau' }
   }
 }
@@ -307,28 +308,34 @@ export async function reportProfile(reportedId: string, reason: string) {
 }
 
 export async function sendPhotoMessage(matchId: string, file: File) {
-  const { userId, error: authErr } = await assertMatchParticipant(matchId)
-  if (authErr || !userId) return { error: authErr }
-  const err = validateFile(file, 'chat_photo')
-  if (err) return { error: err }
+  try {
+    const { userId, error: authErr } = await assertMatchParticipant(matchId)
+    if (authErr || !userId) return { error: authErr }
+    const err = validateFile(file, 'chat_photo')
+    if (err) return { error: err }
 
-  const { data: match } = await supabase().from('matches').select('user1_id, user2_id').eq('id', matchId).maybeSingle()
-  if (!match) return { error: 'Match introuvable' }
-  const targetId = match.user1_id === userId ? match.user2_id : match.user1_id
+    const { data: match } = await supabase().from('matches').select('user1_id, user2_id').eq('id', matchId).maybeSingle()
+    if (!match) return { error: 'Match introuvable' }
+    const targetId = match.user1_id === userId ? match.user2_id : match.user1_id
 
-  const { data: block } = await supabase().from('blocks').select('id').eq('blocker_id', targetId).eq('blocked_id', userId).maybeSingle()
-  if (block) return { error: 'Action non autorisée' }
+    const { data: block } = await supabase().from('blocks').select('id').eq('blocker_id', targetId).eq('blocked_id', userId).maybeSingle()
+    if (block) return { error: 'Action non autorisée' }
 
-  const fileName = `chat/${matchId}/${Date.now()}_${userId}_${sanitizeFilename(file.name)}`
-  const { error: uploadError } = await supabase().storage.from('chat_photos').upload(fileName, file)
-  if (uploadError) return { error: uploadError.message }
+    const fileName = `chat/${matchId}/${Date.now()}_${userId}_${sanitizeFilename(file.name)}`
+    const { error: uploadError } = await supabase().storage.from('chat_photos').upload(fileName, file)
+    if (uploadError) return { error: uploadError.message }
 
-  const { data: urlData } = supabase().storage.from('chat_photos').getPublicUrl(fileName)
+    const { data: urlData } = supabase().storage.from('chat_photos').getPublicUrl(fileName)
 
-  const { error } = await supabase().from('messages').insert({
-    match_id: matchId, sender_id: userId, image_url: urlData.publicUrl,
-  })
-  return { error: error?.message }
+    const { error } = await supabase().from('messages').insert({
+      match_id: matchId, sender_id: userId, image_url: urlData.publicUrl,
+    })
+    return { error: error?.message }
+  } catch (err) {
+    logger.error('sendPhotoMessage error', { error: String(err) })
+    return { error: 'Erreur lors de l\'envoi de la photo' }
+  } finally {
+  }
 }
 
 export async function unmatchUser(matchId: string) {
@@ -345,8 +352,9 @@ export async function unmatchUser(matchId: string) {
       return { error: body.error || 'Erreur lors de la suppression' }
     }
     return {}
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Erreur réseau' }
+  } catch (err) {
+    logger.error('unmatchUser error', { error: String(err) })
+    return { error: err instanceof Error ? err.message : 'Erreur réseau' }
   }
 }
 
@@ -493,7 +501,8 @@ export async function createCheckoutSession(plan: 'monthly' | 'yearly' = 'monthl
     if (!res.ok) return { error: data.error || 'Erreur de paiement' }
     if (!data.url) return { error: 'URL de paiement manquante' }
     return { url: data.url as string }
-  } catch {
+  } catch (err) {
+    logger.error('createCheckoutSession error', { error: String(err) })
     return { error: 'Erreur réseau. Vérifie ta connexion.' }
   }
 }
@@ -768,7 +777,8 @@ export async function getAIIcebreaker(targetId: string) {
     const json = await res.json()
     if (!res.ok) return { suggestion: null, error: json.error }
     return { suggestion: json.suggestion as string, error: null }
-  } catch {
+  } catch (err) {
+    logger.error('getAIIcebreaker error', { error: String(err) })
     return { suggestion: null, error: 'Erreur réseau' }
   }
 }
@@ -783,7 +793,8 @@ export async function getMessageSuggestions(matchId: string): Promise<{ suggesti
     const json = await res.json()
     if (!res.ok) return { suggestions: [], error: json.error }
     return { suggestions: json.suggestions as string[] }
-  } catch {
+  } catch (err) {
+    logger.error('getMessageSuggestions error', { error: String(err) })
     return { suggestions: [], error: 'Erreur réseau' }
   }
 }
@@ -829,11 +840,14 @@ export async function getDailySwipeCount() {
 const PAGE_SIZE = 20
 
 async function getCompatibleOnlyExclude(): Promise<string[]> {
-  const { data } = await supabase()
-    .from('privacy_settings')
-    .select('user_id')
-    .eq('visible_to_compatible_only', true)
-  return data?.map(r => r.user_id) ?? []
+  try {
+    const res = await fetch('/api/privacy/check')
+    if (!res.ok) return []
+    const json = await res.json()
+    return json.data ?? []
+  } catch {
+    return []
+  }
 }
 
 export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
@@ -895,7 +909,8 @@ export async function createDiditSession(): Promise<{ url?: string; error?: stri
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? 'Erreur lors de la création de la session' }
     return { url: data.url }
-  } catch {
+  } catch (err) {
+    logger.error('createDiditSession error', { error: String(err) })
     return { error: 'Erreur réseau' }
   }
 }
@@ -946,7 +961,8 @@ export async function createGiftCheckout(giftId: string, receiverId: string, mat
     if (data.sent) return { data: { sent: true as const }, error: null }
     if (!data.url) return { error: 'URL de paiement manquante' }
     return { data: { url: data.url as string }, error: null }
-  } catch {
+  } catch (err) {
+    logger.error('createGiftCheckout error', { error: String(err) })
     return { error: 'Erreur réseau. Vérifie ta connexion.' }
   }
 }
@@ -963,7 +979,8 @@ export async function createCartCheckout(giftIds: string[], receiverId: string, 
     if (data.sent) return { data: { sent: true as const }, error: null }
     if (!data.url) return { error: 'URL de paiement manquante' }
     return { data: { url: data.url as string }, error: null }
-  } catch {
+  } catch (err) {
+    logger.error('createCartCheckout error', { error: String(err) })
     return { error: 'Erreur réseau. Vérifie ta connexion.' }
   }
 }

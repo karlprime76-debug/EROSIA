@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { logger } from '@/lib/logger'
+import { pushSendSchema } from '@/lib/validations'
 
 const vapidSubject = process.env.VAPID_SUBJECT?.trim()
 const subject = vapidSubject && !vapidSubject.startsWith('mailto:')
@@ -26,10 +27,12 @@ export async function POST(request: Request) {
 
     let reqBody: Record<string, unknown>
     try { reqBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
-    const { userId, title, body, url } = reqBody as { userId?: string; title?: string; body?: string; url?: string }
-    if (!userId || !title) {
-      return NextResponse.json({ error: 'userId and title required' }, { status: 400 })
+    const parsed = pushSendSchema.safeParse(reqBody)
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
+    const { userId, title, body, url } = parsed.data
 
     const admin = createAdminClient()
     const { data: subs } = await admin

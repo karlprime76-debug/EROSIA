@@ -84,6 +84,11 @@ export default function ChatPage() {
   }, [matchId])
 
   useEffect(() => {
+    const removeExisting = (name: string) => {
+      const ch = supabase.getChannels().find(c => c.topic === name)
+      if (ch) supabase.removeChannel(ch)
+    }
+
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.push('/login'); return }
       setMyId(data.user.id)
@@ -108,54 +113,60 @@ export default function ChatPage() {
 
       markAsRead(matchId)
 
-      const msgChannel = supabase.channel(`messages:${matchId}`)
-      msgChannelRef.current = msgChannel
-      msgChannel.on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
-      }, (payload: { new: Record<string, unknown> }) => {
-        const m = payload.new as unknown as ChatMessage
-        if (confirmedIds.current.has(m.id)) return
-        setMessages(prev => {
-          if (prev.some(p => p.id === m.id)) return prev
-          return [...prev, m]
+      removeExisting(`messages:${matchId}`)
+      const msgChannel = supabase
+        .channel(`messages:${matchId}`)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+        }, (payload: { new: Record<string, unknown> }) => {
+          const m = payload.new as unknown as ChatMessage
+          if (confirmedIds.current.has(m.id)) return
+          setMessages(prev => {
+            if (prev.some(p => p.id === m.id)) return prev
+            return [...prev, m]
+          })
+          scrollToBottom()
+          if (m.sender_id !== uid) {
+            markAsRead(matchId)
+            clearTimeout(suggTimeoutRef.current)
+            suggTimeoutRef.current = setTimeout(() => loadMessageSuggestions(), 3000)
+          }
         })
-        scrollToBottom()
-        if (m.sender_id !== uid) {
-          markAsRead(matchId)
-          clearTimeout(suggTimeoutRef.current)
-          suggTimeoutRef.current = setTimeout(() => loadMessageSuggestions(), 3000)
-        }
-      })
-      msgChannel.on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
-      }, (payload: { new: Record<string, unknown> }) => {
-        const m = payload.new as unknown as ChatMessage
-        setMessages(prev => prev.map(p => p.id === m.id ? m : p))
-      })
-      msgChannel.on('postgres_changes', {
-        event: 'DELETE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
-      }, (payload: { old: Record<string, unknown> }) => {
-        setMessages(prev => prev.filter(p => p.id !== payload.old.id))
-      })
-      msgChannel.subscribe()
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+        }, (payload: { new: Record<string, unknown> }) => {
+          const m = payload.new as unknown as ChatMessage
+          setMessages(prev => prev.map(p => p.id === m.id ? m : p))
+        })
+        .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'messages', filter: `match_id=eq.${matchId}`,
+        }, (payload: { old: Record<string, unknown> }) => {
+          setMessages(prev => prev.filter(p => p.id !== payload.old.id))
+        })
+        .subscribe()
+      msgChannelRef.current = msgChannel
 
-      const typingChannel = supabase.channel(`typing:match-${matchId}`)
+      removeExisting(`typing:match-${matchId}`)
+      const typingChannel = supabase
+        .channel(`typing:match-${matchId}`)
+        .on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
+          setIsTyping(payload.payload?.userId === oId)
+          if (payload.payload?.userId === oId) {
+            clearTimeout(typingTimeoutRef.current)
+            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
+          }
+        })
+        .subscribe()
       typingChannelRef.current = typingChannel
-      typingChannel.on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
-        setIsTyping(payload.payload?.userId === oId)
-        if (payload.payload?.userId === oId) {
-          clearTimeout(typingTimeoutRef.current)
-          typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
-        }
-      })
-      typingChannel.subscribe()
 
-      const presenceChannel = supabase.channel(`presence:${oId}`, { config: { presence: { key: '' } } })
+      removeExisting(`presence:${oId}`)
+      const presenceChannel = supabase
+        .channel(`presence:${oId}`, { config: { presence: { key: '' } } })
+        .on('presence', { event: 'sync' }, () => {
+          setIsOnline(Object.keys(presenceChannel.presenceState()).length > 0)
+        })
+        .subscribe()
       presenceChannelRef.current = presenceChannel
-      presenceChannel.on('presence', { event: 'sync' }, () => {
-        setIsOnline(Object.keys(presenceChannel.presenceState()).length > 0)
-      })
-      presenceChannel.subscribe()
     })
 
     return () => {

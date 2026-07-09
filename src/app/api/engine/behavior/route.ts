@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import { z } from 'zod'
-
-const behaviorSchema = z.object({
-  action: z.enum([
-    'swipe_like', 'swipe_pass', 'swipe_super_like',
-    'view_profile', 'send_message', 'start_chat',
-    'report_user', 'block_user', 'share_profile',
-    'call_start', 'call_end',
-  ]),
-  targetId: z.string().uuid().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-})
+import { behaviorSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
