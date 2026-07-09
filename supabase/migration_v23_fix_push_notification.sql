@@ -8,27 +8,30 @@ CREATE OR REPLACE FUNCTION send_push_on_notification()
 RETURNS TRIGGER AS $$
 DECLARE
   actor_name TEXT;
-  push_url TEXT;
-  push_key TEXT;
+  push_url TEXT := current_setting('app.push_api_url', true);
+  push_key TEXT := current_setting('app.push_api_key', true);
+  notif_type TEXT;
   notif_title TEXT;
   notif_body TEXT;
   notif_url TEXT;
 BEGIN
-  -- Get push subscription for this user
-  SELECT endpoint, p256dh_key, auth_key INTO push_url, push_key, notif_body
-  FROM push_subscriptions WHERE user_id = NEW.user_id LIMIT 1;
+  -- Get actor name
+  SELECT name INTO actor_name FROM profiles WHERE id = NEW.actor_id;
 
-  -- Build actor name
-  actor_name := COALESCE((SELECT name FROM profiles WHERE id = NEW.actor_id), 'Quelqu\'un');
+  -- Determine notification content
+  notif_type := NEW.type;
 
-  -- Build notification content based on type
-  IF NEW.type = 'match' THEN
+  IF notif_type = 'match' THEN
     notif_title := 'Nouveau match !';
-    notif_body := actor_name || ' t\'aime aussi ❤️';
+    notif_body := actor_name || ' t''a liké·e aussi ❤️';
     notif_url := '/matches';
-  ELSIF NEW.type = 'message' THEN
+  ELSIF notif_type = 'flirt' THEN
+    notif_title := 'Clin d''œil reçu !';
+    notif_body := actor_name || ' t''a envoyé un clin d''œil 😉';
+    notif_url := '/matches';
+  ELSIF notif_type = 'message' THEN
     notif_title := 'Nouveau message';
-    notif_body := actor_name || ' t\'a envoyé un message';
+    notif_body := actor_name || ' t''a envoyé un message';
     notif_url := '/chat/' || (NEW.metadata->>'match_id');
   ELSE
     notif_title := 'Erosia';
@@ -36,7 +39,7 @@ BEGIN
     notif_url := '/notifications';
   END IF;
 
-  -- Call push API via pg_net
+  -- Call push API via pg_net (body must be jsonb, not text)
   IF push_url IS NOT NULL AND push_key IS NOT NULL THEN
     PERFORM net.http_post(
       url := push_url,
