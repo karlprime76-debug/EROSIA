@@ -43,8 +43,11 @@ export async function POST(request: Request) {
     })
 
     if (authError || !authData.user) {
-      logger.error('GoTrue signup failed', { error: authError?.message })
-      return NextResponse.json({ error: authError?.message ?? "Erreur lors de l'inscription" }, { status: 400 })
+      const err = authError as unknown as Record<string, unknown>
+      const errJson = authError ? JSON.stringify(Object.getOwnPropertyNames(authError).reduce((acc, k) => { acc[k] = err[k]; return acc }, {} as Record<string, unknown>)) : 'null'
+      const msg = authError?.message || (authError ? errJson : null) || "Erreur lors de l'inscription"
+      logger.error('GoTrue signup failed', { message: msg, code: err.code, status: err.status, raw: errJson })
+      return NextResponse.json({ error: msg }, { status: 400 })
     }
 
     const { error: profileError } = await createProfile(authData.user.id, name, age)
