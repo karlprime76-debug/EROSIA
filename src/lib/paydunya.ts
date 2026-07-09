@@ -1,4 +1,4 @@
-const BASE = process.env.PAYDUNYA_MODE === 'live'
+const BASE = (process.env.PAYDUNYA_MODE ?? 'test') === 'live'
   ? 'https://app.paydunya.com/api/v1'
   : 'https://app.paydunya-sandbox.com/api/v1'
 

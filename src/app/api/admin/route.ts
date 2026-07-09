@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { adminPatchSchema } from '@/lib/validations'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 
@@ -41,10 +42,9 @@ export async function PATCH(request: Request) {
 
     let patchBody: Record<string, unknown>
     try { patchBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
-    const { txId, status } = patchBody as { txId?: string; status?: string }
-    if (!txId || !['completed', 'failed'].includes(status ?? '')) {
-      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
-    }
+    const parsed = adminPatchSchema.safeParse(patchBody)
+    if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    const { txId, status } = parsed.data
 
     const admin = createAdminClient()
     const { error } = await admin.from('gift_transactions').update({ status }).eq('id', txId)

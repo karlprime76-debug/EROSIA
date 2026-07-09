@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { computeAura } from '@/lib/aura/engine'
 import type { AuraConfig, AuraState } from '@/lib/aura/types'
 import { logger } from '@/lib/logger'
+import { auraBatchSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -10,10 +11,11 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { userIds } = await request.json()
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return NextResponse.json({ error: 'userIds requis' }, { status: 400 })
-    }
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    const parsed = auraBatchSchema.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ error: 'userIds requis' }, { status: 400 })
+    const { userIds } = parsed.data
 
     const { data: profiles } = await supabase
       .from('profiles')

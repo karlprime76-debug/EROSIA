@@ -1,29 +1,20 @@
-// UNGUARDED ENV: process.env.NEXT_PUBLIC_SUPABASE_URL! (l.9), NEXT_PUBLIC_SUPABASE_ANON_KEY! (l.10)
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
+import { deleteAccountSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          },
-        },
-      }
-    )
-
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { password } = await request.json().catch(() => ({})) as { password?: string }
-    if (!password) return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 })
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    const parsed = deleteAccountSchema.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 })
+    const { password } = parsed.data
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email!, password })
     if (signInError) return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 })
 

@@ -78,9 +78,11 @@ export async function POST(request: NextRequest) {
     const message = customData.message ?? null
 
     if (userId && !giftId && !customData.cart_gift_ids) {
+      const plan = customData.plan
+      const days = plan === 'yearly' ? 365 : 30
       await admin.from('profiles').update({
         subscription_tier: 'premium',
-        premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        premium_expires_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
       }).eq('id', userId)
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWithdrawMode, extractPhoneAlias, createDisburseInvoice, submitDisburseInvoice } from '@/lib/paydunya-disburse'
+import { processPayoutSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
@@ -12,8 +13,9 @@ export async function POST(request: Request) {
 
     let body: Record<string, unknown>
     try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
-    const { amountCents } = body as { amountCents?: number }
-    if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || amountCents <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
+    const parsed = processPayoutSchema.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
+    const { amountCents } = parsed.data
 
     const admin = createAdminClient()
 

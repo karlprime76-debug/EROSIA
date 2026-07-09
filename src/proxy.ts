@@ -139,13 +139,15 @@ export default async function proxy(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
+    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paydunya.com https://api.didit.me https://*.vercel.app",
     "frame-src 'self' https://challenges.cloudflare.com https://www.google.com",
+    "frame-ancestors 'self'",
     "media-src 'self' https:",
+    "object-src 'none'",
     "worker-src 'self' blob:",
     "base-uri 'self'",
     "form-action 'self'",

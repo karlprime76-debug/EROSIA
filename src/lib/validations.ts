@@ -77,11 +77,19 @@ export const createCheckoutSchema = z.object({
 export const createGiftCheckoutSchema = z.object({
   gift_id: z.string().uuid(),
   recipient_id: z.string().uuid(),
+  matchId: z.string().uuid(),
   message: z.string().max(500).optional(),
+  phone: z.string().optional(),
+  operator: z.string().optional(),
 })
 
 export const createCartCheckoutSchema = z.object({
   giftIds: z.array(z.string().uuid()).min(1, 'Au moins un cadeau requis'),
+  receiverId: z.string().uuid(),
+  matchId: z.string().uuid(),
+  message: z.string().max(500).optional(),
+  phone: z.string().optional(),
+  operator: z.string().optional(),
 })
 
 export const createStorySchema = z.object({
@@ -142,6 +150,62 @@ export const createNPCchema = z.object({
   dialogue: z.string().max(2000).optional(),
   position_x: z.number().optional(),
   position_y: z.number().optional(),
+})
+
+export const deleteMatchSchema = z.object({
+  matchId: z.string().uuid(),
+})
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Mot de passe requis'),
+})
+
+export const recomputeEngineSchema = z.object({
+  userId: z.string().uuid().optional(),
+  engine: z.string().optional(),
+  targetId: z.string().uuid().optional(),
+})
+
+export const auraBatchSchema = z.object({
+  userIds: z.array(z.string().uuid()).min(1, 'Au moins un userId requis'),
+})
+
+export const processPayoutSchema = z.object({
+  amountCents: z.number().int().positive('Montant invalide'),
+})
+
+export const adminPatchSchema = z.object({
+  txId: z.string().uuid(),
+  status: z.enum(['completed', 'failed']),
+})
+
+export const referralUseSchema = z.object({
+  code: z.string().min(1, 'Code requis').max(20),
+})
+
+export const animationSchema = z.enum(['idle', 'walking', 'standing', 'sitting', 'dancing', 'waving', 'floating'])
+
+export const joinRoomSchema = z.object({
+  x: z.number().optional().default(0),
+  y: z.number().optional().default(0),
+  z: z.number().optional().default(0),
+  rotation_y: z.number().optional(),
+  animation: animationSchema.optional(),
+})
+
+export const updatePositionSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  z: z.number(),
+  rotation_y: z.number().optional(),
+  animation: animationSchema.optional(),
+})
+
+export const joinSpaceSchema = z.object({
+  spaceId: z.string().uuid(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  z: z.number().optional(),
 })
 
 

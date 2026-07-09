@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getEngine } from '@/lib/engine'
 import { logger } from '@/lib/logger'
+import { recomputeEngineSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -17,16 +18,18 @@ export async function POST(request: Request) {
       .maybeSingle()
     if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-    const body = await request.json()
-    const targetUserId = body.userId as string | undefined
-    const engineName = body.engine as string | undefined
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch { body = {} }
+    const parsed = recomputeEngineSchema.safeParse(body)
+    const targetUserId = parsed.success ? parsed.data.userId ?? undefined : undefined
+    const engineName = parsed.success ? parsed.data.engine : undefined
 
     const admin = createAdminClient()
 
     if (engineName) {
       const engine = getEngine(engineName)
       if (!engine) return NextResponse.json({ error: 'Engine inconnu' }, { status: 404 })
-      const result = await engine.compute({ userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id }, admin)
+      const result = await engine.compute({ userId: targetUserId ?? user.id, targetId: parsed.data?.targetId ?? targetUserId ?? user.id }, admin)
       return NextResponse.json({ engine: engineName, result })
     }
 
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
     for (const name of engines) {
       const engine = getEngine(name)
       if (engine) {
-        const input = { userId: targetUserId ?? user.id, targetId: body.targetId ?? targetUserId ?? user.id }
+        const input = { userId: targetUserId ?? user.id, targetId: parsed.data?.targetId ?? targetUserId ?? user.id }
         results[name] = await engine.compute(input, admin)
       }
     }

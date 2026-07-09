@@ -1,28 +1,20 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
+import { deleteMatchSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll() },
-          setAll() {},
-        },
-      }
-    )
-
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const { matchId } = await request.json()
-    if (!matchId || typeof matchId !== 'string') {
-      return NextResponse.json({ error: 'matchId requis' }, { status: 400 })
-    }
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    const parsed = deleteMatchSchema.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ error: 'matchId requis' }, { status: 400 })
+    const { matchId } = parsed.data
 
     const { data: match } = await supabase
       .from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()

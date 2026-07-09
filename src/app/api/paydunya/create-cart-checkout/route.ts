@@ -21,12 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    const { giftIds } = parsed.data
-    const receiverId = (body as Record<string, unknown>).receiverId as string
-    const matchId = (body as Record<string, unknown>).matchId as string
-    const message = (body as Record<string, unknown>).message as string | undefined
-    const phone = (body as Record<string, unknown>).phone as string | undefined
-    const operator = (body as Record<string, unknown>).operator as string | undefined
+    const { giftIds, receiverId, matchId, message, phone, operator } = parsed.data
 
     const { data: gifts } = await supabase.from('gifts').select('*').in('id', giftIds)
     if (!gifts || gifts.length !== giftIds.length) {
@@ -71,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur de création du paiement', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
-    const paydunyaHost = process.env.PAYDUNYA_MODE === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
+    const paydunyaHost = (process.env.PAYDUNYA_MODE ?? 'test') === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
     const paymentUrl = `https://${paydunyaHost}/payment/${result.token}`
 
     if (phone && operator) {

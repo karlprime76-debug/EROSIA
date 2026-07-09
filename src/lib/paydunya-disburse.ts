@@ -16,7 +16,7 @@ function getPaydunyaToken(): string {
   return token
 }
 
-const BASE = process.env.PAYDUNYA_MODE === 'live'
+const BASE = (process.env.PAYDUNYA_MODE ?? 'test') === 'live'
   ? 'https://app.paydunya.com/api/v2'
   : 'https://app.paydunya-sandbox.com/api/v2'
 

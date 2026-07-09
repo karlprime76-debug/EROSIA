@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Échec de la création du paiement. Contacte le support si le problème persiste.', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
-    const paydunyaHost = process.env.PAYDUNYA_MODE === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
+    const paydunyaHost = (process.env.PAYDUNYA_MODE ?? 'test') === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
     const paymentUrl = `https://${paydunyaHost}/payment/${result.token}`
 
     return NextResponse.json({ url: paymentUrl })

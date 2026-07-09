@@ -120,9 +120,6 @@ export default function ChatPage() {
           const m = payload.new as unknown as ChatMessage
           if (confirmedIds.current.has(m.id)) return
 
-          // DEBUG: sender_id vs uid
-          logger.debug('Realtime INSERT', { sender_id: m.sender_id, uid, match: m.sender_id === uid })
-
           setMessages(prev => {
             if (prev.some(p => p.id === m.id)) return prev
             return [...prev, m]

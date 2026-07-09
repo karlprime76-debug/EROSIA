@@ -23,10 +23,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    const { gift_id: giftId, recipient_id: receiverId, message } = parsed.data
-    const matchId = (body as Record<string, unknown>).matchId as string
-    const phone = (body as Record<string, unknown>).phone as string | undefined
-    const operator = (body as Record<string, unknown>).operator as string | undefined
+    const { gift_id: giftId, recipient_id: receiverId, matchId: rawMatchId, message, phone, operator } = parsed.data
+    const matchId = rawMatchId
 
     const { data: gift } = await supabase.from('gifts').select('*').eq('id', giftId).maybeSingle()
     if (!gift) return NextResponse.json({ error: 'Cadeau introuvable' }, { status: 404 })
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erreur de création du paiement. Contacte le support si le problème persiste.', code: 'PAYDUNYA_FAILED' }, { status: 500 })
     }
 
-    const paydunyaHost = process.env.PAYDUNYA_MODE === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
+    const paydunyaHost = (process.env.PAYDUNYA_MODE ?? 'test') === 'live' ? 'payment.paydunya.com' : 'payment.paydunya-sandbox.com'
     const paymentUrl = `https://${paydunyaHost}/payment/${result.token}`
 
     // Mobile Money direct push — fallback to checkout URL if OPR fails
