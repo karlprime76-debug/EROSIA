@@ -65,7 +65,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="flex-1 flex flex-col relative z-10"
-        style={isFullscreen ? {} : { paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
+        style={isFullscreen ? { minHeight: 0, overflow: 'hidden' } : { paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
       >
         {children}
       </motion.main>

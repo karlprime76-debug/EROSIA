@@ -11,10 +11,17 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS gif_url TEXT;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to UUID REFERENCES messages(id);
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_preview TEXT;
 
--- 2. DELETE RLS : restreindre aux messages dont on est l'expéditeur
+-- 2. DELETE RLS : tout participant du match peut supprimer un message
+DROP POLICY IF EXISTS "Users can delete own messages" ON messages;
 DROP POLICY IF EXISTS "Users can delete messages in their matches" ON messages;
-CREATE POLICY "Users can delete own messages" ON messages
-  FOR DELETE USING (auth.uid() = sender_id);
+CREATE POLICY "Users can delete messages in their matches" ON messages
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM matches
+      WHERE matches.id = messages.match_id
+      AND (matches.user1_id = auth.uid() OR matches.user2_id = auth.uid())
+    )
+  );
 
 -- 3. Fonction helper pour vérifier qu'un utilisateur participe à un match
 CREATE OR REPLACE FUNCTION public.is_chat_participant(p_user_id UUID, p_object_name TEXT)

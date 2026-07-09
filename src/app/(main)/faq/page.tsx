@@ -35,8 +35,6 @@ const faqs = [
     a: 'Non, la suppression est définitive. Si tu souhaites simplement faire une pause, tu peux masquer ton profil depuis les paramètres de confidentialité.',
   },
   {
-    q: 'Comment fonctionne le système de duels ?',
-    a: 'Depuis une conversation avec un match, ouvre le menu et sélectionne "Lancer un duel". Deux profils aléatoires te sont proposés, et ton match peut voter pour son préféré.',
   },
   {
     q: 'Les suggestions de date sont-elles personnalisées ?',

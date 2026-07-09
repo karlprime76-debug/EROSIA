@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, Swords, BarChart3, ShieldOff, Film } from 'lucide-react'
+import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, BarChart3, ShieldOff, Film } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
-import { getMessages, sendMessage, sendPhotoMessage, sendAudioMessage, markAsRead, getAIIcebreaker, createDuel, getMessageSuggestions } from '@/lib/api'
+import { getMessages, sendMessage, sendPhotoMessage, sendAudioMessage, markAsRead, getAIIcebreaker, getMessageSuggestions } from '@/lib/api'
 import { logger } from '@/lib/logger'
 import { useToast } from '@/components/Toast'
 import { MessageBubble } from '@/components/chat/MessageBubble'
@@ -39,6 +39,7 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [showEmoji, setShowEmoji] = useState(false)
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
@@ -275,11 +276,9 @@ export default function ChatPage() {
       mediaRecorderRef.current = recorder
       chunksRef.current = []
       recorder.ondataavailable = e => chunksRef.current.push(e.data)
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const { error } = await sendAudioMessage(matchId, blob)
-        if (error) toast(error, 'error')
-        else scrollToBottom()
+        setRecordedBlob(blob)
         stream.getTracks().forEach(t => t.stop())
       }
       recorder.start()
@@ -308,8 +307,6 @@ export default function ChatPage() {
   }
 
   const handleDelete = async (msg: ChatMessage) => {
-    const diff = Date.now() - new Date(msg.created_at).getTime()
-    if (diff > 3600000) { toast('Délai de suppression expiré (60 min)', 'error'); return }
     const { error } = await supabase.from('messages').update({ deleted_for_all: true }).eq('id', msg.id)
     if (error) toast('Erreur de suppression', 'error')
   }
@@ -350,25 +347,6 @@ export default function ChatPage() {
     setInput(text)
     setDateSuggestions([])
     inputRef.current?.focus()
-  }
-
-  const handleDuelChallenge = async () => {
-    if (!otherId || !myId) return
-    setMenuOpen(false)
-    const { data: profiles } = await supabase
-      .from('profiles').select('id').neq('id', myId).neq('id', otherId).limit(2)
-    if (!profiles || profiles.length < 2) {
-      toast('Pas assez de profils pour un duel', 'error')
-      return
-    }
-    const { data: duel } = await createDuel(profiles[0].id, profiles[1].id)
-    if (!duel) { toast('Erreur de création du duel', 'error'); return }
-    const text = `⚔️ Duel lancé ! Qui est ton choix ? ${duel.id}`
-    await supabase.from('messages').insert({
-      match_id: matchId, sender_id: myId, text,
-    })
-    scrollToBottom()
-    toast('Duel créé !', 'success')
   }
 
   if (loading) return (
@@ -429,10 +407,6 @@ export default function ChatPage() {
                 <button onClick={() => { setMenuOpen(false); loadDateIdeas() }}
                   className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
                   <Heart size={14} className="text-primary" /> Idée de date
-                </button>
-                <button onClick={handleDuelChallenge}
-                  className="w-full px-4 py-2.5 text-sm text-left hover:bg-hover flex items-center gap-2.5">
-                  <Swords size={14} className="text-secondary" /> Lancer un duel
                 </button>
                 <button onClick={() => { setMenuOpen(false); (async () => {
                   const { error } = await blockUser(otherId)
@@ -649,6 +623,26 @@ export default function ChatPage() {
                 className="w-2 h-2 rounded-full bg-error" />
               <span className="text-xs text-secondary">Enregistrement... {recordingDuration}s</span>
               <span className="text-[10px] text-muted">(max 30s)</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {recordedBlob && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="flex items-center gap-2 mt-2 px-1">
+              <audio src={URL.createObjectURL(recordedBlob)} controls className="h-10 flex-1 max-w-[180px] rounded-lg" />
+              <button onClick={async () => {
+                const { error } = await sendAudioMessage(matchId, recordedBlob)
+                if (error) toast(error, 'error')
+                else scrollToBottom()
+                setRecordedBlob(null)
+              }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-theme" style={{ background: 'var(--primary)' }}>
+                Envoyer
+              </button>
+              <button onClick={() => setRecordedBlob(null)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-secondary bg-surface border border-theme">
+                Annuler
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

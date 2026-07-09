@@ -49,6 +49,7 @@ export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onR
   const [showActions, setShowActions] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(msg.text || '')
+  const [lightbox, setLightbox] = useState<string | null>(null)
   const timeAgo = useTimeAgo(msg.created_at)
 
   if (msg.deleted_for_all) {
@@ -93,7 +94,12 @@ export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onR
           </div>
         )}
 
-        <div className={`relative px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
+        {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
+          <Image src={lightbox} alt="Photo" width={800} height={800} className="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl" />
+        </div>
+      )}
+      <div className={`relative px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
           isOwn
             ? 'text-on-primary rounded-br-md'
             : 'text-theme rounded-bl-md'
@@ -111,7 +117,7 @@ export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onR
             <div className="mb-2 -mx-1 -mt-1">
               <Image src={msg.image_url} alt="Photo partagée" width={300} height={300} loading="lazy"
                 className="rounded-xl w-full max-h-[300px] object-cover cursor-pointer"
-                onClick={() => window.open(msg.image_url!, '_blank')} />
+                onClick={() => setLightbox(msg.image_url!)} />
             </div>
           )}
 

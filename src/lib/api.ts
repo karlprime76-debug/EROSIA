@@ -675,47 +675,6 @@ export async function getEvents() {
   return { data: data ?? [], error: error?.message }
 }
 
-// ---- FEATURE 13: Duels ----
-export async function createDuel(profileAId: string, profileBId: string) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { error: 'Not authenticated' }
-  const { data, error } = await supabase().from('duels').insert({
-    creator_id: userId, profile_a_id: profileAId, profile_b_id: profileBId,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
-export async function voteDuel(duelId: string, chosenId: string) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { error: 'Not authenticated' }
-  const { data: duel } = await supabase()
-    .from('duels')
-    .select('profile_a_id, profile_b_id')
-    .eq('id', duelId)
-    .maybeSingle()
-  if (!duel) return { error: 'Duel introuvable' }
-  if (chosenId !== duel.profile_a_id && chosenId !== duel.profile_b_id) {
-    return { error: 'Profil invalide pour ce duel' }
-  }
-  const { data, error } = await supabase().from('duel_votes').insert({
-    duel_id: duelId, voter_id: userId, chosen_id: chosenId,
-  }).select().single()
-  return { data, error: error?.message }
-}
-
-export async function getDuels(page = 1, pageSize = 20) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { data: [], error: 'Not authenticated' }
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
-  const { data, error } = await supabase()
-    .from('duels')
-    .select('*, profile_a:profiles!duels_profile_a_id_fkey(name, photos), profile_b:profiles!duels_profile_b_id_fkey(name, photos), votes:duel_votes(*)')
-    .order('created_at', { ascending: false })
-    .range(from, to)
-  return { data: data ?? [], error: error?.message }
-}
-
 // ---- FEATURE 14: Date ideas ----
 export async function getDateIdeas(category?: string) {
   let q = supabase().from('date_ideas').select('*')
