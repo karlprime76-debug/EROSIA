@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getStoryById, deleteStory } from '@/lib/stories'
+import { z } from 'zod'
 import { logger } from '@/lib/logger'
+
+const uuidParam = z.string().uuid()
 
 export async function GET(
   _request: Request,
@@ -13,7 +16,9 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const { id } = await params
-    const { data, error } = await getStoryById(id)
+    const idParsed = uuidParam.safeParse(id)
+    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
+    const { data, error } = await getStoryById(idParsed.data)
     if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
     if (!data) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
     return NextResponse.json({ story: data }, {
@@ -35,11 +40,13 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const { id } = await params
-    const { data: story } = await getStoryById(id)
+    const idParsed = uuidParam.safeParse(id)
+    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
+    const { data: story } = await getStoryById(idParsed.data)
     if (!story) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
     if (story.user_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
-    const { error } = await deleteStory(id)
+    const { error } = await deleteStory(idParsed.data)
     if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
     return NextResponse.json({ success: true })
   } catch (err) {

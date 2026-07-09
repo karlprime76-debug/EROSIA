@@ -203,12 +203,13 @@ export async function getMatches(page = 0, pageSize = 50): Promise<{ data: Match
 }
 
 export async function checkForMatch(targetId: string): Promise<{ isMatch: boolean; match: Match | null }> {
-  const { data, error } = await supabase().from('matches').select('*').or(`user1_id.eq.${targetId},user2_id.eq.${targetId}`).maybeSingle() as PostgrestMaybeSingleResponse<Match>
-  if (error || !data) return { isMatch: false, match: null }
   const userId = await getCurrentUserId()
   if (!userId) return { isMatch: false, match: null }
-  const otherId = data.user1_id === userId ? data.user2_id : data.user1_id
-  return { isMatch: otherId === targetId, match: data }
+  const { data, error } = await supabase().from('matches').select('*')
+    .or(`and(user1_id.eq.${userId},user2_id.eq.${targetId}),and(user1_id.eq.${targetId},user2_id.eq.${userId})`)
+    .maybeSingle() as PostgrestMaybeSingleResponse<Match>
+  if (error || !data) return { isMatch: false, match: null }
+  return { isMatch: true, match: data }
 }
 
 export async function getMessages(matchId: string): Promise<{ data: Message[] | null; error?: string }> {

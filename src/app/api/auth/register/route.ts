@@ -14,15 +14,12 @@ async function createProfile(userId: string, name: string, age: number) {
 
 async function applyReferralCode(code: string, newUserId: string): Promise<{ error?: string }> {
   const admin = createAdminClient()
-  const { data: referrer } = await admin.from('profiles').select('id').eq('referral_code', code).maybeSingle()
-  if (!referrer) return { error: 'Code de parrainage invalide' }
-  if (referrer.id === newUserId) return { error: 'Auto-parrainage non autorisé' }
-  const { error } = await admin.from('referrals').insert({
-    referrer_id: referrer.id,
-    referred_id: newUserId,
-    status: 'joined',
+  const { data, error } = await admin.rpc('apply_referral_code', {
+    p_code: code,
+    p_user_id: newUserId,
   })
   if (error) return { error: "Erreur lors de l'application du code de parrainage" }
+  if (data?.error) return { error: data.error }
   return {}
 }
 

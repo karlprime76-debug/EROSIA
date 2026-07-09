@@ -13,8 +13,8 @@ const tabs = [
   { href: '/matches', icon: Heart, label: 'Matchs' },
   { href: '/stories', icon: Film, label: 'Stories' },
   { href: '/notifications', icon: Bell, label: 'Actus' },
-  { href: '/profile', icon: User, label: 'Profil' },
-  { href: '/island', icon: ShoppingBag, label: 'Boutique' },
+  { href: '/island', icon: User, label: 'Profil' },
+  { href: '/profile', icon: ShoppingBag, label: 'Boutique' },
 ]
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -25,18 +25,24 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | undefined
+    const refreshCount = () => { getNotificationUnreadCount().then(setUnreadCount).catch(() => {}) }
+    const onNotifRead = () => { setUnreadCount(prev => Math.max(0, prev - 1)) }
+    window.addEventListener('notif-read', onNotifRead)
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      getNotificationUnreadCount().then(setUnreadCount).catch(() => {})
+      refreshCount()
       channel = supabase.channel('notif-count')
       channel.on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'notifications',
         filter: `user_id=eq.${user.id}`
-      }, () => { getNotificationUnreadCount().then(setUnreadCount).catch(() => {}) })
+      }, () => { refreshCount() })
       channel.subscribe()
     })()
-    return () => { if (channel) supabase.removeChannel(channel) }
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+      window.removeEventListener('notif-read', onNotifRead)
+    }
   }, [])
 
   useEffect(() => {

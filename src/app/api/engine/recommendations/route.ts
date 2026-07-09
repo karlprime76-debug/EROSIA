@@ -21,6 +21,13 @@ export async function GET(request: Request) {
     const city = searchParams.get('city')
 
     const admin = createAdminClient()
+
+    // Exclure les profils invisible-only (compatible-only check simplifié)
+    const { data: invisibleUsers } = await admin
+      .from('privacy_settings')
+      .select('user_id')
+      .eq('visible_to_compatible_only', true)
+
     const result = await recommendationEngine.compute({
       userId: user.id,
       excludeIds: [],
@@ -34,6 +41,7 @@ export async function GET(request: Request) {
         ...(lat ? { lat: parseFloat(lat) } : {}),
         ...(lng ? { lng: parseFloat(lng) } : {}),
         ...(city ? { city } : {}),
+        ...(invisibleUsers?.length ? { excludeInvisible: invisibleUsers.map(u => u.user_id) } : {}),
       },
     }, admin)
 

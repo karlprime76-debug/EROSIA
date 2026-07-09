@@ -47,13 +47,16 @@ export default function NotificationsPage() {
 
   const handleClick = async (n: Notification) => {
     try {
-      if (!n.read) await markNotificationRead(n.id)
+      if (!n.read) {
+        await markNotificationRead(n.id)
+        window.dispatchEvent(new CustomEvent('notif-read'))
+      }
       if (n.type === 'match') {
         router.push('/matches')
       } else if (n.type === 'message') {
         router.push(`/chat/${n.actor_id}`)
       } else {
-        router.push('/profile')
+        router.push('/island')
       }
     } catch { toast('Erreur', 'error') }
   }

@@ -80,9 +80,17 @@ export async function POST(request: NextRequest) {
     if (userId && !giftId && !customData.cart_gift_ids) {
       const plan = customData.plan
       const days = plan === 'yearly' ? 365 : 30
+      const { data: profile } = await admin.from('profiles')
+        .select('premium_expires_at')
+        .eq('id', userId)
+        .maybeSingle()
+      const now = new Date()
+      const currentExpiry = profile?.premium_expires_at ? new Date(profile.premium_expires_at) : now
+      const baseExpiry = currentExpiry > now ? currentExpiry : now
+      const newExpiry = new Date(baseExpiry.getTime() + days * 24 * 60 * 60 * 1000)
       await admin.from('profiles').update({
         subscription_tier: 'premium',
-        premium_expires_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        premium_expires_at: newExpiry.toISOString(),
       }).eq('id', userId)
     }
 

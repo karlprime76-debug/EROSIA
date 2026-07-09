@@ -46,6 +46,7 @@ export interface RecommendFilters {
   lat?: number
   lng?: number
   city?: string
+  excludeInvisible?: string[]
 }
 
 export interface RecommendOutput {

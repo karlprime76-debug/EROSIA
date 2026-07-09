@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       .select('amount_cents')
       .eq('user_id', user.id)
       .eq('type', 'payout')
-      .neq('status', 'failed')
+      .eq('status', 'completed')
 
     const totalPayouts = (payouts ?? []).reduce((sum, t) => sum + t.amount_cents, 0)
     const balance = totalReceived - totalPayouts

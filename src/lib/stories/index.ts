@@ -83,6 +83,7 @@ export async function getActiveStories(page = 1, options?: { baseUrl?: string })
     const visibility = privacyMap.get(sid) ?? 'everyone'
     if (visibility === 'nobody') continue
     if (visibility === 'matches' && !matchedIds.has(sid)) continue
+    if (s.privacy === 'close_friends' && sid !== user.id && !matchedIds.has(sid)) continue
 
     if (!groupMap.has(sid)) {
       groupMap.set(sid, {

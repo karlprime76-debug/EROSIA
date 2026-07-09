@@ -1,235 +1,250 @@
 'use client'
 
-import { Component, useState, useEffect, useRef } from 'react'
-import type { ErrorInfo, ReactNode } from 'react'
-
-class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props)
-    this.state = { hasError: false }
-  }
-  static getDerivedStateFromError() { return { hasError: true } }
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    logger.error('ProfilePage error', { error: String(error), componentStack: info.componentStack })
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-            <span className="text-2xl">😵</span>
-          </div>
-          <h3 className="font-semibold text-lg">Oups, quelque chose a planté</h3>
-          <p className="text-secondary text-sm mt-1 max-w-xs">Un problème est survenu. Recharge la page.</p>
-          <button onClick={() => window.location.reload()}
-            className="mt-4 px-5 py-2.5 rounded-xl text-sm font-medium text-theme"
-            style={{ background: 'var(--primary)' }}>
-            Recharger
-          </button>
-        </div>
-      )
-    }
-    return this.props.children
-  }
-}
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood } from '@/lib/api'
-import Lightbox from '@/components/Lightbox'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Crown, Check, Copy, Share2, Sparkles, Star, MapPin, Eye, Brain, Gift, Loader, Send, Smartphone, CreditCard, ChevronRight, Wallet, ArrowUpRight, History, CheckCircle, Clock, ShoppingCart, X } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { createCheckoutSession, getSubscriptionStatus, getGifts, getMatches, createCartCheckout, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
+import type { GiftTransaction } from '@/lib/api'
+import { getReferralCode, getReferralStats } from '@/lib/referrals'
 import { logger } from '@/lib/logger'
-import dynamic from 'next/dynamic'
-import { AuraBadge, useAura } from '@/components/AuraSphere'
-import { useTheme } from 'next-themes'
+import { supabase } from '@/lib/supabase/client'
+import { FocusTrap } from '@/components/FocusTrap'
 
-const AuraSphere = dynamic(() => import('@/components/AuraSphere').then(m => ({ default: m.AuraSphere })), { ssr: false })
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
-import { Button } from '@/components/ui/button'
+type Tab = 'abonnements' | 'cadeaux' | 'parrainage'
+type Tier = 'free' | 'premium'
 
-function ProfilePageInner() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
-  const [nameValue, setNameValue] = useState('')
-  const [bio, setBio] = useState('')
-  const [interests, setInterests] = useState('')
-  const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
-  const [mood, setMood] = useState<Mood>('discuter')
-  const [now, setNow] = useState(0)
-  const [profileTraits, setProfileTraits] = useState<string[]>([])
-  const [streak, setStreak] = useState(0)
-  const [themePicker, setThemePicker] = useState(false)
-  const videoRef = useRef<HTMLInputElement>(null)
-  const { aura, recompute: recomputeAura } = useAura()
+interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
+interface MatchItem { id: string; user1_id: string; user2_id: string }
+
+interface Plan {
+  id: string
+  name: string
+  price: string
+  period: string
+  priceCfa: number
+  popular?: boolean
+  features: string[]
+  cta: string
+}
+
+const plans: Plan[] = [
+  {
+    id: 'free',
+    name: 'Gratuit',
+    price: '0',
+    period: '/mois',
+    priceCfa: 0,
+    features: ['20 swipes par jour', 'Profils de base', 'Chat avec tes matchs', 'Stories'],
+    cta: 'Actuel',
+  },
+  {
+    id: 'premium_monthly',
+    name: 'Premium',
+    price: '5 000',
+    period: '/mois',
+    priceCfa: 5000,
+    popular: true,
+    features: ['Swipes illimités', 'Ghost Mode', 'Mode Voyage', 'Quiz de compatibilité', 'Voir qui t\'a liké', 'Badge Premium'],
+    cta: 'S\'abonner',
+  },
+  {
+    id: 'premium_yearly',
+    name: 'Premium Annuel',
+    price: '50 000',
+    period: '/an',
+    priceCfa: 50000,
+    features: ['Tous les avantages Premium', 'Économise 10 000 F', 'Badge Premium exclusif', 'Priorité support'],
+    cta: 'S\'abonner',
+  },
+]
+
+const premiumFeatures = [
+  { icon: Sparkles, label: 'Swipes illimités', desc: 'Fini la limite de 20 swipes par jour' },
+  { icon: Eye, label: 'Ghost Mode', desc: 'Navigue anonymement sans être vu' },
+  { icon: MapPin, label: 'Mode Voyage', desc: 'Change ta localisation où tu veux' },
+  { icon: Brain, label: 'Quiz compatibilité', desc: 'Trouve l\'âme sœur avec le quiz' },
+  { icon: Star, label: 'Badge Premium', desc: 'Montre ton statut Premium' },
+  { icon: MapPin, label: 'Voir les likes', desc: 'Sait qui t\'a liké avant de swiper' },
+]
+
+const EUR_TO_XOF = 655.957
+const toXof = (cents: number) => Math.round(cents * EUR_TO_XOF / 100)
+const fmt = (n: number) => n.toLocaleString('fr-FR')
+const countries = getCountries()
+
+export default function BoutiquePage() {
   const { toast } = useToast()
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
+  const [tab, setTab] = useState<Tab>('abonnements')
+  const [currentTier, setCurrentTier] = useState<Tier>('free')
+  const [loading, setLoading] = useState(true)
+  const [upgrading, setUpgrading] = useState(false)
 
-  const fetchProfileFromApi = async () => {
-    const res = await fetch('/api/profile/me')
-    const json = await res.json()
-    logger.debug('/api/profile/me response', { status: res.status, data: json })
-    if (!res.ok) return null
-    return json.profile as Profile | null
-  }
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [referralStats, setReferralStats] = useState({ total: 0, joined: 0, canRedeem: false, rewarded: false })
+  const [copied, setCopied] = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
+  const [redeemMsg, setRedeemMsg] = useState('')
+
+  // Gifts state
+  const [gifts, setGifts] = useState<GiftItem[]>([])
+  const [matches, setMatches] = useState<MatchItem[]>([])
+  const [myId, setMyId] = useState('')
+  const [cart, setCart] = useState<GiftItem[]>([])
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [selectedMatch, setSelectedMatch] = useState('')
+  const [giftMessage, setGiftMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [received, setReceived] = useState<Array<{ id: string; gift: GiftItem; sender: { name: string; photos: string[] }; created_at: string }>>([])
+  const [showPaymentConfig, setShowPaymentConfig] = useState(false)
+  const [payMethod, setPayMethod] = useState<'mobile_money' | 'card'>('mobile_money')
+  const [payCountry, setPayCountry] = useState('SN')
+  const [payOperator, setPayOperator] = useState('Orange Money')
+  const [payPhone, setPayPhone] = useState('')
+  const [paySaved, setPaySaved] = useState(false)
+  const [payCardLast4, setPayCardLast4] = useState('')
+  const [payCardBrand, setPayCardBrand] = useState('')
+  const [savedPayMethod, setSavedPayMethod] = useState<'mobile_money' | 'card' | null>(null)
+  const [balance, setBalance] = useState(0)
+  const [transactions, setTransactions] = useState<GiftTransaction[]>([])
+  const [showPayoutModal, setShowPayoutModal] = useState(false)
+  const [payoutAmount, setPayoutAmount] = useState('')
+  const [payoutProcessing, setPayoutProcessing] = useState(false)
+  const [matchNames, setMatchNames] = useState<Record<string, string>>({})
+  const [giftsLoading, setGiftsLoading] = useState(true)
+
+  const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
+  const giftsLoadedRef = useRef(false)
+
+  const toggleCart = useCallback((gift: GiftItem) => {
+    setCart(prev => prev.find(g => g.id === gift.id) ? prev.filter(g => g.id !== gift.id) : [...prev, gift])
+  }, [])
+
+  const cartTotal = cart.reduce((sum, g) => sum + toXof(g.price_cents), 0)
 
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const profileData = await fetchProfileFromApi()
-        if (cancelled) return
-        if (!profileData) {
-          logger.warn('/api/profile/me returned null, fallback to browser client getUser')
-          const { data: { user } } = await supabase.auth.getUser()
-          logger.debug('browser getUser fallback', { userId: user?.id, email: user?.email })
-          if (user && !cancelled) {
-            const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, is_admin'
-            const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
-            logger.debug('browser select fallback', { id: data?.id, name: data?.name })
-            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
-          }
-        } else {
-          logger.debug('/api/profile/me success', { id: profileData.id, name: profileData.name })
-          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
-        }
-      } catch (err) { logger.error('loadProfile: exception', err) }
-      if (!cancelled) setLoading(false)
-    })()
-    return () => { cancelled = true }
+    getSubscriptionStatus().then(s => { setCurrentTier(s.tier); setLoading(false) })
   }, [])
-  const loadProfile = async () => {
-    try {
-      const profileData = await fetchProfileFromApi()
-      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter') }
-    } catch (err) { logger.error('loadProfile: exception', err) }
-  }
-  const handlePhoto = async () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file || !profile) return
-      setUploading(true)
-      try {
-        const result = await uploadPhoto(file, profile.id, profile.photos.length)
-        if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-        if (result.url) {
-          const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
-          const { error: updateErr } = await updateProfile(profile.id, { photos })
-          if (updateErr) { logger.error('handlePhoto updateProfile error', updateErr); toast(updateErr, 'error'); setUploading(false); return }
-          setProfile({ ...profile, photos })
-          toast('Photo ajoutée', 'success')
+
+  useEffect(() => {
+    if (tab !== 'parrainage') return
+    getReferralCode().then(setReferralCode)
+    getReferralStats().then(setReferralStats)
+  }, [tab])
+
+  useEffect(() => {
+    if (tab !== 'cadeaux' || giftsLoadedRef.current) return
+    giftsLoadedRef.current = true
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      setMyId(data.user.id)
+      const uid = data.user.id
+      const [giftsData, receivedData, payAcc] = await Promise.all([getGifts(), getReceivedGifts(), getPaymentAccount()])
+      if (giftsData.data) setGifts(giftsData.data)
+      if (receivedData.data) setReceived(receivedData.data as typeof received)
+      if (payAcc) {
+        setSavedPayMethod(payAcc.type as 'mobile_money' | 'card')
+        if (payAcc.type === 'mobile_money') { setPayPhone(payAcc.phone ?? ''); setPayOperator(payAcc.operator ?? 'Orange Money'); setPayCountry(payAcc.country ?? 'SN'); setPaySaved(true) }
+        else if (payAcc.type === 'card') { setPayCardLast4(payAcc.card_last4 ?? ''); setPayCardBrand(payAcc.card_brand ?? ''); setPaySaved(true) }
+      }
+      const [matchData, bal, txns] = await Promise.all([getMatches(), getGiftBalance(), getGiftTransactions()])
+      if (matchData.data) {
+        setMatches(matchData.data)
+        const otherIds = matchData.data.map(m => m.user1_id === uid ? m.user2_id : m.user1_id).filter(Boolean)
+        if (otherIds.length > 0) {
+          const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', otherIds)
+          if (profiles) { const names: Record<string, string> = {}; for (const p of profiles) names[p.id] = p.name; setMatchNames(names) }
         }
-      } catch (err) { logger.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
-      setUploading(false)
-    }
-    input.click()
-  }
+      }
+      setBalance(bal)
+      if (txns.data) setTransactions(txns.data)
+      setGiftsLoading(false)
+    }).catch(() => { toast('Erreur chargement des cadeaux', 'error'); setGiftsLoading(false) })
+  }, [tab, toast])
 
-  const [savingProfile, setSavingProfile] = useState(false)
-  const savingRef = useRef(false)
+  const handleUpgrade = useCallback(async (planId: string) => {
+    setUpgrading(true)
+    const plan = planId === 'premium_yearly' ? 'yearly' : 'monthly'
+    const { url, error } = await createCheckoutSession(plan)
+    if (error) { toast(error, 'error'); setUpgrading(false); return }
+    if (url) window.location.href = url
+    setUpgrading(false)
+  }, [toast])
 
-  const saveProfile = async () => {
-    if (savingRef.current) { logger.warn('saveProfile: déjà en cours'); return }
-    savingRef.current = true
-    setSavingProfile(true)
-    let p = profile
-    if (!p) {
-      logger.debug('saveProfile: profile null, tentative de rechargement')
-      const { data: { user: u } } = await supabase.auth.getUser()
-      if (!u) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const { data: fresh } = await supabase.from('profiles').select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, photos, location').eq('id', u.id).maybeSingle()
-      if (fresh) { p = fresh as Profile } else { toast('Impossible de charger le profil. Recharge la page.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-    }
-    logger.debug('saveProfile: début', { id: p.id, nameValue, bio, interests, lookingFor })
+  const copyCode = useCallback(() => {
+    if (!referralCode) return
+    navigator.clipboard.writeText(referralCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
+  }, [referralCode])
+
+  const shareLink = useCallback(() => {
+    if (!referralCode) return
+    const url = `${window.location.origin}/register?ref=${referralCode}`
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
+  }, [referralCode])
+
+  const handleRedeem = useCallback(async () => {
+    setRedeeming(true); setRedeemMsg('')
     try {
-      const sanitized: Record<string, unknown> = {}
-      const trimmedName = nameValue.trim()
-      if (!trimmedName && !p.name) {
-        toast('Le nom est requis pour enregistrer ton profil.', 'error')
-        setSavingProfile(false); savingRef.current = false; return
+      const res = await fetch('/api/referrals/redeem', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) { setRedeemMsg('30 jours Premium offerts !'); getReferralStats().then(setReferralStats); getSubscriptionStatus().then(s => setCurrentTier(s.tier)) }
+      else setRedeemMsg(data.error ?? 'Erreur')
+    } catch { setRedeemMsg('Erreur réseau') }
+    finally { setRedeeming(false) }
+  }, [])
+
+  const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
+
+  const handleCheckout = async () => {
+    if (!selectedMatch || cart.length === 0) return
+    setSending(true)
+    try {
+      const match = matches.find(m => m.id === selectedMatch)
+      if (!match) return
+      const result = await createCartCheckout(cart.map(g => g.id), getOtherId(match), selectedMatch, giftMessage || undefined, payPhone || undefined, payOperator || undefined)
+      if (result.error) { toast(result.error, 'error'); setSending(false); return }
+      if (result.data?.sent) {
+        toast('Demande de paiement envoyée sur votre téléphone.', 'success')
+        setCart([]); setShowCheckout(false)
+        return
       }
-      const n = (trimmedName || p.name || '').replace(/<[^>]*>/g, '').slice(0, 80)
-      if (n !== p.name) sanitized.name = n
-      const b = (bio || '').replace(/<[^>]*>/g, '').slice(0, 500)
-      if (b !== p.bio) sanitized.bio = b
-      const i = interests.split(',').map(x => x.trim()).filter(Boolean)
-      if (JSON.stringify(i) !== JSON.stringify(p.interests)) sanitized.interests = i
-      if (lookingFor !== p.looking_for) sanitized.looking_for = lookingFor
-      if (mood !== p.mood) sanitized.mood = mood
-      if (Object.keys(sanitized).length === 0) {
-        logger.debug('saveProfile: aucun changement')
-        toast('Aucune modification détectée.', 'info')
-        setSavingProfile(false); savingRef.current = false; return
-      }
-      logger.debug('saveProfile: envoi vers Supabase', sanitized)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, mood: p.mood, ...sanitized }
-      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, location, photos').maybeSingle()
-      logger.debug('saveProfile: réponse Supabase', { data, error })
-      if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
-      if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
-      logger.debug('saveProfile: succès', data)
-      updateEnergyScore(); fetch('/api/engine/trust-score', { method: 'POST' }).catch(() => {}); recomputeAura()
-      setProfile({ ...p, ...data } as Profile)
-      setNameValue((data.name ?? p.name) || '')
-      setBio((data.bio ?? p.bio) || '')
-      setInterests((data.interests ?? p.interests)?.join(', ') || '')
-      setLookingFor((data.looking_for ?? p.looking_for) as LookingFor)
-      setMood((data.mood ?? p.mood) as Mood)
-      toast('Profil mis à jour avec succès.', 'success')
-      setEditing(false)
-    } catch (err) {
-      logger.error('saveProfile: exception', err)
-      toast(err instanceof Error ? err.message : 'Erreur réseau. Vérifie ta connexion.', 'error')
-    } finally {
-      setSavingProfile(false)
-      savingRef.current = false
+      if (result.data?.url) { window.location.href = result.data.url; return }
+    } catch {
+      toast('Erreur lors de l\'envoi', 'error')
+    } finally { setSending(false) }
+  }
+
+  const handlePayout = async () => {
+    const amount = parseInt(payoutAmount)
+    if (!amount || amount <= 0 || amount > balance) return
+    setPayoutProcessing(true)
+    try {
+      const { error, message } = await requestPayout(amount)
+      if (error) { toast(error, 'error'); return }
+      toast(message ?? `Retrait de ${fmt(amount)} F effectué !`, 'success')
+      setShowPayoutModal(false); setPayoutAmount('')
+      setBalance(await getGiftBalance())
+      const t = await getGiftTransactions(); if (t.data) setTransactions(t.data)
+    } catch { toast('Erreur lors du retrait', 'error') }
+    finally { setPayoutProcessing(false) }
+  }
+
+  const handleSavePayment = async () => {
+    if (payMethod === 'mobile_money') {
+      if (!payPhone || payPhone.length < 8) return
+      const { error } = await savePaymentAccount({ type: 'mobile_money', phone: payPhone, operator: payOperator, country: payCountry })
+      if (error) { toast(error, 'error'); return }
+    } else {
+      if (!payCardLast4 || payCardLast4.length < 4) { toast('Les 4 derniers chiffres de la carte sont requis.', 'error'); return }
+      const { error } = await savePaymentAccount({ type: 'card', card_last4: payCardLast4, card_brand: payCardBrand })
+      if (error) { toast(error, 'error'); return }
     }
+    setPaySaved(true); setShowPaymentConfig(false)
   }
 
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t) }, [])
-  useEffect(() => { logger.debug('profile state', profile ? `id=${profile.id} name=${profile.name} photos=${profile.photos?.length}` : 'null') }, [profile])
-
-  const formatLastSeen = (date: string) => {
-    const diff = now - new Date(date).getTime()
-    if (diff < 60000) return 'En ligne'
-    const m = Math.floor(diff / 60000)
-    if (m < 60) return `Vu il y a ${m} min`
-    const h = Math.floor(m / 60)
-    return `Vu il y a ${h} h`
-  }
-
-  const [uploadingVideo, setUploadingVideo] = useState(false)
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setUploadingVideo(true)
-    const result = await uploadProfileVideo(f)
-    if (result.error) { toast(result.error, 'error'); setUploadingVideo(false); return }
-    toast('Vidéo ajoutée', 'success')
-    setUploadingVideo(false)
-    loadProfile()
-  }
-  const handleDeleteVideo = async () => {
-    await deleteProfileVideo()
-    toast('Vidéo supprimée', 'success')
-    loadProfile()
-  }
-
-  const handleLogout = async () => {
-    await signOut()
-    router.push('/')
-  }
+  const isPremium = currentTier === 'premium'
+  const allTabs: Tab[] = ['abonnements', 'cadeaux', 'parrainage']
+  const tabLabels: Record<Tab, string> = { abonnements: 'Abonnements', cadeaux: 'Cadeaux', parrainage: 'Parrainage' }
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -237,375 +252,440 @@ function ProfilePageInner() {
     </div>
   )
 
-  const menu = [
-    { icon: BadgeCheck, label: 'Vérification', desc: 'Identité certifiée', action: () => router.push('/verify') },
-    ...(profile?.is_admin ? [{ icon: Shield, label: 'Administration', desc: 'Panneau d\'administration', action: () => router.push('/admin') }] : []),
-    { icon: Shield, label: 'Paramètres', desc: 'Confidentialité, notifications', action: () => router.push('/settings') },
-    { icon: Lock, label: 'Confidentialité', desc: 'Mode privé, visibilité', action: () => router.push('/settings/privacy') },
-    { icon: Palette, label: 'Apparence', desc: 'Thème sombre/clair', action: () => setThemePicker(true) },
-    { icon: HelpCircle, label: 'Aide', desc: 'Support & FAQ', action: () => router.push('/faq') },
-    { icon: LogOut, label: 'Déconnexion', desc: '', danger: true, action: handleLogout },
-  ]
-
   return (
-    <div className="relative min-h-screen bg-theme bg-gradient-to-b from-[var(--bg)] via-[var(--surface)] to-[var(--surfaceSecondary)] p-4">
-  <div className="flex-1 flex flex-col overflow-y-auto bg-transparent">
-      <h1 className="sr-only">Profil</h1>
-      <header className="flex items-center justify-between px-5 pt-6 pb-3 relative">
-          <h2 className="text-3xl font-bold">Mon Profil</h2>
-          {aura && (
-            <div className="absolute -top-4 -left-4 z-10">
-              <AuraSphere aura={aura} size={64} />
-            </div>
-          )}
-          <Button
-  variant="primary"
-  onClick={() => setEditing(!editing)}
-  className="active:scale-95"
-  style={{ color: editing ? 'var(--textSecondary)' : 'var(--primary)' }}
->
-  {editing ? 'Annuler' : 'Modifier'}
-</Button>
-        </header>
+    <div className="bg-transparent flex-1 flex flex-col">
+      <h1 className="sr-only">Boutique</h1>
+      <header className="px-5 pt-6 pb-2">
+        <h2 className="text-3xl font-bold" style={{ color: 'var(--textPrimary)' }}>Boutique</h2>
+        <p className="text-secondary text-sm mt-0.5">Abonnements, cadeaux et parrainage</p>
+      </header>
 
-      <div className="px-4">
-        <div className="glass-card rounded-2xl p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--primaryDark)] p-0.5 shrink-0">
-                <div className="w-full h-full rounded-full overflow-hidden bg-hover">
-                  {profile?.photos?.[0] ? (
-                    <button type="button" onClick={() => setLightboxIdx(0)} className="w-full h-full">
-                      <Image src={profile.photos[0]} alt={profile.name} width={96} height={96} className="object-cover w-full h-full" priority />
-                    </button>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-secondary text-3xl">?</div>
-                  )}
-                </div>
-              </div>
-              <button type="button" onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[var(--bg)]"
-                style={{ background: 'var(--primary)' }}>
-                {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-theme" />}
-              </button>
-            </div>
-            <div>
-              <div className="flex items-center gap-1 flex-wrap">
-                {profile?.name?.trim() ? (
-                  <p className="text-xl font-bold">{profile.name.trim()}</p>
-                ) : (
-                  <button type="button" onClick={() => setEditing(true)} className="text-xl font-bold text-primary hover:underline">
-                    + Ajouter mon pseudo
-                  </button>
-                )}
-                {streak > 0 && (
-                  <div className="flex items-center gap-1 text-sm ml-2">
-                    <span>🔥</span>
-                    <span className="text-warning font-bold">{streak}</span>
-                  </div>
-                )}
-              </div>
-                {profile?.location && <p className="text-sm text-secondary">📍 {profile.location}</p>}
-                {aura && <div className="mt-1"><AuraBadge aura={aura} /></div>}
-              {profile?.last_seen && <p className="text-xs text-secondary mt-0.5">{formatLastSeen(profile.last_seen)}</p>}
-            </div>
-          </div>
-
-          {profile && profile.photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-2.5">
-              {profile.photos.map((photo, idx) => (
-                <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-hover">
-                  <button type="button" onClick={() => setLightboxIdx(idx)} className="w-full h-full">
-                    <Image src={photo} alt={`Photo ${idx + 1}`} width={200} height={266} className="object-cover w-full h-full" loading="lazy" />
-                  </button>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                    {idx > 0 && (
-                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
-                        <Star size={14} className="text-warning" />
-                      </button>
-                    )}
-                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
-                      className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
-                      <Trash2 size={14} className="text-error" />
-                    </button>
-                  </div>
-                  {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-warning text-theme px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          {editing && (
-            <div className="mt-4">
-              <p className="text-xs text-secondary mb-2 font-medium">Vidéo d&rsquo;introduction</p>
-              {profile?.video_url ? (
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-surface">
-                  <video src={profile.video_url} controls className="w-full h-full object-cover" />
-                  <button type="button" onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-theme flex items-center justify-center text-secondary disabled:opacity-40">
-                  {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" /> : <Camera size={24} />}
-                </button>
-              )}
-              <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
-            </div>
-          )}
-        </div>
-
-        {editing ? (
-          <div className="space-y-4 mb-4">
-            <div>
-              <label htmlFor="profile-name" className="text-sm font-medium mb-1 block">Pseudo</label>
-              <input id="profile-name" value={nameValue} onChange={e => setNameValue(e.target.value.slice(0, 80))} placeholder="Ton pseudo"
-                maxLength={80} className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary" />
-              <p className="text-[10px] text-secondary text-right mt-1">{nameValue.length}/80</p>
-            </div>
-            <div>
-              <label htmlFor="profile-bio" className="text-sm font-medium mb-1 block">Bio</label>
-              <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value.slice(0, 500))} rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary resize-none" />
-              <p className="text-[10px] text-secondary text-right mt-1">{bio.length}/500</p>
-            </div>
-            <div>
-              <label htmlFor="profile-interests" className="text-sm font-medium mb-1 block">Centres d&rsquo;intérêt (séparés par des virgules)</label>
-              <input id="profile-interests" value={interests} onChange={e => setInterests(e.target.value)} placeholder="Voyage, Café, Photographie..."
-                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary" />
-            </div>
-            <div>
-              <label htmlFor="profile-looking-for" className="text-sm font-medium mb-1 block">Ce que je cherche</label>
-              <select id="profile-looking-for" value={lookingFor} onChange={e => setLookingFor(e.target.value as LookingFor)}
-                className="w-full px-4 py-3 rounded-xl border border-theme text-sm outline-none focus:border-primary bg-theme">
-                <option value="friendship">Amitié</option>
-                <option value="casual">Plan cul</option>
-                <option value="fwb">Friends with benefits</option>
-                <option value="serious">Relation sérieuse</option>
-                <option value="open">Relation libre</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Mon mood</label>
-              <div className="flex overflow-x-auto gap-2 pb-2">
-                {([
-                  ['discuter', '💬 Discuter'],
-                  ['rencontre', '🔥 Rencontre'],
-                  ['disponible_ce_soir', '🍷 Dispo ce soir'],
-                  ['relation_serieuse', '💕 Sérieux'],
-                  ['chill', '🎮 Chill'],
-                  ['de_passage', '🌍 De passage'],
-                ] as const).map(([val, label]) => (
-                  <button type="button" key={val} onClick={() => setMood(val as Mood)}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-                      mood === val
-                        ? 'border-[var(--primary)] bg-primary/10 text-primary'
-                        : 'border-theme text-secondary hover:border-[var(--borderMedium)]'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Button
-  variant="premium"
-  onClick={() => { saveProfile().catch(logger.error) }}
-  disabled={savingProfile}
-  className="w-full py-3.5 disabled:opacity-40"
-  style={{ background: 'var(--primary)' }}
->
-  {savingProfile ? 'Sauvegarde...' : 'Enregistrer'}
-</Button>
-          </div>
-        ) : (
-          <>
-            {profile?.bio && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-1.5 text-secondary uppercase tracking-wider">Bio</h3>
-                <p className="text-sm leading-relaxed">{profile.bio}</p>
-              </div>
-            )}
-            {profile?.interests && profile.interests.length > 0 && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Centres d&rsquo;intérêt</h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.map(i => (
-                    <span key={i} className="text-xs bg-primary/8 px-3 py-1.5 rounded-full border border-[var(--primary)]/10 text-primary">{i}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {profile?.looking_for && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Ce que je cherche</h3>
-                <span className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10">
-                  {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
-                </span>
-              </div>
-            )}
-            {profile?.mood && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Mon mood</h3>
-                <span className="inline-flex items-center gap-1.5 text-xs bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10 text-primary">
-                  {{
-                    discuter: '💬 Discuter',
-                    rencontre: '🔥 Rencontre',
-                    disponible_ce_soir: '🍷 Disponible ce soir',
-                    relation_serieuse: '💕 Relation sérieuse',
-                    chill: '🎮 Chill',
-                    de_passage: '🌍 De passage',
-                  }[profile.mood] ?? profile.mood}
-                </span>
-              </div>
-            )}
-            {profile?.energy_score !== undefined && profile?.energy_score !== null && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Energy Score</h3>
-                <div className="flex items-center gap-3">
-                <div className="w-12 h-12">
-                  <CircularProgressbar
-                    value={profile.energy_score}
-                    text={`${profile.energy_score}`}
-                    styles={buildStyles({
-                      textSize: '32px',
-                      pathColor:
-                        profile.energy_score >= 70 ? 'var(--success)' :
-                        profile.energy_score >= 40 ? 'var(--warning)' :
-                        'var(--error)',
-                      trailColor: 'var(--border)',
-                      textColor: 'var(--textPrimary)',
-                    })}
-                  />
-                </div>
-                <span className="text-sm font-bold">Energy</span>
-              </div>
-              </div>
-            )}
-            {profile?.trust_score !== undefined && profile?.trust_score !== null && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Score de Confiance</h3>
-                <div className="flex items-center gap-3">
-                <div className="w-12 h-12">
-                  <CircularProgressbar
-                    value={profile.trust_score}
-                    text={`${profile.trust_score}`}
-                    styles={buildStyles({
-                      textSize: '32px',
-                      pathColor:
-                        profile.trust_score >= 70 ? 'var(--info)' :
-                        profile.trust_score >= 40 ? 'var(--warning)' :
-                        'var(--error)',
-                      trailColor: 'var(--border)',
-                      textColor: 'var(--textPrimary)',
-                    })}
-                  />
-                </div>
-                <span className="text-sm font-bold">Trust</span>
-              </div>
-              </div>
-            )}
-            {profileTraits.length > 0 && (
-              <div className="glass-card rounded-2xl p-5 mb-4">
-                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Personnalité</h3>
-                <div className="flex flex-wrap gap-2">
-                  {profileTraits.map((trait: string, i: number) => (
-                    <span key={i} className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-[var(--primary)]/20">
-                      {trait}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 mb-8">
-          {menu.map(({ icon: Icon, label, desc, danger, action }) => (
-            <button type="button" key={label} onClick={action}
-              onMouseMove={e => {
-                const rect = e.currentTarget.getBoundingClientRect()
-                e.currentTarget.style.setProperty('--mouse-x', `${((e.clientX - rect.left) / rect.width) * 100}%`)
-                e.currentTarget.style.setProperty('--mouse-y', `${((e.clientY - rect.top) / rect.height) * 100}%`)
-              }}
-              className="relative group flex flex-col items-start gap-2 p-4 rounded-2xl text-left transition-all duration-200 active:scale-[0.97] border"
-              style={{
-                background: danger
-                  ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.02) 100%)'
-                  : 'linear-gradient(135deg, var(--primaryGlow) 0%, var(--borderLight) 100%)',
-                borderColor: danger ? 'rgba(239,68,68,0.15)' : 'var(--borderLight)',
-              }}>
-              <div className="flex items-center gap-3 w-full">
-                <div className="p-2 rounded-xl transition-colors shrink-0"
-                  style={{
-                    background: danger
-                      ? 'rgba(239,68,68,0.12)'
-                      : 'linear-gradient(135deg, var(--primaryGlow) 0%, var(--borderLight) 100%)',
-                  }}>
-                  <Icon size={18} className={danger ? 'text-error' : ''} style={{ color: danger ? undefined : 'var(--primary)' }} />
-                </div>
-                <span className={`text-sm font-semibold ${danger ? 'text-error' : 'text-theme'}`}>{label}</span>
-              </div>
-              {desc && <span className="text-[11px] text-muted leading-tight">{desc}</span>}
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                style={{
-                  background: danger
-                    ? 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), rgba(239,68,68,0.06), transparent 40%)'
-                    : 'radial-gradient(600px circle at var(--mouse-x,50%) var(--mouse-y,50%), var(--primaryGlow), transparent 40%)',
-                }} />
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-1 px-4 mt-3">
+        {allTabs.map(t => (
+          <button key={t} type="button" onClick={() => setTab(t)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t ? 'text-on-primary shadow-lg shadow-[var(--primary)]/20' : 'text-secondary bg-[var(--surfaceElevated)]'}`}
+            style={tab === t ? { background: 'var(--primary)' } : undefined}>
+            {tabLabels[t]}
+          </button>
+        ))}
       </div>
 
-      {lightboxIdx !== null && profile?.photos && (
-        <Lightbox images={profile.photos} initialIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
-      )}
-
-      {themePicker && (
-        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(0,0,0,0.6)] backdrop-blur-sm" onClick={() => setThemePicker(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setThemePicker(false) }}>
-          <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-lg bg-surface rounded-t-3xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-center mb-5">Apparence</h3>
-            <div className="space-y-2">
-              {[
-                { mode: 'light', icon: Sun, label: 'Clair' },
-                { mode: 'dark', icon: Moon, label: 'Nuit' },
-                { mode: 'system', icon: Monitor, label: 'Système' },
-              ].map(({ mode, icon: Icon, label }) => {
-                const current = theme || 'system'
-                const active = current === mode
+      <div className={`flex-1 px-4 overflow-y-auto space-y-4 mt-4 ${tab === 'cadeaux' && cart.length > 0 ? 'pb-24' : 'pb-8'}`}>
+        {tab === 'abonnements' && (
+          <>
+            {isPremium && (
+              <div className="glass-card rounded-2xl p-4 flex items-center gap-3 border border-[var(--successVibrant)]/20">
+                <div className="w-10 h-10 rounded-full bg-[var(--successVibrant)]/15 flex items-center justify-center shrink-0">
+                  <Crown size={18} className="text-[var(--successVibrant)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--textPrimary)' }}>Premium actif</p>
+                  <p className="text-xs text-secondary">Tous les avantages débloqués</p>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-secondary uppercase tracking-wider px-1 font-semibold">Nos formules</p>
+            <div className="space-y-3">
+              {plans.map(plan => {
+                const isCurrent = plan.id === 'free' ? !isPremium : plan.id === 'premium_monthly' && isPremium
                 return (
-                  <button type="button" key={mode} onClick={() => {
-                    setTheme(mode)
-                    setThemePicker(false)
-                  }} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all ${active ? 'bg-primary/10 border border-[var(--primary)]/20' : 'hover:bg-card/5'}`}>
-                    <div className="flex items-center gap-3">
-                      <Icon size={20} className={active ? 'text-primary' : 'text-secondary'} />
-                      <span className={active ? 'text-primary font-medium' : 'text-sm'}>{label}</span>
+                  <div key={plan.id} className={`glass-card rounded-2xl p-5 relative transition-all duration-200 ${plan.popular ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]' : ''}`}>
+                    {plan.popular && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-4 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, var(--primary), #FF6B35)', color: 'white' }}>Plus populaire</span>
+                    )}
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--textPrimary)' }}>{plan.name}</h3>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-3xl font-black" style={{ color: 'var(--textPrimary)' }}>{plan.price} F</span>
+                          <span className="text-xs text-secondary">{plan.period}</span>
+                        </div>
+                      </div>
+                      {plan.id === 'premium_yearly' && (
+                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'var(--successVibrant)/15', color: 'var(--successVibrant)' }}>-17%</span>
+                      )}
                     </div>
-                    {active && <Check size={18} className="text-primary" />}
-                  </button>
+                    <ul className="space-y-2 mb-4">
+                      {plan.features.map(f => (
+                        <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--textSecondary)' }}>
+                          <Check size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--successVibrant)' }} />{f}
+                        </li>
+                      ))}
+                    </ul>
+                    {plan.id !== 'free' && (
+                      <button type="button" onClick={() => handleUpgrade(plan.id)} disabled={isCurrent || upgrading}
+                        className={`w-full py-3 rounded-full text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-40 ${isCurrent ? 'border border-[var(--border)] text-secondary cursor-default' : 'text-on-primary shadow-lg'}`}
+                        style={isCurrent ? undefined : { background: 'linear-gradient(135deg, var(--primary), #FF6B35)' }}>
+                        {upgrading ? <span className="flex items-center justify-center gap-2"><Loader size={16} className="animate-spin" /> En cours...</span> : isCurrent ? 'Actuel' : plan.cta}
+                      </button>
+                    )}
+                  </div>
                 )
               })}
             </div>
+            <p className="text-xs text-secondary uppercase tracking-wider px-1 font-semibold pt-2">Fonctionnalités Premium</p>
+            <div className="grid grid-cols-2 gap-2">
+              {premiumFeatures.map(f => (
+                <div key={f.label} className="glass-card rounded-xl p-3 space-y-1.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)/10' }}>
+                    <f.icon size={14} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--textPrimary)' }}>{f.label}</p>
+                  <p className="text-[10px] text-secondary leading-tight">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === 'cadeaux' && (
+          giftsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+            </div>
+          ) : (
+            <>
+              <div className="glass-card rounded-2xl p-4 flex items-center gap-4 border border-[var(--warningVibrant)]/10">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--warningVibrant)] to-[var(--primary)] flex items-center justify-center shrink-0">
+                  <Wallet size={20} className="text-[var(--textOnPrimary)]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-secondary uppercase tracking-wider">Mon portefeuille</p>
+                  <p className="text-2xl font-bold text-[var(--textPrimary)]">{fmt(balance)} F</p>
+                </div>
+                <button type="button" onClick={() => { if (balance <= 0) return; if (!paySaved) { setShowPaymentConfig(true); return } setShowPayoutModal(true) }}
+                  disabled={balance <= 0} className="px-4 py-2 rounded-full text-xs font-semibold text-[var(--textOnPrimary)] disabled:opacity-30 flex items-center gap-1.5 transition-all active:scale-95" style={{ background: 'var(--primary)' }}>
+                  <ArrowUpRight size={14} /> Retirer
+                </button>
+              </div>
+
+              {showPayoutModal && (
+                <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowPayoutModal(false)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowPayoutModal(false) }}>
+                  <FocusTrap active={showPayoutModal}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-[var(--textPrimary)] mb-1">Retirer ton solde</h3>
+                    <p className="text-xs text-secondary mb-4">Solde disponible : <strong className="text-[var(--textPrimary)]">{fmt(balance)} F</strong></p>
+                    <div className="mb-3">
+                      <label className="text-xs text-secondary mb-1 block">Montant (F)</label>
+                      <input type="number" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} placeholder="5000" max={balance} aria-label="Montant du retrait"
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
+                    </div>
+                    <div className="mb-4">
+                      <label className="text-xs text-secondary mb-1 block">Moyen de retrait</label>
+                      <div className="px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-[var(--textPrimary)] text-sm flex items-center gap-2">
+                        {savedPayMethod === 'card' ? <CreditCard size={16} /> : <Smartphone size={16} />}
+                        <span className="text-secondary">{savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => setShowPayoutModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[var(--border)] text-secondary">Annuler</button>
+                      <button type="button" onClick={handlePayout} disabled={!payoutAmount || parseInt(payoutAmount) <= 0 || parseInt(payoutAmount) > balance || payoutProcessing}
+                        className="flex-1 py-3 rounded-full text-sm font-semibold text-[var(--textOnPrimary)] disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: 'var(--primary)' }}>
+                        {payoutProcessing ? 'En cours...' : `Retirer ${fmt(parseInt(payoutAmount) || 0)} F`}
+                      </button>
+                    </div>
+                  </div></FocusTrap>
+                </div>
+              )}
+
+              <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
+                className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
+                {savedPayMethod === 'card' ? <CreditCard size={20} className="text-secondary" /> : <Smartphone size={20} className="text-secondary" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Moyen de paiement</p>
+                  <p className="text-xs text-secondary">{paySaved ? (savedPayMethod === 'card' ? `${payCardBrand} ···· ${payCardLast4}` : `${payOperator} — ${payPhone}`) : 'Ajouter un moyen de paiement'}</p>
+                </div>
+                <ChevronRight size={16} className="text-muted" />
+              </button>
+
+              {showPaymentConfig && (
+                <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>
+                      <Smartphone size={16} className="mx-auto mb-1" /> Mobile Money
+                    </button>
+                    <button type="button" onClick={() => { setPayMethod('card'); setPaySaved(false) }}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'card' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>
+                      <CreditCard size={16} className="mx-auto mb-1" /> Carte bancaire
+                    </button>
+                  </div>
+                  {payMethod === 'mobile_money' ? (
+                    <>
+                      <div>
+                        <label className="text-xs text-secondary mb-1 block">Pays</label>
+                        <select value={payCountry} onChange={e => { setPayCountry(e.target.value); setPayOperator(countries.find(c => c.code === e.target.value)?.operators[0] ?? '') }}
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
+                          {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-secondary mb-1 block">Opérateur</label>
+                        <select value={payOperator} onChange={e => setPayOperator(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
+                          {countryOps.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-secondary mb-1 block">Numéro de téléphone</label>
+                        <input value={payPhone} onChange={e => setPayPhone(e.target.value)} placeholder="+221 77 123 45 67" aria-label="Numéro de téléphone"
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-secondary text-center">Carte bancaire — les paiements sont sécurisés via PayDunya.</p>
+                      <div>
+                        <label className="text-xs text-secondary mb-1 block">4 derniers chiffres</label>
+                        <input value={payCardLast4} onChange={e => setPayCardLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" maxLength={4} inputMode="numeric" aria-label="4 derniers chiffres de la carte"
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-secondary mb-1 block">Marque</label>
+                        <select value={payCardBrand} onChange={e => setPayCardBrand(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--card)] text-[var(--textPrimary)] text-sm border border-[var(--border)] outline-none">
+                          <option value="Visa">Visa</option>
+                          <option value="Mastercard">Mastercard</option>
+                          <option value="Orange Money">Orange Money</option>
+                          <option value="Wave">Wave</option>
+                          <option value="Autre">Autre</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  <button type="button" onClick={handleSavePayment}
+                    className="w-full py-2.5 rounded-full text-[var(--textOnPrimary)] text-sm font-semibold" style={{ background: 'var(--primary)' }}>
+                    {paySaved ? 'Modifier' : 'Enregistrer'}
+                  </button>
+                </div>
+              )}
+
+              {gifts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-up">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--primary)]/10 to-transparent mx-auto mb-4 flex items-center justify-center border border-[var(--primary)]/10">
+                    <span className="text-2xl opacity-40">🎁</span>
+                  </div>
+                  <p className="text-sm text-secondary">Aucun cadeau disponible pour le moment.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {gifts.map(g => {
+                    const inCart = cart.some(c => c.id === g.id)
+                    return (
+                      <button type="button" key={g.id} onClick={() => toggleCart(g)}
+                        className={`relative bg-[var(--card)] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95 ${inCart ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]' : 'border-[var(--border)]'}`}>
+                        {inCart && (
+                          <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center">
+                            <Check size={12} />
+                          </span>
+                        )}
+                        <span className="text-3xl block mb-1">{g.emoji || '🎁'}</span>
+                        <p className="text-[10px] font-medium truncate">{g.name}</p>
+                        <p className="text-[10px] text-primary font-bold">{fmt(toXof(g.price_cents))} F</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {transactions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2 px-1 flex items-center gap-2">
+                    <History size={14} /> Historique des transactions
+                  </h3>
+                  <div className="space-y-2">
+                    {transactions.slice(0, 10).map(t => {
+                      const isCredit = t.type === 'gift_received'
+                      const isPendingPayout = t.type === 'payout' && t.status === 'pending'
+                      return (
+                        <div key={t.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCredit ? 'bg-[var(--successVibrant)]/15' : isPendingPayout ? 'bg-[var(--warningVibrant)]/15' : 'bg-[var(--primary)]/15'}`}>
+                            {isCredit ? <ArrowUpRight size={16} className="text-[var(--successVibrant)]" /> : isPendingPayout ? <Clock size={16} className="text-[var(--warningVibrant)]" /> : <CheckCircle size={16} className="text-[var(--primary)]" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{isCredit ? 'Cadeau reçu' : 'Retrait demandé'}</p>
+                            <p className="text-[10px] text-secondary">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-bold ${isCredit ? 'text-[var(--successVibrant)]' : 'text-[var(--primary)]'}`}>{isCredit ? '+' : '-'}{fmt(t.amount_cents)} F</p>
+                            <p className={`text-[10px] ${t.status === 'completed' ? 'text-[var(--successVibrant)]' : t.status === 'pending' ? 'text-[var(--warningVibrant)]' : 'text-secondary'}`}>
+                              {t.status === 'completed' ? 'Effectué' : t.status === 'pending' ? 'En attente' : t.status}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {received.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2 px-1">Cadeaux reçus</h3>
+                  <div className="space-y-2">
+                    {received.slice(0, 5).map(r => (
+                      <div key={r.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
+                        <span className="text-2xl">{r.gift?.emoji || '🎁'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
+                          <p className="text-xs text-secondary">De {r.sender?.name || 'Inconnu'}</p>
+                        </div>
+                        {r.gift?.price_cents && (
+                          <div className="text-right">
+                            <p className="text-xs font-bold text-[var(--warningVibrant)]">+{fmt(toXof(r.gift.price_cents - Math.round(r.gift.price_cents * 0.15)))} F</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        )}
+
+        {tab === 'parrainage' && (
+          <div className="space-y-4">
+            <div className="glass-card rounded-2xl p-5 text-center">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accentOrange)]/60 flex items-center justify-center mx-auto mb-3">
+                <Gift size={22} className="text-on-primary" />
+              </div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--textPrimary)' }}>Parraine tes amis</h3>
+              <p className="text-sm text-secondary mt-1">Invite tes amis à rejoindre Erosia et gagne <strong className="text-primary">30 jours Premium</strong> pour chaque tranche de <strong>5 filleuls</strong>.</p>
+            </div>
+            <div className="glass-card rounded-2xl p-5">
+              <p className="text-xs text-secondary uppercase tracking-wider font-semibold mb-3">Ton code de parrainage</p>
+              {referralCode ? (
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 px-4 py-3 rounded-xl text-base font-mono font-bold tracking-[0.3em] text-center"
+                    style={{ background: 'var(--surfaceElevated)', border: '1px solid var(--border)', color: 'var(--primary)' }}>{referralCode}</code>
+                  <button type="button" onClick={copyCode} aria-label="Copier le code" className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
+                    {copied ? <Check size={16} className="text-[var(--successVibrant)]" /> : <Copy size={16} style={{ color: 'var(--textSecondary)' }} />}
+                  </button>
+                  <button type="button" onClick={shareLink} aria-label="Copier le lien de parrainage" className="p-3 rounded-xl transition active:scale-90" style={{ background: 'var(--surfaceElevated)' }}>
+                    <Share2 size={16} style={{ color: 'var(--textSecondary)' }} />
+                  </button>
+                </div>
+              ) : <div className="animate-pulse h-12 rounded-xl" style={{ background: 'var(--surfaceElevated)' }} />}
+            </div>
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Tes filleuls</p>
+                <span className="text-xs font-medium text-secondary"><strong className="text-primary">{referralStats.joined}</strong> inscrits sur <strong>5</strong></span>
+              </div>
+              <div className="flex items-center gap-1.5 mb-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className={`flex-1 h-2.5 rounded-full transition-all duration-500 ${i <= referralStats.joined ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--accentOrange)]' : ''}`}
+                    style={i > referralStats.joined ? { background: 'var(--surfaceElevated)' } : undefined} />
+                ))}
+              </div>
+              {referralStats.canRedeem ? (
+                <button type="button" onClick={handleRedeem} disabled={redeeming}
+                  className="w-full py-3 rounded-full text-sm font-semibold text-on-primary transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, var(--primary), var(--accentOrange))' }}>
+                  {redeeming ? 'Récompense en cours...' : '🎉 Réclamer 30 jours Premium'}
+                </button>
+              ) : referralStats.rewarded && referralStats.joined < 5 ? (
+                <p className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--successVibrant)' }}><Check size={16} /> Récompense déjà obtenue — trouve encore {5 - referralStats.joined} filleul{5 - referralStats.joined > 1 ? 's' : ''} pour re-débloquer 30 jours</p>
+              ) : (
+                <p className="text-sm text-secondary">{referralStats.joined > 0 ? `Plus que ${5 - referralStats.joined} filleul${5 - referralStats.joined > 1 ? 's' : ''} pour débloquer 30 jours Premium` : 'Partage ton code avec tes amis pour commencer'}</p>
+              )}
+              {redeemMsg && <p className="text-sm text-secondary mt-2">{redeemMsg}</p>}
+            </div>
+            <div className="glass-card rounded-2xl p-5">
+              <p className="text-xs text-secondary uppercase tracking-wider font-semibold mb-3">Comment ça marche</p>
+              <div className="space-y-3">
+                {[
+                  { step: '1', text: 'Partage ton code de parrainage avec tes amis' },
+                  { step: '2', text: 'Ils s\'inscrivent avec ton code' },
+                  { step: '3', text: 'Quand 5 amis ont rejoint, tu débloques 30 jours Premium' },
+                ].map(s => (
+                  <div key={s.step} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'var(--primary)/15', color: 'var(--primary)' }}>{s.step}</div>
+                    <p className="text-sm" style={{ color: 'var(--textSecondary)' }}>{s.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+        )}
+      </div>
 
+      {/* Floating cart bar — portal to escape parent transform/padding context */}
+      {tab === 'cadeaux' && cart.length > 0 && !showCheckout && typeof window === 'object' && createPortal(
+        <div className="fixed bottom-0 left-0 right-0 z-[60] p-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
+          <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+              <ShoppingCart size={16} style={{ color: 'var(--primary)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--textPrimary)' }}>{cart.length} cadeau{cart.length > 1 ? 'x' : ''}</p>
+              <p className="text-xs font-bold" style={{ color: 'var(--primary)' }}>{fmt(cartTotal)} F</p>
+            </div>
+            <button type="button" onClick={() => { setShowCheckout(true); setSelectedMatch(''); setGiftMessage('') }}
+              className="px-5 py-2.5 rounded-full text-sm font-semibold text-on-primary transition-all active:scale-95 shadow-lg"
+              style={{ background: 'linear-gradient(135deg, var(--primary), #FF6B35)' }}>
+              Commander
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
 
+      {/* Checkout bottom sheet — portal to escape parent transform/padding context */}
+      {showCheckout && typeof window === 'object' && createPortal(
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowCheckout(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowCheckout(false) }}>
+          <FocusTrap active={showCheckout}><div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold" style={{ color: 'var(--textPrimary)' }}>Commander</h3>
+              <button type="button" onClick={() => setShowCheckout(false)} aria-label="Fermer" className="p-1.5 rounded-full hover:bg-[var(--surfaceElevated)] transition">
+                <X size={20} style={{ color: 'var(--textSecondary)' }} />
+              </button>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {cart.map(g => (
+                <div key={g.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[var(--surfaceElevated)]">
+                  <span className="text-xl">{g.emoji || '🎁'}</span>
+                  <span className="flex-1 text-sm font-medium" style={{ color: 'var(--textPrimary)' }}>{g.name}</span>
+                  <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>{fmt(toXof(g.price_cents))} F</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-3 pt-2 border-t border-[var(--border)]">
+                <span className="text-sm font-semibold" style={{ color: 'var(--textPrimary)' }}>Total</span>
+                <span className="text-base font-black" style={{ color: 'var(--primary)' }}>{fmt(cartTotal)} F</span>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label className="text-xs text-secondary mb-1 block">Destinataire</label>
+              <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none">
+                <option value="">Sélectionner un match...</option>
+                {matches.map(m => (
+                  <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-secondary mb-1 block">Message (optionnel)</label>
+              <textarea value={giftMessage} onChange={e => setGiftMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
+                rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-[var(--textPrimary)] text-sm outline-none focus:border-[var(--primary)] resize-none" />
+              <p className="text-[10px] text-right text-secondary">{giftMessage.length}/200</p>
+            </div>
+
+            <button type="button" onClick={handleCheckout} disabled={!selectedMatch || sending}
+              className="w-full py-3.5 rounded-full font-semibold text-on-primary disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{ background: 'var(--primary)' }}>
+              {sending ? <><Loader size={16} className="animate-spin" /> Paiement en cours...</> : <><Send size={16} /> Payer {fmt(cartTotal)} F</>}
+            </button>
+          </div></FocusTrap>
+        </div>,
+        document.body
+      )}
     </div>
-  )}
-  </div>
-</div>
-)
-}
-
-export default function ProfilePage() {
-  return (
-    <ProfileErrorBoundary>
-      <ProfilePageInner />
-    </ProfileErrorBoundary>
   )
 }
-

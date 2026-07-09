@@ -4,6 +4,8 @@ import { addStoryReaction } from '@/lib/stories'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+const uuidParam = z.string().uuid()
+
 const reactSchema = z.object({
   emoji: z.string().min(1, 'emoji requis'),
 })
@@ -18,6 +20,8 @@ export async function POST(
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
     const { id } = await params
+    const idParsed = uuidParam.safeParse(id)
+    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
     let body: Record<string, unknown>
     try { body = await request.json() } catch {
       return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
@@ -29,7 +33,7 @@ export async function POST(
     }
     const { emoji } = parsed.data
 
-    const { error } = await addStoryReaction(id, emoji)
+    const { error } = await addStoryReaction(idParsed.data, emoji)
     if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
 
     return NextResponse.json({ success: true })

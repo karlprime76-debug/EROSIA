@@ -66,17 +66,13 @@ export const joinEventSchema = z.object({
   event_id: z.string().uuid(),
 })
 
-export const redeemCodeSchema = z.object({
-  code: z.string().min(1).max(20),
-})
-
 export const createCheckoutSchema = z.object({
   plan: z.enum(['monthly', 'yearly']).optional(),
 })
 
 export const createGiftCheckoutSchema = z.object({
-  gift_id: z.string().uuid(),
-  recipient_id: z.string().uuid(),
+  giftId: z.string().uuid(),
+  receiverId: z.string().uuid(),
   matchId: z.string().uuid(),
   message: z.string().max(500).optional(),
   phone: z.string().optional(),

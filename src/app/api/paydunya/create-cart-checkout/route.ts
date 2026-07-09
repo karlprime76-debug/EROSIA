@@ -23,6 +23,15 @@ export async function POST(request: Request) {
 
     const { giftIds, receiverId, matchId, message, phone, operator } = parsed.data
 
+    const { data: match } = await supabase.from('matches')
+      .select('user1_id, user2_id')
+      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+      .eq('id', matchId)
+      .maybeSingle()
+    if (!match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
+    const otherId = match.user1_id === user.id ? match.user2_id : match.user1_id
+    if (receiverId !== otherId) return NextResponse.json({ error: 'Destinataire invalide' }, { status: 400 })
+
     const { data: gifts } = await supabase.from('gifts').select('*').in('id', giftIds)
     if (!gifts || gifts.length !== giftIds.length) {
       return NextResponse.json({ error: 'Certains cadeaux sont introuvables' }, { status: 404 })
