@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
-import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile } from '@/lib/api'
+import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile, type Gender } from '@/lib/api'
 import { getPrivacySettings } from '@/lib/privacy'
 import { getActiveStories } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
@@ -158,6 +158,8 @@ export default function DiscoverPage() {
   const [myId, setMyId] = useState('')
   const [myLookingForInternal, setMyLookingForInternal] = useState('')
   const [myMoodInternal, setMyMoodInternal] = useState('')
+  const [myGender, setMyGender] = useState<Gender | undefined>()
+  const [myInterestedIn, setMyInterestedIn] = useState<string[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
   const [blurPhotos, setBlurPhotos] = useState(false)
@@ -178,17 +180,21 @@ export default function DiscoverPage() {
         setMyId(json.profile.id)
         setMyLookingForInternal(json.profile.looking_for ?? 'friendship')
         setMyMoodInternal(json.profile.mood ?? 'discuter')
+        setMyGender(json.profile.gender ?? undefined)
+        setMyInterestedIn(json.profile.interested_in ?? [])
         if (json.profile.photos?.[0]) setMyPhoto(json.profile.photos[0])
       }
     }).catch(() => {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
           setMyId(user.id)
-          supabase.from('profiles').select('photos, looking_for, mood').eq('id', user.id).maybeSingle().then(({ data }) => {
+          supabase.from('profiles').select('photos, looking_for, mood, gender, interested_in').eq('id', user.id).maybeSingle().then(({ data }) => {
             if (data) {
               if (data.photos?.[0]) setMyPhoto(data.photos[0])
               setMyLookingForInternal(data.looking_for ?? 'friendship')
               setMyMoodInternal(data.mood ?? 'discuter')
+              setMyGender((data as { gender?: string }).gender as Gender | undefined)
+              setMyInterestedIn((data as { interested_in?: string[] }).interested_in ?? [])
             }
           }, (err) => logger.error('Discover error', { error: String(err) }))
         }
@@ -212,7 +218,11 @@ export default function DiscoverPage() {
       .then(async ([swiped, blocked, last]) => {
         setHasSwiped(!!last)
         const exclude = [...swiped, ...blocked, myId].filter(Boolean)
-        const { data } = await getProfilesPaginated(exclude, 1, { minAge: 18, maxAge: 99 })
+        const { data } = await getProfilesPaginated(exclude, 1, {
+          minAge: 18, maxAge: 99,
+          gender: myGender,
+          interestedIn: myInterestedIn.length > 0 ? myInterestedIn : undefined,
+        })
         if (data) {
           setProfiles(data)
           setHasMore(data.length >= DISCOVER_PAGE_SIZE)
@@ -283,7 +293,11 @@ export default function DiscoverPage() {
     const swiped = await getSwipedIds()
     const blocked = await getBlockedIds()
     const exclude = [...swiped, ...blocked, ...extraBlocked, myId].filter(Boolean)
-    const opts = { ...filters, lookingFor: filters.lookingFor || undefined }
+    const opts = {
+      ...filters, lookingFor: filters.lookingFor || undefined,
+      gender: myGender,
+      interestedIn: myInterestedIn.length > 0 ? myInterestedIn : undefined,
+    }
     let result
     if (filters.city.trim()) {
       result = await searchProfilesByCity(filters.city.trim(), exclude, opts)

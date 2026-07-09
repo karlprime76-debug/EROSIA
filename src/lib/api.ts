@@ -7,6 +7,7 @@ import { logger } from './logger'
 
 export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
 export type Mood = 'discuter' | 'rencontre' | 'disponible_ce_soir' | 'relation_serieuse' | 'chill' | 'de_passage'
+export type Gender = 'male' | 'female' | 'non_binary'
 
 export interface Profile {
   id: string
@@ -38,6 +39,8 @@ export interface Profile {
   trust_score?: number
   profile_visible?: boolean
   is_admin?: boolean
+  gender?: Gender
+  interested_in?: string[]
 }
 
 export interface Swipe {
@@ -112,7 +115,7 @@ export async function resetPassword(email: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in'
 
 async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): Promise<Profile[] | null> {
   if (!profiles || profiles.length === 0) return profiles as Profile[] | null
@@ -418,7 +421,7 @@ export async function updateLocation(latitude: number, longitude: number) {
   return { error: error?.message }
 }
 
-export async function getProfilesNearby(lat: number, lng: number, radiusKm: number, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
+export async function getProfilesNearby(lat: number, lng: number, radiusKm: number, excludeIds: string[], filters?: ProfileFilters) {
   const latDelta = radiusKm / 111
   const lngDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180))
   const compatibleExclude = await getCompatibleOnlyExclude()
@@ -437,6 +440,8 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  if (filters?.interestedIn?.length) q = q.in('gender', filters.interestedIn)
+  if (filters?.gender) q = q.contains('interested_in', [filters.gender])
   const { data, error } = await q
   const attached = await attachScoresAndMood(data)
   return { data: attached, error: error?.message }
@@ -843,7 +848,9 @@ async function getCompatibleOnlyExclude(): Promise<string[]> {
   }
 }
 
-export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
+export interface ProfileFilters { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean; gender?: Gender; interestedIn?: string[] }
+
+export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: ProfileFilters) {
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
   const compatibleExclude = await getCompatibleOnlyExclude()
@@ -854,6 +861,8 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  if (filters?.interestedIn?.length) q = q.in('gender', filters.interestedIn)
+  if (filters?.gender) q = q.contains('interested_in', [filters.gender])
   if (!filters?.showIncognito) q = q.eq('incognito', false)
   q = q.range(from, to)
   const { data, error } = await q
@@ -862,7 +871,7 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
 }
 
 // ---- CITY SEARCH ----
-export async function searchProfilesByCity(city: string, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
+export async function searchProfilesByCity(city: string, excludeIds: string[], filters?: ProfileFilters) {
   const compatibleExclude = await getCompatibleOnlyExclude()
   const currentUserId = await getCurrentUserId()
   const allExclude = [...new Set([...excludeIds, ...compatibleExclude, ...(currentUserId ? [currentUserId] : [])])]
@@ -876,6 +885,8 @@ export async function searchProfilesByCity(city: string, excludeIds: string[], f
   if (filters?.minAge) q = q.gte('age', filters.minAge)
   if (filters?.maxAge) q = q.lte('age', filters.maxAge)
   if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
+  if (filters?.interestedIn?.length) q = q.in('gender', filters.interestedIn)
+  if (filters?.gender) q = q.contains('interested_in', [filters.gender])
   q = q.eq('incognito', false)
   const { data, error } = await q
   const attached = await attachScoresAndMood(data)

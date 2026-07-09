@@ -6,9 +6,9 @@ import { logger } from '@/lib/logger'
 
 const admin = createAdminClient()
 
-async function createProfile(userId: string, name: string, age: number) {
+async function createProfile(userId: string, name: string, age: number, gender: string, interestedIn: string[]) {
   return admin.from('profiles').insert({
-    id: userId, name: sanitize(name), age, photos: [], interests: [],
+    id: userId, name: sanitize(name), age, gender, interested_in: interestedIn, photos: [], interests: [],
   })
 }
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    const { email, password, name, age } = parsed.data
+    const { email, password, name, age, gender, interestedIn } = parsed.data
     const referralCode: string | undefined = body.referralCode
 
     // Créer l'utilisateur auth via RPC direct (contourne GoTrue, auto-confirme l'email)
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Erreur lors de l'inscription" }, { status: 400 })
     }
 
-    const { error: profileError } = await createProfile(String(userId), name, age)
+    const { error: profileError } = await createProfile(String(userId), name, age, gender, interestedIn)
     if (profileError) {
       logger.error('Profile creation failed', { userId, error: profileError.message })
       return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })

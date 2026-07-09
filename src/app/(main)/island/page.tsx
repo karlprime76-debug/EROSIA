@@ -36,7 +36,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood } from '@/lib/api'
+import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
@@ -59,6 +59,8 @@ function ProfilePageInner() {
   const [interests, setInterests] = useState('')
   const [lookingFor, setLookingFor] = useState<LookingFor>('friendship')
   const [mood, setMood] = useState<Mood>('discuter')
+  const [gender, setGender] = useState<Gender>('male')
+  const [interestedIn, setInterestedIn] = useState<string[]>([])
   const [now, setNow] = useState(0)
   const [profileTraits, setProfileTraits] = useState<string[]>([])
   const [streak, setStreak] = useState(0)
@@ -91,11 +93,11 @@ function ProfilePageInner() {
             const PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, mood, energy_score, trust_score, created_at, is_admin'
             const { data } = await supabase.from('profiles').select(PROFILE_FIELDS).eq('id', user.id).maybeSingle()
             logger.debug('browser select fallback', { id: data?.id, name: data?.name })
-            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter') }
+            if (data) { setProfile(data as Profile); setNameValue(data.name ?? ''); setBio(data.bio ?? ''); setInterests(data.interests?.join(', ') ?? ''); setLookingFor(data.looking_for ?? 'friendship'); setMood((data as Profile).mood ?? 'discuter'); setGender((data as Profile).gender ?? 'male'); setInterestedIn((data as Profile).interested_in ?? []) }
           }
         } else {
           logger.debug('/api/profile/me success', { id: profileData.id, name: profileData.name })
-          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
+          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); setGender(profileData.gender ?? 'male'); setInterestedIn(profileData.interested_in ?? []); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
         }
       } catch (err) { logger.error('loadProfile: exception', err) }
       if (!cancelled) setLoading(false)
@@ -105,7 +107,7 @@ function ProfilePageInner() {
   const loadProfile = async () => {
     try {
       const profileData = await fetchProfileFromApi()
-      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter') }
+      if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); setGender(profileData.gender ?? 'male'); setInterestedIn(profileData.interested_in ?? []) }
     } catch (err) { logger.error('loadProfile: exception', err) }
   }
   const handlePhoto = async () => {
@@ -163,6 +165,8 @@ function ProfilePageInner() {
       if (JSON.stringify(i) !== JSON.stringify(p.interests)) sanitized.interests = i
       if (lookingFor !== p.looking_for) sanitized.looking_for = lookingFor
       if (mood !== p.mood) sanitized.mood = mood
+      if (gender !== p.gender) sanitized.gender = gender
+      if (JSON.stringify(interestedIn) !== JSON.stringify(p.interested_in)) sanitized.interested_in = interestedIn
       if (Object.keys(sanitized).length === 0) {
         logger.debug('saveProfile: aucun changement')
         toast('Aucune modification détectée.', 'info')
@@ -173,7 +177,7 @@ function ProfilePageInner() {
       if (!user) { toast('Session expirée. Reconnecte-toi.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (user.id !== p.id) { toast('Erreur d\'authentification.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       const upsertPayload = { id: p.id, name: p.name, bio: p.bio, interests: p.interests, looking_for: p.looking_for, mood: p.mood, ...sanitized }
-      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, energy_score, trust_score, location, photos').maybeSingle()
+      const { data, error } = await supabase.from('profiles').upsert(upsertPayload).select('id, name, bio, interests, looking_for, mood, gender, interested_in, energy_score, trust_score, location, photos').maybeSingle()
       logger.debug('saveProfile: réponse Supabase', { data, error })
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
@@ -185,6 +189,8 @@ function ProfilePageInner() {
       setInterests((data.interests ?? p.interests)?.join(', ') || '')
       setLookingFor((data.looking_for ?? p.looking_for) as LookingFor)
       setMood((data.mood ?? p.mood) as Mood)
+      setGender((data.gender ?? p.gender) as Gender)
+      setInterestedIn((data.interested_in ?? p.interested_in) as string[])
       toast('Profil mis à jour avec succès.', 'success')
       setEditing(false)
     } catch (err) {
@@ -410,6 +416,37 @@ function ProfilePageInner() {
                 ))}
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Genre</label>
+              <div className="flex gap-2">
+                {(['male', 'female', 'non_binary'] as const).map(g => (
+                  <button type="button" key={g} onClick={() => setGender(g)}
+                    className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+                      gender === g ? 'border-primary bg-primary/10 text-primary' : 'border-theme text-secondary hover:border-primary/30'
+                    }`}>
+                    {g === 'male' ? 'Homme' : g === 'female' ? 'Femme' : 'Non binaire'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Je cherche</label>
+              <div className="flex flex-wrap gap-2">
+                {(['male', 'female', 'non_binary'] as const).map(g => {
+                  const checked = interestedIn.includes(g)
+                  return (
+                    <button type="button" key={g} onClick={() => {
+                      setInterestedIn(checked ? interestedIn.filter(x => x !== g) : [...interestedIn, g])
+                    }}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+                        checked ? 'border-primary bg-primary/10 text-primary' : 'border-theme text-secondary hover:border-primary/30'
+                      }`}>
+                      {g === 'male' ? 'Hommes' : g === 'female' ? 'Femmes' : 'Non binaires'}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             <Button
   variant="premium"
   onClick={() => { saveProfile().catch(logger.error) }}
@@ -444,6 +481,26 @@ function ProfilePageInner() {
                 <span className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10">
                   {{ friendship: 'Amitié', casual: 'Plan cul', fwb: 'Friends with benefits', serious: 'Relation sérieuse', open: 'Relation libre' }[profile.looking_for] ?? profile.looking_for}
                 </span>
+              </div>
+            )}
+            {profile?.gender && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Genre</h3>
+                <span className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10">
+                  {{ male: 'Homme', female: 'Femme', non_binary: 'Non binaire' }[profile.gender] ?? profile.gender}
+                </span>
+              </div>
+            )}
+            {profile?.interested_in && profile.interested_in.length > 0 && (
+              <div className="glass-card rounded-2xl p-5 mb-4">
+                <h3 className="font-semibold text-sm mb-2.5 text-secondary uppercase tracking-wider">Je cherche</h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.interested_in.map(g => (
+                    <span key={g} className="text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-[var(--primary)]/10">
+                      {{ male: 'Hommes', female: 'Femmes', non_binary: 'Non binaires' }[g] ?? g}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
             {profile?.mood && (
