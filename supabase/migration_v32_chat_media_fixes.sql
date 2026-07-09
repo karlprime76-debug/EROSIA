@@ -61,8 +61,9 @@ CREATE POLICY "Users can update own audio" ON storage.objects
 CREATE POLICY "Users can delete own audio" ON storage.objects
   FOR DELETE USING (bucket_id = 'chat_audio' AND auth.uid() = owner);
 
--- 5. Politiques storage pour chat_photos (remplacer SELECT public par scoped)
+-- 5. Politiques storage pour chat_photos (remplacer SELECT public par scoped, ajouter check match pour upload)
 DROP POLICY IF EXISTS "Chat photos public read" ON storage.objects;
+DROP POLICY IF EXISTS "Auth upload chat photos" ON storage.objects;
 
 CREATE POLICY "Match participants can read photos" ON storage.objects
   FOR SELECT USING (
