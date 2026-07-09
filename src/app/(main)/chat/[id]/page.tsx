@@ -84,12 +84,10 @@ export default function ChatPage() {
   }, [matchId])
 
   useEffect(() => {
-    const removeExisting = (name: string) => {
-      const ch = supabase.getChannels().find(c => c.topic === name)
-      if (ch) supabase.removeChannel(ch)
-    }
+    let cancelled = false
 
     supabase.auth.getUser().then(async ({ data }) => {
+      if (cancelled) return
       if (!data.user) { router.push('/login'); return }
       setMyId(data.user.id)
       const uid = data.user.id
@@ -113,7 +111,7 @@ export default function ChatPage() {
 
       markAsRead(matchId)
 
-      removeExisting(`messages:${matchId}`)
+      if (cancelled) return
       const msgChannel = supabase
         .channel(`messages:${matchId}`)
         .on('postgres_changes', {
@@ -146,7 +144,7 @@ export default function ChatPage() {
         .subscribe()
       msgChannelRef.current = msgChannel
 
-      removeExisting(`typing:match-${matchId}`)
+      if (cancelled) return
       const typingChannel = supabase
         .channel(`typing:match-${matchId}`)
         .on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
@@ -159,7 +157,7 @@ export default function ChatPage() {
         .subscribe()
       typingChannelRef.current = typingChannel
 
-      removeExisting(`presence:${oId}`)
+      if (cancelled) return
       const presenceChannel = supabase
         .channel(`presence:${oId}`, { config: { presence: { key: '' } } })
         .on('presence', { event: 'sync' }, () => {
@@ -170,6 +168,7 @@ export default function ChatPage() {
     })
 
     return () => {
+      cancelled = true
       if (msgChannelRef.current) supabase.removeChannel(msgChannelRef.current)
       if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current)
       if (presenceChannelRef.current) supabase.removeChannel(presenceChannelRef.current)

@@ -91,3 +91,5 @@ BEGIN
   RETURN ROUND(score::REAL, 3);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+GRANT EXECUTE ON FUNCTION get_compatibility(uuid,uuid) TO authenticated;

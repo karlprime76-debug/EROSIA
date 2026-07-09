@@ -32,14 +32,19 @@ export async function getActiveStories(page = 1, options?: { baseUrl?: string })
   if (error) return { data: [], error: error.message }
 
   const userIds = [...new Set((data ?? []).map(s => s.user_id))]
-  const origin = options?.baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '')
-  const res = await fetch(`${origin}/api/privacy/check`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ targetUserIds: userIds }),
-  })
-  const json: { data?: Array<{ user_id: string; story_visibility: string }> } = await res.json()
-  const privacyRows = json.data ?? []
+  let privacyRows: Array<{ user_id: string; story_visibility: string }> = []
+  if (userIds.length > 0) {
+    const origin = options?.baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '')
+    const res = await fetch(`${origin}/api/privacy/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUserIds: userIds }),
+    })
+    if (res.ok) {
+      const json: { data?: Array<{ user_id: string; story_visibility: string }> } = await res.json()
+      privacyRows = json.data ?? []
+    }
+  }
 
   const privacyMap = new Map(privacyRows.map(r => [r.user_id, r.story_visibility]))
 
