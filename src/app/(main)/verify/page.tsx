@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle, Clock, Shield, ExternalLink } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Clock, Shield, ExternalLink } from 'lucide-react'
 import { getVerificationStatus, createDiditSession } from '@/lib/api'
 import { DiditSdk } from '@didit-protocol/sdk-web'
 import { useToast } from '@/components/Toast'
@@ -63,10 +63,19 @@ export default function VerifyPage() {
       </header>
       <div className="flex-1 px-4 pb-8">
         {status === 'approved' ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-            <CheckCircle size={48} className="text-[var(--successVibrant)]" />
-            <p className="text-lg font-semibold">Compte vérifié</p>
-            <p className="text-sm text-secondary">Ton badge vérifié est actif sur ton profil.</p>
+          <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--success)]/20 to-transparent flex items-center justify-center border-2 border-[var(--success)]/30">
+              <BadgeCheck size={44} className="text-[var(--successVibrant)]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xl font-bold">Compte vérifié ✓</p>
+              <p className="text-sm text-secondary leading-relaxed">
+                Ton identité a déjà été vérifiée. Tu portes fièrement le badge de confiance sur ton profil.
+              </p>
+            </div>
+            <div className="mt-2 px-4 py-2 rounded-xl bg-[var(--success)]/8 border border-[var(--success)]/15 text-xs text-[var(--successVibrant)] font-medium flex items-center gap-2">
+              <BadgeCheck size={14} /> Badge vérifié actif
+            </div>
           </div>
         ) : status === 'pending' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-4">

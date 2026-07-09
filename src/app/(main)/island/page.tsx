@@ -244,7 +244,7 @@ function ProfilePageInner() {
   )
 
   const menu = [
-    { icon: BadgeCheck, label: 'Vérification', desc: 'Identité certifiée', action: () => router.push('/verify') },
+    { icon: BadgeCheck, label: profile?.is_verified ? 'Vérifié ✓' : 'Vérification', desc: profile?.is_verified ? 'Badge actif' : 'Certifie ton identité', action: () => router.push('/verify') },
     ...(profile?.is_admin ? [{ icon: Shield, label: 'Administration', desc: 'Panneau d\'administration', action: () => router.push('/admin') }] : []),
     { icon: Shield, label: 'Paramètres', desc: 'Confidentialité, notifications', action: () => router.push('/settings') },
     { icon: Lock, label: 'Confidentialité', desc: 'Mode privé, visibilité', action: () => router.push('/settings/privacy') },
