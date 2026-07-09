@@ -393,7 +393,8 @@ export async function getProfilesNearby(lat: number, lng: number, radiusKm: numb
   const latDelta = radiusKm / 111
   const lngDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180))
   const compatibleExclude = await getCompatibleOnlyExclude()
-  const allExclude = [...new Set([...excludeIds, ...compatibleExclude])]
+  const currentUserId = await getCurrentUserId()
+  const allExclude = [...new Set([...excludeIds, ...compatibleExclude, ...(currentUserId ? [currentUserId] : [])])]
   let q = supabase()
     .from('profiles')
     .select(PUBLIC_PROFILE_FIELDS)
@@ -858,7 +859,8 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
   const compatibleExclude = await getCompatibleOnlyExclude()
-  const allExclude = [...new Set([...excludeIds, ...compatibleExclude])]
+  const currentUserId = await getCurrentUserId()
+  const allExclude = [...new Set([...excludeIds, ...compatibleExclude, ...(currentUserId ? [currentUserId] : [])])]
   let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('onboarding_complete', true).eq('profile_visible', true)
   if (allExclude.length > 0) q = q.not('id', 'in', `(${allExclude.join(',')})`)
   if (filters?.minAge) q = q.gte('age', filters.minAge)
@@ -874,7 +876,8 @@ export async function getProfilesPaginated(excludeIds: string[], page: number, f
 // ---- CITY SEARCH ----
 export async function searchProfilesByCity(city: string, excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string }) {
   const compatibleExclude = await getCompatibleOnlyExclude()
-  const allExclude = [...new Set([...excludeIds, ...compatibleExclude])]
+  const currentUserId = await getCurrentUserId()
+  const allExclude = [...new Set([...excludeIds, ...compatibleExclude, ...(currentUserId ? [currentUserId] : [])])]
   let q = supabase()
     .from('profiles')
     .select(PUBLIC_PROFILE_FIELDS)
