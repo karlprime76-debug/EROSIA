@@ -21,10 +21,18 @@ export default function RegisterPage() {
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
   useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    if (!siteKey) return
     const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback'
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
     script.async = true
     script.defer = true
+    script.onload = () => {
+      const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
+      if (w.turnstile?.render) {
+        w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
+      }
+    }
     document.head.appendChild(script)
     return () => { document.head.removeChild(script) }
   }, [])
@@ -54,7 +62,10 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
     const turnstileToken = getTurnstileToken()
-    if (!turnstileToken) { setServerError('Vérification de sécurité requise'); return }
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setServerError('Vérification de sécurité requise')
+      return
+    }
     setServerError('')
     try {
       const res = await fetch('/api/auth/register', {

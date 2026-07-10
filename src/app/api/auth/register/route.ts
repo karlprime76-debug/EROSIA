@@ -33,13 +33,17 @@ async function verifyTurnstile(token: string): Promise<boolean> {
   }
 }
 
+const turnstileConfigured = !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    const turnstileToken = body.turnstileToken
-    if (!turnstileToken || !(await verifyTurnstile(turnstileToken))) {
-      return NextResponse.json({ error: 'Vérification de sécurité échouée' }, { status: 403 })
+    if (turnstileConfigured) {
+      const turnstileToken = body.turnstileToken
+      if (!turnstileToken || !(await verifyTurnstile(turnstileToken))) {
+        return NextResponse.json({ error: 'Vérification de sécurité échouée' }, { status: 403 })
+      }
     }
 
     const parsed = registerSchema.safeParse(body)
