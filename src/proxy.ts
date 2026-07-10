@@ -60,7 +60,7 @@ function getClientIp(request: NextRequest): string {
     ?? 'unknown'
 }
 
-const publicPaths = ['/welcome', '/login', '/register', '/forgot-password', '/reset-password', '/auth/callback', '/onboarding']
+const publicPaths = ['/welcome', '/login', '/register', '/forgot-password', '/reset-password', '/auth/callback']
 
 export default async function proxy(request: NextRequest) {
   const { pathname, origin } = new URL(request.url)
@@ -134,8 +134,8 @@ export default async function proxy(request: NextRequest) {
       || pathname.startsWith('/privacy') || pathname.startsWith('/cgu')
       || pathname.startsWith('/delete-data') || pathname === '/offline'
 
-    if (!user && !isPublic) return NextResponse.redirect(new URL('/welcome', origin))
-    if (user && isPublic && pathname !== '/') return NextResponse.redirect(new URL('/discover', origin))
+    if (!user && !isPublic && !pathname.startsWith('/onboarding')) return NextResponse.redirect(new URL('/welcome', origin))
+    if (user && isPublic && pathname !== '/' && !pathname.startsWith('/onboarding')) return NextResponse.redirect(new URL('/discover', origin))
   }
 
   const csp = [

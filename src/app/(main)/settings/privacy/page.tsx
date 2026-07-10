@@ -98,7 +98,7 @@ export default function PrivacyPage() {
               <p className="text-sm font-medium">Profil visible</p>
               <p className="text-[11px] text-muted">Masque votre profil des moteurs de découverte</p>
             </div>
-            <Toggle checked={settings!.profile_visible} onChange={v => update({ profile_visible: v })}
+            <Toggle checked={settings?.profile_visible ?? false} onChange={v => update({ profile_visible: v })}
               label="Visibilité du profil" />
           </div>
           <div className="flex items-center justify-between">
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
               <p className="text-sm font-medium">Compatible uniquement</p>
               <p className="text-[11px] text-muted">N&rsquo;être visible que pour les personnes compatibles</p>
             </div>
-            <Toggle checked={settings!.visible_to_compatible_only} onChange={v => update({ visible_to_compatible_only: v })}
+            <Toggle checked={settings?.visible_to_compatible_only ?? false} onChange={v => update({ visible_to_compatible_only: v })}
               label="Compatible uniquement" />
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
               <p className="text-sm font-medium">Âge exact</p>
               <p className="text-[11px] text-muted">Affiche une tranche (ex: 25-29) au lieu de l&rsquo;âge exact</p>
             </div>
-            <Toggle checked={settings!.hide_exact_age} onChange={v => update({ hide_exact_age: v })}
+            <Toggle checked={settings?.hide_exact_age ?? false} onChange={v => update({ hide_exact_age: v })}
               label="Masquer âge exact" />
           </div>
           <div className="flex items-center justify-between">
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
               <p className="text-sm font-medium">Distance exacte</p>
               <p className="text-[11px] text-muted">Affiche &laquo;&nbsp;Proche&nbsp;&raquo; au lieu des kilomètres exacts</p>
             </div>
-            <Toggle checked={settings!.hide_exact_distance} onChange={v => update({ hide_exact_distance: v })}
+            <Toggle checked={settings?.hide_exact_distance ?? false} onChange={v => update({ hide_exact_distance: v })}
               label="Masquer distance exacte" />
           </div>
           <div className="flex items-center justify-between">
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
               <p className="text-sm font-medium">Photos floutées</p>
               <p className="text-[11px] text-muted">Les photos restent floutées jusqu&rsquo;à votre autorisation</p>
             </div>
-            <Toggle checked={settings!.blur_photos} onChange={v => update({ blur_photos: v })}
+            <Toggle checked={settings?.blur_photos ?? false} onChange={v => update({ blur_photos: v })}
               label="Photos floutées" />
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
       title: 'Premier message',
       desc: 'Qui peut vous envoyer un premier message',
       content: () => (
-        <SelectChip value={settings!.first_message_permission}
+        <SelectChip value={settings?.first_message_permission ?? 'everyone'}
           options={[
             { value: 'everyone', label: 'Tout le monde' },
             { value: 'matches', label: 'Mes matchs' },
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
       title: 'Stories',
       desc: 'Qui peut voir vos stories',
       content: () => (
-        <SelectChip value={settings!.story_visibility}
+        <SelectChip value={settings?.story_visibility ?? 'everyone'}
           options={[
             { value: 'everyone', label: 'Tout le monde' },
             { value: 'matches', label: 'Mes matchs' },
@@ -179,7 +179,7 @@ export default function PrivacyPage() {
       title: 'Statut en ligne',
       desc: 'Qui peut voir quand vous êtes en ligne',
       content: () => (
-        <SelectChip value={settings!.online_status_visibility}
+        <SelectChip value={settings?.online_status_visibility ?? 'everyone'}
           options={[
             { value: 'everyone', label: 'Tout le monde' },
             { value: 'matches', label: 'Mes matchs' },
@@ -198,7 +198,7 @@ export default function PrivacyPage() {
             <p className="text-sm font-medium">Lectures visibles</p>
             <p className="text-[11px] text-muted">Les autres verront si vous avez lu leurs messages</p>
           </div>
-          <Toggle checked={settings!.read_receipts} onChange={v => update({ read_receipts: v })}
+          <Toggle checked={settings?.read_receipts ?? false} onChange={v => update({ read_receipts: v })}
             label="Confirmations de lecture" />
         </div>
       ),
@@ -213,7 +213,7 @@ export default function PrivacyPage() {
             <p className="text-sm font-medium">Bloquer automatiquement</p>
             <p className="text-[11px] text-muted">Bloque automatiquement les comptes signalés par la communauté</p>
           </div>
-          <Toggle checked={settings!.auto_block_reported} onChange={v => update({ auto_block_reported: v })}
+          <Toggle checked={settings?.auto_block_reported ?? false} onChange={v => update({ auto_block_reported: v })}
             label="Blocage automatique" />
         </div>
       ),

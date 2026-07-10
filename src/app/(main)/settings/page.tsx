@@ -71,7 +71,18 @@ export default function SettingsPage() {
     return () => clearInterval(id)
   }, [upgradeSuccess])
 
-  const handleDelete = async () => {
+  async function updateProfileField(patch: Record<string, unknown>) {
+  try {
+    const res = await fetch('/api/profile/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!res.ok) { const j = await res.json(); logger.error('Profile update error', j) }
+  } catch (e) { logger.error('Profile update network error', e) }
+}
+
+const handleDelete = async () => {
     const password = prompt('Confirme ton mot de passe pour supprimer ton compte :')
     if (!password) return
     if (!(await confirm('Supprimer définitivement ton compte ? Cette action est irréversible.'))) return
@@ -135,11 +146,7 @@ export default function SettingsPage() {
           render: () => (
             <div className="flex gap-2 mt-1">
               {visibilityOptions.map(o => (
-                <button type="button" key={o.value} onClick={() => { (async () => {
-                setVisibility(o.value)
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) supabase.from('profiles').update({ visibility: o.value }).eq('id', user.id)
-              })().catch(logger.error) }}
+                <button type="button" key={o.value} onClick={() => { setVisibility(o.value); updateProfileField({ visibility: o.value }).catch(logger.error) }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${visibility === o.value ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
                   {o.label}
                 </button>
@@ -153,24 +160,14 @@ export default function SettingsPage() {
             <div className="space-y-2 mt-1">
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[var(--textSecondary)]">Push</span>
-                <button type="button" role="switch" aria-checked={notifPush} onClick={() => { (async () => {
-                  const v = !notifPush
-                  setNotifPush(v)
-                  const { data: { user } } = await supabase.auth.getUser()
-                  if (user) supabase.from('profiles').update({ notif_push: v }).eq('id', user.id)
-                })().catch(logger.error) }}
+                <button type="button" role="switch" aria-checked={notifPush} onClick={() => { const v = !notifPush; setNotifPush(v); updateProfileField({ notif_push: v }).catch(logger.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifPush ? 'bg-[var(--primary)]' : 'bg-[var(--surfaceElevated)]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--textOnPrimary)] transition ${notifPush ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
               <label className="flex items-center justify-between">
                 <span className="text-xs text-[var(--textSecondary)]">Email</span>
-                <button type="button" role="switch" aria-checked={notifEmail} onClick={() => { (async () => {
-                  const v = !notifEmail
-                  setNotifEmail(v)
-                  const { data: { user } } = await supabase.auth.getUser()
-                  if (user) supabase.from('profiles').update({ notif_email: v }).eq('id', user.id)
-                })().catch(logger.error) }}
+                <button type="button" role="switch" aria-checked={notifEmail} onClick={() => { const v = !notifEmail; setNotifEmail(v); updateProfileField({ notif_email: v }).catch(logger.error) }}
                   className={`w-10 h-5 rounded-full transition relative ${notifEmail ? 'bg-[var(--primary)]' : 'bg-[var(--surfaceElevated)]'}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--textOnPrimary)] transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>
@@ -211,15 +208,15 @@ export default function SettingsPage() {
                   onKeyDown={async (e) => {
                     if (e.key === 'Enter') {
                       if (!nameValue.trim() || nameValue.trim().length < 2) return
-                      try {
-                        setSavingName(true)
-                        const { data: { user } } = await supabase.auth.getUser()
-                        if (!user) { setSavingName(false); return }
-                        const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
-                        if (error) { logger.error('Save profile error', { error: String(error) }); setSavingName(false); return }
-                        setProfileName(nameValue.trim())
-                        setSavingName(false); setEditingName(false)
-                      } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
+                      setSavingName(true)
+                      const res = await fetch('/api/profile/me', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: nameValue.trim() }),
+                      })
+                      if (res.ok) { setProfileName(nameValue.trim()); setEditingName(false) }
+                      else { logger.error('Save name error', await res.json()) }
+                      setSavingName(false)
                     }
                     if (e.key === 'Escape') { setNameValue(profileName); setEditingName(false) }
                   }}
@@ -230,15 +227,15 @@ export default function SettingsPage() {
               </div>
               <button type="button" aria-label="Enregistrer" onClick={() => { (async () => {
                 if (!nameValue.trim() || nameValue.trim().length < 2) return
-                try {
-                  setSavingName(true)
-                  const { data: { user } } = await supabase.auth.getUser()
-                  if (!user) { setSavingName(false); return }
-                  const { error } = await supabase.from('profiles').update({ name: nameValue.trim() }).eq('id', user.id)
-                  if (error) { logger.error('Save profile error', { error: String(error) }); setSavingName(false); return }
-                  setProfileName(nameValue.trim())
-                  setSavingName(false); setEditingName(false)
-                } catch (err) { logger.error('Error saving name', err); setSavingName(false) }
+                setSavingName(true)
+                const res = await fetch('/api/profile/me', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: nameValue.trim() }),
+                })
+                if (res.ok) { setProfileName(nameValue.trim()); setEditingName(false) }
+                else { logger.error('Save name error', await res.json()) }
+                setSavingName(false)
               })().catch(logger.error) }} disabled={savingName}
                 className="rounded-full p-1.5 text-[var(--successVibrant)] hover:bg-[var(--surfaceElevated)]"><Check size={16} /></button>
               <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}

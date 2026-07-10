@@ -209,7 +209,9 @@ export default function DiscoverPage() {
         setLng(pos.coords.longitude)
         updateLocation(pos.coords.latitude, pos.coords.longitude)
       },
-      () => {}
+      (geoErr) => {
+        logger.warn('Geolocation error', { code: geoErr.code, message: geoErr.message })
+      }
     )
   }, [])
 
