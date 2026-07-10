@@ -35,7 +35,7 @@ async function checkRateLimit(key: string, maxRequests: number, windowMs: number
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_SITE_URL,
   'https://erosia.app',
-  'http://localhost:3000',
+  process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null,
 ].filter((s): s is string => Boolean(s))
 
 function originMatchesHost(originHeader: string | null, request: NextRequest): boolean {

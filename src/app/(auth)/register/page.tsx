@@ -1,24 +1,34 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Check, Venus, Mars } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Venus, Mars, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type RegisterValues = { email: string; password: string; name: string; age: number; gender: 'male' | 'female' | 'non_binary'; interestedIn: ('male' | 'female' | 'non_binary')[] }
 
 export default function RegisterPage() {
-  const [success, setSuccess] = useState(false)
+  const router = useRouter()
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [referralCode, setReferralCode] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback'
+    script.async = true
+    script.defer = true
+    document.head.appendChild(script)
+    return () => { document.head.removeChild(script) }
+  }, [])
+
   const [showReferralInput, setShowReferralInput] = useState(() => {
     if (typeof window !== 'undefined') return !!new URLSearchParams(window.location.search).get('ref')
     return false
@@ -31,61 +41,36 @@ export default function RegisterPage() {
   const watchInterestedIn = watch('interestedIn')
   const watchGender = watch('gender')
 
+  const getTurnstileToken = (): string => {
+    try {
+      const w = window as unknown as { turnstile?: { getResponse: () => string } }
+      if (w.turnstile?.getResponse) {
+        return w.turnstile.getResponse() || ''
+      }
+    } catch {}
+    return ''
+  }
+
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
+    const turnstileToken = getTurnstileToken()
+    if (!turnstileToken) { setServerError('Vérification de sécurité requise'); return }
     setServerError('')
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '' },
-        body: JSON.stringify({ ...data, referralCode: referralCode || undefined }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, referralCode: referralCode || undefined, turnstileToken }),
       })
       const json = await res.json()
       if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
-      setSuccess(true)
+      router.push('/onboarding')
     } catch {
       setServerError('Erreur réseau')
     }
   }
 
   const firstError = serverError || Object.values(errors)[0]?.message
-
-  if (success) return (
-    <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt relative">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_color-mix(in_srgb,_var(--success)_10%,_transparent)_0%,_transparent_60%)]" />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-sm"
-      >
-        <div
-          className="relative overflow-hidden rounded-3xl border border-light p-8 text-center space-y-5 bg-surface"
-        >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-[var(--success)] blur-3xl opacity-[0.08] pointer-events-none" />
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 280, damping: 16, delay: 0.2 }}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--success)] to-[var(--successVibrant)] flex items-center justify-center mx-auto shadow-[0_12px_40px_var(--successBg)] border border-theme"
-          >
-            <Check size={36} className="text-on-primary" strokeWidth={2.5} />
-          </motion.div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-theme tracking-tight">Bienvenue sur Erosia !</h2>
-            <p className="text-sm text-secondary max-w-xs mx-auto leading-relaxed">
-              Ton compte est prêt. Connecte-toi dès maintenant et commence l&rsquo;aventure.
-            </p>
-          </div>
-          <Link href="/login">
-            <Button variant="premium" size="pill-lg" className="w-full text-sm font-semibold mt-2">
-              Se connecter <ArrowRight size={18} />
-            </Button>
-          </Link>
-        </div>
-      </motion.div>
-    </div>
-  )
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt relative">
@@ -335,6 +320,11 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
+
+              {/* Turnstile */}
+              <div className="flex justify-center">
+                <div id="turnstile-widget" data-size="flexible" data-theme="dark" />
+              </div>
 
               {/* CTA */}
               <div className="pt-2">

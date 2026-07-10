@@ -1,16 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
 
 const admin = createAdminClient()
-
-async function createProfile(userId: string, name: string, age: number, gender: string, interestedIn: string[]) {
-  return admin.from('profiles').insert({
-    id: userId, name: sanitize(name), age, gender, interested_in: interestedIn, photos: [], interests: [],
-  })
-}
 
 async function applyReferralCode(code: string, newUserId: string): Promise<{ error?: string }> {
   const { data, error } = await admin.rpc('apply_referral_code', {
@@ -22,9 +17,31 @@ async function applyReferralCode(code: string, newUserId: string): Promise<{ err
   return {}
 }
 
+async function verifyTurnstile(token: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY
+  if (!secret) return true
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret, response: token }),
+    })
+    const data = await res.json()
+    return data.success === true
+  } catch {
+    return false
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+
+    const turnstileToken = body.turnstileToken
+    if (!turnstileToken || !(await verifyTurnstile(turnstileToken))) {
+      return NextResponse.json({ error: 'Vérification de sécurité échouée' }, { status: 403 })
+    }
+
     const parsed = registerSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
@@ -34,27 +51,48 @@ export async function POST(request: Request) {
     const { email, password, name, age, gender, interestedIn } = parsed.data
     const referralCode: string | undefined = body.referralCode
 
-    // Créer l'utilisateur auth via RPC direct (contourne GoTrue, auto-confirme l'email)
-    const { data: userId, error: rpcError } = await admin.rpc('create_auth_user', {
-      p_email: email,
-      p_password: password,
-    })
-    if (rpcError || !userId) {
-      logger.error('RPC create_auth_user failed', { error: rpcError?.message })
-      return NextResponse.json({ error: "Erreur lors de l'inscription" }, { status: 400 })
+    if (referralCode && (typeof referralCode !== 'string' || referralCode.length > 20)) {
+      return NextResponse.json({ error: 'Code de parrainage invalide' }, { status: 400 })
     }
 
-    const { error: profileError } = await createProfile(String(userId), name, age, gender, interestedIn)
-    if (profileError) {
-      logger.error('Profile creation failed', { userId, error: profileError.message })
-      return NextResponse.json({ error: 'Erreur lors de la création du profil' }, { status: 400 })
+    const { data: rpcResult, error: rpcError } = await admin.rpc('create_auth_user_with_profile', {
+      p_email: email,
+      p_password: password,
+      p_name: sanitize(name, 80),
+      p_age: age,
+      p_gender: gender,
+      p_interested_in: interestedIn,
+    })
+
+    if (rpcError || !rpcResult) {
+      logger.error('RPC create_auth_user_with_profile failed', { error: rpcError?.message })
+      return NextResponse.json({ error: "Erreur lors de l'inscription" }, { status: 500 })
+    }
+
+    if (rpcResult.error) {
+      return NextResponse.json({ error: rpcResult.error }, { status: 409 })
+    }
+
+    const userId: string = rpcResult.user_id
+    if (!userId) {
+      return NextResponse.json({ error: "Erreur lors de l'inscription" }, { status: 500 })
     }
 
     if (referralCode) {
-      const refResult = await applyReferralCode(referralCode.toUpperCase(), String(userId))
+      const refResult = await applyReferralCode(referralCode.toUpperCase(), userId)
       if (refResult.error) {
         logger.warn('Referral code application failed', { userId, code: referralCode, error: refResult.error })
       }
+    }
+
+    const supabase = await createClient()
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase(),
+      password,
+    })
+
+    if (signInError) {
+      logger.error('Auto-login failed after registration', { error: signInError.message, userId })
     }
 
     return NextResponse.json({ ok: true })
