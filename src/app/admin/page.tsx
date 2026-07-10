@@ -64,10 +64,19 @@ export default function AdminPage() {
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
+    const newStatus = approved ? 'approved' : 'rejected'
     const { error: updateError } = await supabase
-      .from('verification_requests').update({ status: approved ? 'approved' : 'rejected' }).eq('id', reqId)
+      .from('verification_requests').update({
+        status: newStatus,
+        verified_at: approved ? new Date().toISOString() : null,
+      }).eq('id', reqId)
     if (updateError) return toast(updateError.message, 'error')
-    if (approved) await supabase.from('profiles').update({ is_verified: true }).eq('id', userId)
+    const profileUpdate: Record<string, unknown> = {
+      verification_status: newStatus,
+      is_verified: approved,
+      verified_at: approved ? new Date().toISOString() : null,
+    }
+    await supabase.from('profiles').update(profileUpdate).eq('id', userId)
     setVerifications(v => v.filter(r => r.id !== reqId))
   }
 

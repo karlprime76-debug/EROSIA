@@ -27,6 +27,15 @@ export async function POST() {
       return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
     }
 
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ verification_status: 'pending' })
+      .eq('id', user.id)
+
+    if (profileError) {
+      logger.error('Failed to update profile verification_status', { error: profileError.message, userId: user.id })
+    }
+
     return NextResponse.json({ url, sessionId })
   } catch (err) {
     logger.error('Didit session creation error', { error: String(err) })

@@ -55,7 +55,7 @@ export default function ConversationsPage() {
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
   const pageRef = useRef(0)
 
-  const loadMatches = async (uid: string, page: number, _append: boolean) => {
+  const loadMatches = async (uid: string, page: number) => {
     const from = page * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
     let matches
@@ -83,9 +83,11 @@ export default function ConversationsPage() {
         .order('created_at', { ascending: false })
 
       const lastMsgByMatch: Record<string, { match_id: string; text: string | null; image_url: string | null; created_at: string; sender_id: string }> = {}
+      const unreadByMatch: Record<string, number> = {}
       if (allLastMsgs) {
         for (const msg of allLastMsgs) {
           if (!lastMsgByMatch[msg.match_id]) lastMsgByMatch[msg.match_id] = msg
+          if (msg.sender_id !== uid) unreadByMatch[msg.match_id] = (unreadByMatch[msg.match_id] || 0) + 1
         }
       }
 
@@ -101,7 +103,7 @@ export default function ConversationsPage() {
             mood: p.mood || null, trust_score: p.trust_score ?? undefined, energy_score: p.energy_score ?? undefined,
           },
           lastMessage: lastMsgByMatch[m.id] || null,
-          unreadCount: 0,
+          unreadCount: unreadByMatch?.[m.id] ?? 0,
           isTyping: false, isFavorite: false, isArchived: false,
         })
       }
@@ -117,7 +119,7 @@ export default function ConversationsPage() {
       setMyId(data.user.id)
       const uid = data.user.id
 
-      const { list } = await loadMatches(uid, 0, false)
+      const { list } = await loadMatches(uid, 0)
       if (!cancelled) setConvs(list)
 
       const matchIds = list.map(c => c.matchId)
@@ -164,7 +166,7 @@ export default function ConversationsPage() {
     setLoadingMore(true)
     pageRef.current += 1
     const uid = myId
-    const { list } = await loadMatches(uid, pageRef.current, true)
+    const { list } = await loadMatches(uid, pageRef.current)
     setConvs(prev => [...prev, ...list])
     setLoadingMore(false)
   }

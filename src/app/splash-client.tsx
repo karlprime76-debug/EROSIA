@@ -16,21 +16,25 @@ export function SplashClient() {
     const splashDuration = isMobile ? 1200 : 2200
     const maxWait = 5000
 
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+
     const timer = setTimeout(() => {
-      const timeoutId = setTimeout(() => {
+      const fallbackTimer = setTimeout(() => {
         router.replace('/welcome')
       }, maxWait)
+      timeouts.push(fallbackTimer)
 
       supabase.auth.getUser().then(({ data: { user } }) => {
-        clearTimeout(timeoutId)
+        clearTimeout(fallbackTimer)
         router.replace(user ? '/discover' : '/welcome')
       }).catch(() => {
-        clearTimeout(timeoutId)
+        clearTimeout(fallbackTimer)
         router.replace('/welcome')
       })
     }, splashDuration)
+    timeouts.push(timer)
 
-    return () => clearTimeout(timer)
+    return () => { timeouts.forEach(clearTimeout) }
   }, [router])
 
   return null

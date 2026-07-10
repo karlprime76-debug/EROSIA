@@ -35,8 +35,6 @@ const faqs = [
     a: 'Non, la suppression est définitive. Si tu souhaites simplement faire une pause, tu peux masquer ton profil depuis les paramètres de confidentialité.',
   },
   {
-  },
-  {
     q: 'Les suggestions de date sont-elles personnalisées ?',
     a: 'Oui ! Depuis une conversation, clique sur "Idée de date" dans le menu. L\'IA génère des suggestions basées sur vos centres d\'intérêt communs, vos humeurs et votre distance.',
   },
@@ -68,6 +66,8 @@ export default function FaqPage() {
                 <button
                   type="button"
                   onClick={() => setOpenIndex(open ? null : i)}
+                  aria-expanded={open}
+                  aria-controls={`faq-panel-${i}`}
                   className="w-full flex items-center justify-between gap-2 px-4 py-3.5 text-left"
                 >
                   <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{faq.q}</span>
@@ -76,6 +76,8 @@ export default function FaqPage() {
                 <AnimatePresence>
                   {open && (
                     <motion.div
+                      id={`faq-panel-${i}`}
+                      role="region"
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}

@@ -1,15 +1,12 @@
 export function sanitize(input: string, maxLength?: number): string {
   let result = input
-  if (typeof DOMParser !== 'undefined') {
-    try {
-      const doc = new DOMParser().parseFromString(input, 'text/html')
-      result = doc.body.textContent || doc.body.innerText || input
-    } catch {
-      result = input.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
-    }
-  } else {
-    result = input.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
-  }
+  result = result
+    .replace(/&#x?[a-f0-9]+;/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/data\s*:/gi, '')
+    .replace(/vbscript\s*:/gi, '')
   if (maxLength) result = result.slice(0, maxLength)
   return result
 }

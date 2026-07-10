@@ -6,6 +6,26 @@ import type { DiditWebhookPayload } from '@/lib/didit'
 
 const dedupCache = new Set<string>()
 
+function getRejectionReason(payload: DiditWebhookPayload): string | null {
+  const reasons: string[] = []
+  if (payload.decision?.id_verifications) {
+    for (const v of payload.decision.id_verifications) {
+      if (v.status === 'declined') reasons.push('Pièce d\'identité non valide')
+    }
+  }
+  if (payload.decision?.liveness_checks) {
+    for (const l of payload.decision.liveness_checks) {
+      if (l.status === 'declined' || l.score < 0.5) reasons.push('Selfie non valide')
+    }
+  }
+  if (payload.decision?.face_matches) {
+    for (const f of payload.decision.face_matches) {
+      if (f.status === 'declined' || f.score < 0.5) reasons.push('Le selfie ne correspond pas à la pièce d\'identité')
+    }
+  }
+  return reasons.length > 0 ? reasons.join(', ') : null
+}
+
 async function isProcessed(eventId: string): Promise<boolean> {
   if (dedupCache.has(eventId)) return true
   try {
@@ -64,47 +84,88 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const isApproved = payload.status === 'Approved'
-    const isRejected = payload.status === 'Declined'
-    const isInReview = payload.status === 'In Review'
+    const diditStatus = payload.status
+    let mappedStatus: string
 
-    if (isInReview) return NextResponse.json({ received: true })
+    switch (diditStatus) {
+      case 'Approved':
+        mappedStatus = 'approved'
+        break
+      case 'Declined':
+        mappedStatus = 'rejected'
+        break
+      case 'Expired':
+        mappedStatus = 'expired'
+        break
+      case 'In Review':
+        mappedStatus = 'manual_review'
+        break
+      default:
+        mappedStatus = 'unknown'
+    }
 
-    if (isApproved || isRejected) {
-      const newStatus = isApproved ? 'approved' : 'rejected'
+    const { error: updateError } = await admin
+      .from('verification_requests')
+      .update({
+        status: mappedStatus,
+        didit_verification_id: payload.session_id,
+        verified_at: mappedStatus === 'approved' ? new Date().toISOString() : null,
+        rejection_reason: mappedStatus === 'rejected' ? getRejectionReason(payload) : null,
+      })
+      .eq('id', existing.id)
 
-      const { error: updateError } = await admin
-        .from('verification_requests')
-        .update({ status: newStatus })
-        .eq('id', existing.id)
+    if (updateError) {
+      logger.error('Failed to update verification request', { error: updateError.message, id: existing.id })
+      return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+    }
 
-      if (updateError) {
-        logger.error('Failed to update verification request', { error: updateError.message, id: existing.id })
-        return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+    const profileUpdate: Record<string, unknown> = {
+      verification_status: mappedStatus,
+    }
+
+    if (mappedStatus === 'approved') {
+      profileUpdate.is_verified = true
+      profileUpdate.verified_at = new Date().toISOString()
+      profileUpdate.didit_verification_id = payload.session_id
+    } else if (mappedStatus === 'rejected' || mappedStatus === 'expired' || mappedStatus === 'unknown') {
+      profileUpdate.is_verified = false
+      profileUpdate.verified_at = null
+    }
+
+    const { error: profileError } = await admin
+      .from('profiles')
+      .update(profileUpdate)
+      .eq('id', existing.user_id)
+
+    if (profileError) {
+      logger.error('Failed to update profile', { error: profileError.message, userId: existing.user_id })
+    }
+
+    if (mappedStatus === 'approved') {
+      const { error: notifError } = await admin
+        .from('notifications')
+        .insert({
+          user_id: existing.user_id,
+          type: 'verification',
+          title: 'Vérification approuvée',
+          message: 'Votre identité a été vérifiée avec succès.',
+        })
+
+      if (notifError) {
+        logger.error('Failed to create notification', { error: notifError.message })
       }
+    } else if (mappedStatus === 'rejected') {
+      const { error: notifError } = await admin
+        .from('notifications')
+        .insert({
+          user_id: existing.user_id,
+          type: 'verification',
+          title: 'Vérification refusée',
+          message: 'Votre vérification d\'identité a été refusée. Veuillez réessayer.',
+        })
 
-      if (isApproved) {
-        const { error: profileError } = await admin
-          .from('profiles')
-          .update({ is_verified: true })
-          .eq('id', existing.user_id)
-
-        if (profileError) {
-          logger.error('Failed to set is_verified', { error: profileError.message, userId: existing.user_id })
-        }
-
-        const { error: notifError } = await admin
-          .from('notifications')
-          .insert({
-            user_id: existing.user_id,
-            type: 'verification',
-            title: 'Vérification approuvée',
-            message: 'Votre identité a été vérifiée avec succès.',
-          })
-
-        if (notifError) {
-          logger.error('Failed to create notification', { error: notifError.message })
-        }
+      if (notifError) {
+        logger.error('Failed to create rejection notification', { error: notifError.message })
       }
     }
 

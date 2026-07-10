@@ -1,40 +1,94 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, BadgeCheck, Clock, Shield, ExternalLink } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Clock, Shield, ExternalLink, AlertTriangle, RefreshCw, RotateCcw, Hourglass, HelpCircle } from 'lucide-react'
 import { getVerificationStatus, createDiditSession } from '@/lib/api'
 import { DiditSdk } from '@didit-protocol/sdk-web'
 import { useToast } from '@/components/Toast'
+import { supabase } from '@/lib/supabase/client'
 
 export default function VerifyPage() {
   const router = useRouter()
   const [status, setStatus] = useState<string | null>(null)
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [verifying, setVerifying] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const { toast } = useToast()
 
+  const fetchStatus = useCallback(async () => {
+    setError(null)
+    try {
+      const result = await getVerificationStatus()
+      if (result && result.status) {
+        setStatus(result.status)
+        setVerifiedAt(result.verified_at)
+        setRejectionReason(result.rejection_reason)
+      } else {
+        setStatus(null)
+        setVerifiedAt(null)
+      }
+    } catch {
+      setError('Impossible de charger le statut de vérification')
+    }
+  }, [])
+
   useEffect(() => {
-    getVerificationStatus().then(s => setStatus(s.status)).catch(() => { toast('Erreur chargement statut', 'error') }).finally(() => setLoading(false))
-  }, [toast])
+    getVerificationStatus().then(result => {
+      if (result && result.status) {
+        setStatus(result.status)
+        setVerifiedAt(result.verified_at)
+        setRejectionReason(result.rejection_reason)
+      } else {
+        setStatus(null)
+        setVerifiedAt(null)
+      }
+    }).catch(() => {
+      setError('Impossible de charger le statut de vérification')
+    }).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      channel = supabase
+        .channel('profile_verification')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+          () => { fetchStatus() },
+        )
+        .subscribe()
+    })
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [fetchStatus])
 
   const handleDiditVerify = async () => {
     setVerifying(true)
     try {
-      const { url, error } = await createDiditSession()
-      if (error || !url) {
-        toast(error ?? 'Erreur lors de la création de la session', 'error')
+      const { url, error: sessionError } = await createDiditSession()
+      if (sessionError || !url) {
+        toast(sessionError ?? 'Erreur lors de la création de la session', 'error')
         return
       }
-      DiditSdk.shared.onComplete = (result: { type: string; session?: { status?: string }; error?: { message?: string } }) => {
+      DiditSdk.shared.onComplete = async (result: { type: string; session?: { status?: string }; error?: { message?: string } }) => {
         if (result.type === 'completed' && (result.session?.status === 'Approved' || result.session?.status === 'approved')) {
           setStatus('approved')
+          setVerifiedAt(new Date().toISOString())
           toast('Vérification réussie !', 'success')
+        } else if (result.type === 'completed' && result.session?.status === 'In Review') {
+          setStatus('manual_review')
+          toast('Votre dossier est en cours d\'examen', 'info')
         } else if (result.type === 'completed') {
           setStatus('pending')
           toast('Vérification en cours de revue', 'info')
         } else if (result.type === 'cancelled') {
           toast('Vérification annulée', 'info')
+          await fetchStatus()
         } else if (result.type === 'failed') {
           toast('Échec de la vérification', 'error')
         }
@@ -46,6 +100,16 @@ export default function VerifyPage() {
     } finally {
       setVerifying(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchStatus()
+    setRefreshing(false)
+  }
+
+  const handleRetry = async () => {
+    setStatus(null)
   }
 
   if (loading) return (
@@ -62,26 +126,120 @@ export default function VerifyPage() {
         <h2 className="text-2xl font-bold">Vérification</h2>
       </header>
       <div className="flex-1 px-4 pb-8">
+
         {status === 'approved' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-6">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--success)]/20 to-transparent flex items-center justify-center border-2 border-[var(--success)]/30">
               <BadgeCheck size={44} className="text-[var(--successVibrant)]" />
             </div>
             <div className="space-y-1.5">
-              <p className="text-xl font-bold">Compte vérifié ✓</p>
+              <p className="text-xl font-bold">Compte vérifié</p>
               <p className="text-sm text-secondary leading-relaxed">
-                Ton identité a déjà été vérifiée. Tu portes fièrement le badge de confiance sur ton profil.
+                Votre identité a été vérifiée avec succès.<br />Votre badge vérifié est maintenant actif.
               </p>
             </div>
+            {verifiedAt && (
+              <p className="text-xs text-tertiary">Vérifié le {new Date(verifiedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            )}
             <div className="mt-2 px-4 py-2 rounded-xl bg-[var(--success)]/8 border border-[var(--success)]/15 text-xs text-[var(--successVibrant)] font-medium flex items-center gap-2">
               <BadgeCheck size={14} /> Badge vérifié actif
             </div>
           </div>
         ) : status === 'pending' ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-4">
+          <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-6">
             <Clock size={48} className="text-[var(--warningVibrant)]" />
             <p className="text-lg font-semibold">Vérification en cours</p>
-            <p className="text-sm text-secondary">Ton identité est en cours de vérification. Tu recevras une notification dès que c&rsquo;est terminé.</p>
+            <p className="text-sm text-secondary leading-relaxed">
+              Votre identité est en cours de vérification. Vous recevrez une notification dès que c&rsquo;est terminé.
+            </p>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 text-sm font-medium text-primary transition-opacity disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              Actualiser
+            </button>
+          </div>
+        ) : status === 'rejected' ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--danger)]/20 to-transparent flex items-center justify-center border-2 border-[var(--danger)]/30">
+              <AlertTriangle size={44} className="text-[var(--dangerVibrant)]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xl font-bold">Vérification refusée</p>
+              <p className="text-sm text-secondary leading-relaxed">
+                Votre vérification d&rsquo;identité a été refusée.
+              </p>
+              {rejectionReason && (
+                <p className="text-xs text-[var(--dangerVibrant)] mt-2 px-3 py-1.5 rounded-lg bg-[var(--danger)]/10 inline-block">
+                  Raison : {rejectionReason}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="w-full py-3.5 rounded-full font-semibold text-on-primary transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-2"
+              style={{ background: 'var(--primary)' }}
+            >
+              <RotateCcw size={16} /> Recommencer la vérification
+            </button>
+          </div>
+        ) : status === 'expired' ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-5 px-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--warning)]/20 to-transparent flex items-center justify-center border-2 border-[var(--warning)]/30">
+              <Hourglass size={44} className="text-[var(--warningVibrant)]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xl font-bold">Vérification expirée</p>
+              <p className="text-sm text-secondary leading-relaxed">
+                Votre session de vérification a expiré. Veuillez relancer une vérification.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="w-full py-3.5 rounded-full font-semibold text-on-primary transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-2"
+              style={{ background: 'var(--primary)' }}
+            >
+              <RotateCcw size={16} /> Relancer la vérification
+            </button>
+          </div>
+        ) : status === 'manual_review' ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-6">
+            <Hourglass size={48} className="text-[var(--warningVibrant)]" />
+            <p className="text-lg font-semibold">Examen manuel en cours</p>
+            <p className="text-sm text-secondary leading-relaxed">
+              Votre dossier est en cours d&rsquo;examen par notre équipe. Vous recevrez une réponse sous 24 à 48 heures.
+            </p>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 text-sm font-medium text-primary transition-opacity disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              Actualiser
+            </button>
+          </div>
+        ) : status === 'unknown' || error ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-6">
+            <HelpCircle size={48} className="text-[var(--dangerVibrant)]" />
+            <p className="text-lg font-semibold">Statut inconnu</p>
+            <p className="text-sm text-secondary leading-relaxed">
+              {error ?? 'Impossible de déterminer le statut de votre vérification.'}
+            </p>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 text-sm font-medium text-primary transition-opacity disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              Actualiser
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -99,9 +257,9 @@ export default function VerifyPage() {
                 {verifying ? 'Ouverture...' : <><ExternalLink size={16} /> Vérifier avec Didit</>}
               </button>
             </div>
-
           </div>
         )}
+
       </div>
     </div>
   )

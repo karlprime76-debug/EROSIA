@@ -19,6 +19,8 @@ export interface Profile {
   photos: string[]
   interests: string[]
   is_verified: boolean
+  verification_status?: string | null
+  verified_at?: string | null
   looking_for: LookingFor
   created_at: string
   last_seen?: string
@@ -105,12 +107,11 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
 
 export async function signOut() {
   const { error } = await supabase().auth.signOut()
-  supabase().auth.signOut({ scope: 'local' }).catch((err) => { logger.error('signOut local error', { error: String(err) }) })
   return { error: error?.message ?? null }
 }
 
 export async function resetPassword(email: string) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia.app'
+  const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
   const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
   return { error: error?.message ?? null }
 }
@@ -563,17 +564,37 @@ export async function checkPremium() {
   return tier === 'premium'
 }
 
-export async function getVerificationStatus() {
+export async function getVerificationStatus(): Promise<{
+  status: string | null
+  verification_status: string | null
+  is_verified: boolean | null
+  verified_at: string | null
+  rejection_reason: string | null
+}> {
   const userId = await getCurrentUserId()
-  if (!userId) return { status: null }
-  const { data } = await supabase()
+  const fallback = { status: null, verification_status: null, is_verified: null, verified_at: null, rejection_reason: null }
+  if (!userId) return fallback
+  const supabaseClient = supabase()
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('is_verified, verification_status, verified_at')
+    .eq('id', userId)
+    .maybeSingle()
+  if (!profile) return { ...fallback, status: null }
+  const { data: req } = await supabaseClient
     .from('verification_requests')
-    .select('status')
+    .select('rejection_reason')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return { status: (data?.status as 'pending' | 'approved' | 'rejected' | null) ?? null }
+  return {
+    status: profile.verification_status,
+    verification_status: profile.verification_status,
+    is_verified: profile.is_verified,
+    verified_at: profile.verified_at,
+    rejection_reason: req?.rejection_reason ?? null,
+  }
 }
 
 // ---- FEATURE 4: Stories (legacy wrappers, use src/lib/stories for new code) ----

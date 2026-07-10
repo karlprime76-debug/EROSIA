@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     const parsed = deleteAccountSchema.safeParse(body)
     if (!parsed.success) return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 })
     const { password } = parsed.data
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email!, password })
+    if (!user.email) return NextResponse.json({ error: 'Impossible de vérifier l\'identité' }, { status: 400 })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password })
     if (signInError) return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 })
 
     const admin = createAdminClient()
@@ -72,12 +73,12 @@ export async function POST(request: NextRequest) {
       try { await del() } catch (e) { errors.push(`${name}: ${String(e)}`) }
     }
 
-    if (errors.length > 0) {
-      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
+    try { await admin.auth.admin.deleteUser(uid) } catch (e) {
+      errors.push(`auth.deleteUser: ${String(e)}`)
     }
 
-    try { await admin.auth.admin.deleteUser(uid) } catch {
-      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
+    if (errors.length > 0) {
+      return NextResponse.json({ error: 'Erreur lors de la suppression du compte', details: errors }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })

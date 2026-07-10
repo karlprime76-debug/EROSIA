@@ -8,10 +8,12 @@ import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelM
 import ToggleSwitch from '@/components/ToggleSwitch'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { logger } from '@/lib/logger'
+import { useToast } from '@/components/Toast'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { confirm } = useConfirm()
+  const { toast } = useToast()
   const [deleting, setDeleting] = useState(false)
   const [visibility, setVisibility] = useState('all')
   const [notifPush, setNotifPush] = useState(true)
@@ -70,17 +72,24 @@ export default function SettingsPage() {
   }, [upgradeSuccess])
 
   const handleDelete = async () => {
+    const password = prompt('Confirme ton mot de passe pour supprimer ton compte :')
+    if (!password) return
     if (!(await confirm('Supprimer définitivement ton compte ? Cette action est irréversible.'))) return
     setDeleting(true)
     try {
-      await supabase.from('profiles').delete().eq('id', (await supabase.auth.getUser()).data.user?.id)
-      await fetch('/api/auth/delete-account', { method: 'POST' })
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast(data.error || 'Erreur lors de la suppression', 'error'); setDeleting(false); return }
       await supabase.auth.signOut()
       router.push('/')
     } catch (e) {
       logger.error('Delete account error', e)
-      await supabase.auth.signOut()
-      router.push('/')
+      toast('Erreur réseau. Vérifie ta connexion.', 'error')
+      setDeleting(false)
     }
   }
 

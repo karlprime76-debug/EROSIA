@@ -40,6 +40,8 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
+  const recordedUrl = recordedBlob ? URL.createObjectURL(recordedBlob) : null
+  useEffect(() => () => { if (recordedUrl) URL.revokeObjectURL(recordedUrl) }, [recordedUrl])
   const [showEmoji, setShowEmoji] = useState(false)
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
@@ -276,19 +278,20 @@ export default function ChatPage() {
       mediaRecorderRef.current = recorder
       chunksRef.current = []
       recorder.ondataavailable = e => chunksRef.current.push(e.data)
+      const durationInterval = setInterval(() => { setRecordingDuration(prev => prev + 1) }, 1000)
+      const maxTimeout = setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop()
+      }, 30000)
       recorder.onstop = () => {
+        clearInterval(durationInterval); clearTimeout(maxTimeout)
+        setRecordingDuration(0)
+        setIsRecording(false)
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         setRecordedBlob(blob)
         stream.getTracks().forEach(t => t.stop())
       }
       recorder.start()
       setIsRecording(true)
-      let dur = 0
-      const interval = setInterval(() => { dur++; setRecordingDuration(dur) }, 1000)
-      setTimeout(() => {
-        if (recorder.state === 'recording') { recorder.stop(); clearInterval(interval); setRecordingDuration(0) }
-      }, 30000)
-      recorder.onstop = () => { clearInterval(interval); setRecordingDuration(0); setIsRecording(false) }
     } catch {
       toast('Microphone non accessible', 'error')
     }
@@ -631,7 +634,7 @@ export default function ChatPage() {
           {recordedBlob && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
               className="flex items-center gap-2 mt-2 px-1">
-              <audio src={URL.createObjectURL(recordedBlob)} controls className="h-10 flex-1 max-w-[180px] rounded-lg" />
+              <audio src={recordedUrl ?? undefined} controls className="h-10 flex-1 max-w-[180px] rounded-lg" />
               <button onClick={async () => {
                 const { error } = await sendAudioMessage(matchId, recordedBlob)
                 if (error) toast(error, 'error')
