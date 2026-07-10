@@ -4,16 +4,15 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { verifyTurnstile, turnstileGuard } from '@/lib/turnstile'
 
-const loginSchema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
+const resetSchema = z.object({
+  password: z.string().min(8, '8 caractères minimum'),
   turnstileToken: z.string().optional(),
 })
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const parsed = loginSchema.safeParse(body)
+    const parsed = resetSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
       return NextResponse.json({ error: firstError }, { status: 400 })
@@ -26,22 +25,21 @@ export async function POST(request: Request) {
       }
     }
 
-    const { email, password } = parsed.data
     const supabase = await createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Session invalide — le lien a peut-être expiré' }, { status: 401 })
+    }
 
-    if (authError) {
-      const message = authError.message === 'Invalid login credentials'
-        ? 'Email ou mot de passe incorrect'
-        : authError.message === 'Email not confirmed'
-          ? 'Email non confirmé — vérifie ta boîte mail'
-          : authError.message
-      return NextResponse.json({ error: message }, { status: 401 })
+    const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
+    if (error) {
+      logger.error('Reset password error', { error: error.message })
+      return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    logger.error('Login route error', { error: String(err) })
+    logger.error('Reset password route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

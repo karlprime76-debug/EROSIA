@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
+import { verifyTurnstile, turnstileGuard } from '@/lib/turnstile'
 
 const admin = createAdminClient()
 
@@ -17,34 +18,12 @@ async function applyReferralCode(code: string, newUserId: string): Promise<{ err
   return {}
 }
 
-async function verifyTurnstile(token: string): Promise<{ ok: boolean; error?: string }> {
-  const secret = process.env.TURNSTILE_SECRET_KEY
-  if (!secret) return { ok: true }
-  logger.error('Turnstile verify', { tokenLength: token.length, tokenPrefix: token.slice(0, 8) })
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret, response: token }),
-    })
-    const data = await res.json()
-    if (data.success === true) return { ok: true }
-    logger.error('Turnstile verification failed', { errorCodes: data['error-codes'], cloudflareResponse: data })
-    return { ok: false, error: data['error-codes']?.[0] ?? 'Échec de validation Turnstile' }
-  } catch (err) {
-    logger.error('Turnstile network error', { error: String(err) })
-    return { ok: false, error: `Erreur réseau Turnstile: ${String(err)}` }
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const turnstileToken: string | undefined = body.turnstileToken
 
-    const turnstileConfigured = !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    logger.error('Register Turnstile check', { configured: turnstileConfigured, tokenPresent: !!turnstileToken, isSkip: turnstileToken === '__skip__' })
-    if (turnstileConfigured && turnstileToken !== '__skip__') {
+    if (turnstileGuard(turnstileToken)) {
       const result = await verifyTurnstile(turnstileToken ?? '')
       if (!result.ok) {
         return NextResponse.json({ error: 'Vérification de sécurité échouée. Recharge la page ou réessaie.' }, { status: 403 })

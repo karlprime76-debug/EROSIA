@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
@@ -13,7 +13,60 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaFailed, setCaptchaFailed] = useState(false)
+  const captchaLoadedRef = useRef(false)
   const router = useRouter()
+
+  useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    if (!siteKey) { captchaLoadedRef.current = true; return }
+    const existing = document.querySelector('script[src*="turnstile/v0/api.js"]')
+    if (existing) { captchaLoadedRef.current = true; return }
+    let cancelled = false
+    const timeout = setTimeout(() => {
+      if (!captchaLoadedRef.current && !cancelled) {
+        console.warn('Turnstile timeout (10s) — captcha skipped')
+        captchaLoadedRef.current = true
+        setCaptchaFailed(true)
+      }
+    }, 10000)
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+    script.async = true
+    script.onload = () => {
+      if (cancelled) return
+      clearTimeout(timeout)
+      const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
+      if (w.turnstile?.render) {
+        w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
+        captchaLoadedRef.current = true
+      }
+    }
+    script.onerror = () => {
+      if (cancelled) return
+      clearTimeout(timeout)
+      console.warn('Turnstile CDN blocked — captcha skipped')
+      captchaLoadedRef.current = true
+      setCaptchaFailed(true)
+    }
+    document.head.appendChild(script)
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [])
+
+  const getTurnstileToken = (): string => {
+    if (captchaFailed) return '__skip__'
+    try {
+      const w = window as unknown as { turnstile?: { getResponse: () => string } }
+      if (w.turnstile?.getResponse) {
+        const token = w.turnstile.getResponse()
+        if (token) return token
+        if (captchaLoadedRef.current) return '__skip__'
+        return ''
+      }
+      if (captchaLoadedRef.current) return '__skip__'
+    } catch {}
+    return ''
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,12 +75,17 @@ export default function LoginPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Email invalide'); return }
     if (!password) { setError('Mot de passe requis'); return }
     if (password.length < 8) { setError('8 caractères minimum'); return }
+    const turnstileToken = getTurnstileToken()
+    if (!captchaFailed && !turnstileToken && !captchaLoadedRef.current) {
+      setError('Vérification de sécurité pas encore chargée — attends un instant')
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -168,6 +226,16 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+
+              {/* Turnstile */}
+              <div className="flex justify-center">
+                <div id="turnstile-widget" data-size="flexible" data-theme="dark" />
+                {captchaFailed && (
+                  <p className="text-xs text-muted text-center">
+                    Captcha non disponible — vérifie ta connexion ou désactive ton bloqueur de scripts
+                  </p>
+                )}
               </div>
 
               {/* Bouton CTA */}

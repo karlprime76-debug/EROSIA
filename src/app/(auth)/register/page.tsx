@@ -94,6 +94,10 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
     const turnstileToken = getTurnstileToken()
+    if (!captchaFailed && !turnstileToken && !captchaLoadedRef.current) {
+      setServerError('Vérification de sécurité pas encore chargée — attends un instant')
+      return
+    }
     setServerError('')
     try {
       const res = await fetch('/api/auth/register', {

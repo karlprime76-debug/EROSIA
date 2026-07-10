@@ -4,16 +4,15 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { verifyTurnstile, turnstileGuard } from '@/lib/turnstile'
 
-const loginSchema = z.object({
+const forgotSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
   turnstileToken: z.string().optional(),
 })
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const parsed = loginSchema.safeParse(body)
+    const parsed = forgotSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
       return NextResponse.json({ error: firstError }, { status: 400 })
@@ -26,22 +25,20 @@ export async function POST(request: Request) {
       }
     }
 
-    const { email, password } = parsed.data
     const supabase = await createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host') || 'localhost:3000'}`
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo: `${origin}/reset-password`,
+    })
 
-    if (authError) {
-      const message = authError.message === 'Invalid login credentials'
-        ? 'Email ou mot de passe incorrect'
-        : authError.message === 'Email not confirmed'
-          ? 'Email non confirmé — vérifie ta boîte mail'
-          : authError.message
-      return NextResponse.json({ error: message }, { status: 401 })
+    if (error) {
+      logger.error('Forgot password error', { error: error.message })
+      return NextResponse.json({ error: 'Erreur lors de l\'envoi du lien' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    logger.error('Login route error', { error: String(err) })
+    logger.error('Forgot password route error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
