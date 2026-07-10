@@ -17,9 +17,9 @@ async function applyReferralCode(code: string, newUserId: string): Promise<{ err
   return {}
 }
 
-async function verifyTurnstile(token: string): Promise<boolean> {
+async function verifyTurnstile(token: string): Promise<{ ok: boolean; error?: string }> {
   const secret = process.env.TURNSTILE_SECRET_KEY
-  if (!secret) return true
+  if (!secret) return { ok: true, error: 'TURNSTILE_SECRET_KEY non configurée' }
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
@@ -27,22 +27,24 @@ async function verifyTurnstile(token: string): Promise<boolean> {
       body: new URLSearchParams({ secret, response: token }),
     })
     const data = await res.json()
-    return data.success === true
-  } catch {
-    return false
+    if (data.success === true) return { ok: true }
+    return { ok: false, error: data['error-codes']?.[0] ?? 'Échec de validation Turnstile' }
+  } catch (err) {
+    return { ok: false, error: `Erreur réseau Turnstile: ${String(err)}` }
   }
 }
-
-const turnstileConfigured = !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    const turnstileToken: string | undefined = body.turnstileToken
 
-    if (turnstileConfigured) {
-      const turnstileToken = body.turnstileToken
-      if (!turnstileToken || !(await verifyTurnstile(turnstileToken))) {
-        return NextResponse.json({ error: 'Vérification de sécurité échouée' }, { status: 403 })
+    const turnstileConfigured = !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    if (turnstileConfigured && turnstileToken !== '__skip__') {
+      const result = await verifyTurnstile(turnstileToken ?? '')
+      if (!result.ok) {
+        logger.warn('Turnstile verification failed', { error: result.error })
+        return NextResponse.json({ error: 'Vérification de sécurité échouée. Recharge la page ou réessaie.' }, { status: 403 })
       }
     }
 
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
     }
 
     const { email, password, name, age, gender, interestedIn } = parsed.data
+    const normalizedEmail = email.toLowerCase().trim()
     const referralCode: string | undefined = body.referralCode
 
     if (referralCode && (typeof referralCode !== 'string' || referralCode.length > 20)) {
@@ -60,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const { data: rpcResult, error: rpcError } = await admin.rpc('create_auth_user_with_profile', {
-      p_email: email,
+      p_email: normalizedEmail,
       p_password: password,
       p_name: sanitize(name, 80),
       p_age: age,
@@ -69,8 +72,8 @@ export async function POST(request: Request) {
     })
 
     if (rpcError || !rpcResult) {
-      logger.error('RPC create_auth_user_with_profile failed', { error: rpcError?.message })
-      return NextResponse.json({ error: "Erreur lors de l'inscription" }, { status: 500 })
+      logger.error('RPC create_auth_user_with_profile failed', { error: rpcError?.message, rpcResult })
+      return NextResponse.json({ error: rpcError?.message?.includes('could not find a function') ? 'Erreur de configuration serveur — contacte le support' : "Erreur lors de l'inscription" }, { status: 500 })
     }
 
     if (rpcResult.error) {
@@ -91,7 +94,7 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
     })
 

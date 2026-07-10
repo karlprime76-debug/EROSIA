@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Venus, Mars, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,24 +17,43 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
+  const [captchaReady, setCaptchaReady] = useState(false)
+  const [captchaFailed, setCaptchaFailed] = useState(false)
+  const turnstileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [referralCode, setReferralCode] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    if (!siteKey) return
+    if (!siteKey) { setCaptchaReady(true); return }
+    const existing = document.querySelector('script[src*="turnstile/v0/api.js"]')
+    if (existing) { setCaptchaReady(true); return }
     const script = document.createElement('script')
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
     script.async = true
-    script.defer = true
     script.onload = () => {
       const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
       if (w.turnstile?.render) {
         w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
+        setCaptchaReady(true)
       }
     }
+    script.onerror = () => {
+      console.warn('Turnstile CDN blocked — captcha skipped')
+      setCaptchaFailed(true)
+      setCaptchaReady(true)
+    }
     document.head.appendChild(script)
-    return () => { document.head.removeChild(script) }
+    turnstileTimerRef.current = setTimeout(() => {
+      if (!captchaReady) {
+        console.warn('Turnstile timeout — captcha skipped')
+        setCaptchaFailed(true)
+        setCaptchaReady(true)
+      }
+    }, 10000)
+    return () => {
+      if (turnstileTimerRef.current) clearTimeout(turnstileTimerRef.current)
+    }
   }, [])
 
   const [showReferralInput, setShowReferralInput] = useState(() => {
@@ -50,6 +69,7 @@ export default function RegisterPage() {
   const watchGender = watch('gender')
 
   const getTurnstileToken = (): string => {
+    if (captchaFailed) return '__skip__'
     try {
       const w = window as unknown as { turnstile?: { getResponse: () => string } }
       if (w.turnstile?.getResponse) {
@@ -62,8 +82,8 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
     const turnstileToken = getTurnstileToken()
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
-      setServerError('Vérification de sécurité requise')
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken && !captchaFailed) {
+      setServerError('Vérification de sécurité — attends le chargement du captcha')
       return
     }
     setServerError('')
@@ -77,7 +97,7 @@ export default function RegisterPage() {
       if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
       router.push('/onboarding')
     } catch {
-      setServerError('Erreur réseau')
+      setServerError('Erreur réseau — vérifie ta connexion')
     }
   }
 
@@ -335,6 +355,11 @@ export default function RegisterPage() {
               {/* Turnstile */}
               <div className="flex justify-center">
                 <div id="turnstile-widget" data-size="flexible" data-theme="dark" />
+                {captchaFailed && (
+                  <p className="text-xs text-muted text-center">
+                    Captcha non disponible — vérifie ta connexion ou désactive ton bloqueur de scripts
+                  </p>
+                )}
               </div>
 
               {/* CTA */}
