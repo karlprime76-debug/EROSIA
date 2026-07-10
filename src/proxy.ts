@@ -38,15 +38,21 @@ const ALLOWED_ORIGINS = [
   process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null,
 ].filter((s): s is string => Boolean(s))
 
+function isKnownHost(request: NextRequest): boolean {
+  const host = request.headers.get('host') ?? ''
+  if (!host) return false
+  const known = [
+    process.env.NEXT_PUBLIC_SITE_URL && new URL(process.env.NEXT_PUBLIC_SITE_URL).host,
+    'erosia.app',
+    'erosia-alpha.vercel.app',
+  ].filter(Boolean) as string[]
+  return known.some(k => host === k || host.endsWith('.vercel.app'))
+}
+
 function originMatchesHost(originHeader: string | null, request: NextRequest): boolean {
-  if (!originHeader) return false
+  if (!originHeader) return isKnownHost(request)
   try {
     const originUrl = new URL(originHeader)
-    const allowed = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()) ?? []
-    if (allowed.length > 0) {
-      return allowed.includes(originUrl.origin)
-    }
-    // Fallback: check host (with port normalization)
     const host = request.headers.get('host') ?? ''
     return originUrl.host === host || originUrl.host === host.replace(/:\d+$/, '')
   } catch {
