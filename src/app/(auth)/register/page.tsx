@@ -41,11 +41,12 @@ export default function RegisterPage() {
     script.onload = () => {
       if (cancelled) return
       clearTimeout(timeout)
-      const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
-      if (w.turnstile?.render) {
+      captchaLoadedRef.current = true
+      try {
+        const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
+        if (!w.turnstile?.render) { setCaptchaFailed(true); return }
         w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
-        captchaLoadedRef.current = true
-      }
+      } catch { setCaptchaFailed(true) }
     }
     script.onerror = () => {
       if (cancelled) return
