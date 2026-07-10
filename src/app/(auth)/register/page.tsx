@@ -17,43 +17,45 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
-  const [captchaReady, setCaptchaReady] = useState(false)
   const [captchaFailed, setCaptchaFailed] = useState(false)
-  const turnstileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const captchaLoadedRef = useRef(false)
   const [referralCode, setReferralCode] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    if (!siteKey) { setCaptchaReady(true); return }
+    if (!siteKey) { captchaLoadedRef.current = true; return }
     const existing = document.querySelector('script[src*="turnstile/v0/api.js"]')
-    if (existing) { setCaptchaReady(true); return }
+    if (existing) { captchaLoadedRef.current = true; return }
+    let cancelled = false
+    const timeout = setTimeout(() => {
+      if (!captchaLoadedRef.current && !cancelled) {
+        console.warn('Turnstile timeout (10s) — captcha skipped')
+        captchaLoadedRef.current = true
+        setCaptchaFailed(true)
+      }
+    }, 10000)
     const script = document.createElement('script')
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
     script.async = true
     script.onload = () => {
+      if (cancelled) return
+      clearTimeout(timeout)
       const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
       if (w.turnstile?.render) {
         w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
-        setCaptchaReady(true)
+        captchaLoadedRef.current = true
       }
     }
     script.onerror = () => {
+      if (cancelled) return
+      clearTimeout(timeout)
       console.warn('Turnstile CDN blocked — captcha skipped')
+      captchaLoadedRef.current = true
       setCaptchaFailed(true)
-      setCaptchaReady(true)
     }
     document.head.appendChild(script)
-    turnstileTimerRef.current = setTimeout(() => {
-      if (!captchaReady) {
-        console.warn('Turnstile timeout — captcha skipped')
-        setCaptchaFailed(true)
-        setCaptchaReady(true)
-      }
-    }, 10000)
-    return () => {
-      if (turnstileTimerRef.current) clearTimeout(turnstileTimerRef.current)
-    }
+    return () => { cancelled = true; clearTimeout(timeout) }
   }, [])
 
   const [showReferralInput, setShowReferralInput] = useState(() => {
@@ -82,10 +84,6 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
     const turnstileToken = getTurnstileToken()
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken && !captchaFailed) {
-      setServerError('Vérification de sécurité — attends le chargement du captcha')
-      return
-    }
     setServerError('')
     try {
       const res = await fetch('/api/auth/register', {
