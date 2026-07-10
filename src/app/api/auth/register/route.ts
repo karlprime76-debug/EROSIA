@@ -19,7 +19,8 @@ async function applyReferralCode(code: string, newUserId: string): Promise<{ err
 
 async function verifyTurnstile(token: string): Promise<{ ok: boolean; error?: string }> {
   const secret = process.env.TURNSTILE_SECRET_KEY
-  if (!secret) return { ok: true, error: 'TURNSTILE_SECRET_KEY non configurée' }
+  if (!secret) return { ok: true }
+  logger.error('Turnstile verify', { tokenLength: token.length, tokenPrefix: token.slice(0, 8) })
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
@@ -28,8 +29,10 @@ async function verifyTurnstile(token: string): Promise<{ ok: boolean; error?: st
     })
     const data = await res.json()
     if (data.success === true) return { ok: true }
+    logger.error('Turnstile verification failed', { errorCodes: data['error-codes'], cloudflareResponse: data })
     return { ok: false, error: data['error-codes']?.[0] ?? 'Échec de validation Turnstile' }
   } catch (err) {
+    logger.error('Turnstile network error', { error: String(err) })
     return { ok: false, error: `Erreur réseau Turnstile: ${String(err)}` }
   }
 }
@@ -40,10 +43,10 @@ export async function POST(request: Request) {
     const turnstileToken: string | undefined = body.turnstileToken
 
     const turnstileConfigured = !!process.env.TURNSTILE_SECRET_KEY && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    logger.error('Register Turnstile check', { configured: turnstileConfigured, tokenPresent: !!turnstileToken, isSkip: turnstileToken === '__skip__' })
     if (turnstileConfigured && turnstileToken !== '__skip__') {
       const result = await verifyTurnstile(turnstileToken ?? '')
       if (!result.ok) {
-        logger.warn('Turnstile verification failed', { error: result.error })
         return NextResponse.json({ error: 'Vérification de sécurité échouée. Recharge la page ou réessaie.' }, { status: 403 })
       }
     }

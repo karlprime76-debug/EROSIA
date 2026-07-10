@@ -75,7 +75,17 @@ export default function RegisterPage() {
     try {
       const w = window as unknown as { turnstile?: { getResponse: () => string } }
       if (w.turnstile?.getResponse) {
-        return w.turnstile.getResponse() || ''
+        const token = w.turnstile.getResponse()
+        if (token) return token
+        if (captchaLoadedRef.current) {
+          console.warn('Turnstile loaded but no token — skip')
+          return '__skip__'
+        }
+        return ''
+      }
+      if (captchaLoadedRef.current) {
+        console.warn('Turnstile ref done but object missing — skip')
+        return '__skip__'
       }
     } catch {}
     return ''
