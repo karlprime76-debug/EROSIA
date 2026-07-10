@@ -15,7 +15,11 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true); setError('')
+    setError('')
+    if (!password || password.length < 8) { setError('8 caractères minimum'); setLoading(false); return }
+    if (!/[A-Z]/.test(password)) { setError('Au moins une majuscule requise'); setLoading(false); return }
+    if (!/[0-9]/.test(password)) { setError('Au moins un chiffre requis'); setLoading(false); return }
+    setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError(error.message); setLoading(false); return }
     setDone(true)
@@ -78,7 +82,7 @@ export default function ResetPasswordPage() {
             <div className="space-y-1.5">
               <label htmlFor="new-password" className="text-xs font-medium text-[var(--text-secondary)] block tracking-wide">Mot de passe</label>
               <input id="new-password" type="password" placeholder="••••••••" value={password}
-                onChange={e => setPassword(e.target.value)} required minLength={6}
+                onChange={e => setPassword(e.target.value)} required minLength={8}
                 className="w-full bg-[var(--bg-card)] text-[var(--text)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200
                   focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_rgba(217,45,74,0.12)]
                   placeholder:text-[var(--text-muted)]" />

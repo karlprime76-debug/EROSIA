@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
-import { supabase } from '@/lib/supabase/client'
 import { Eye, EyeOff, Sparkles, ArrowRight, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -25,13 +24,14 @@ export default function LoginPage() {
     if (password.length < 8) { setError('8 caractères minimum'); return }
     setLoading(true)
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
-      if (authError) {
-        setError(authError.message === 'Invalid login credentials'
-          ? 'Email ou mot de passe incorrect'
-          : authError.message === 'Email not confirmed'
-            ? 'Email non confirmé — vérifie ta boîte mail'
-            : authError.message)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Erreur de connexion')
         return
       }
       router.push('/')

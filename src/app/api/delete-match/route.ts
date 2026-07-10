@@ -15,16 +15,8 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return NextResponse.json({ error: 'matchId requis' }, { status: 400 })
     const { matchId } = parsed.data
 
-    const { data: match } = await supabase
-      .from('matches').select('user1_id,user2_id').eq('id', matchId).maybeSingle()
-    if (!match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
-    if (match.user1_id !== user.id && match.user2_id !== user.id) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
-    }
-
     const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_match', {
       match_id: matchId,
-      requesting_user_id: user.id,
     })
 
     if (rpcError || rpcResult?.error) {

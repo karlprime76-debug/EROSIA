@@ -15,6 +15,6 @@ export async function POST() {
     return NextResponse.json({ success: true })
   } catch (err) {
     logger.error('Referral redeem error', { error: String(err) })
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

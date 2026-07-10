@@ -13,6 +13,6 @@ export async function GET() {
     return NextResponse.json({ code })
   } catch (err) {
     logger.error('Referral code error', { error: String(err) })
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

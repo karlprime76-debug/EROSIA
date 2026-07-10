@@ -41,9 +41,13 @@ const ALLOWED_ORIGINS = [
 function isKnownHost(request: NextRequest): boolean {
   const host = request.headers.get('host') ?? ''
   if (!host) return false
+  const siteHost = process.env.NEXT_PUBLIC_SITE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SITE_URL).host
+    : null
   const known = [
-    process.env.NEXT_PUBLIC_SITE_URL && new URL(process.env.NEXT_PUBLIC_SITE_URL).host,
+    siteHost,
     'erosia.app',
+    'erosia-app.vercel.app',
     'erosia-alpha.vercel.app',
   ].filter(Boolean) as string[]
   return known.some(k => host === k || host.endsWith('.vercel.app'))
@@ -103,7 +107,12 @@ export default async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, { ...options, secure, sameSite: 'lax' })
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              secure,
+              sameSite: 'lax',
+              httpOnly: name.startsWith('sb-'),
+            })
           )
         },
       },
@@ -146,7 +155,7 @@ export default async function proxy(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
+    "script-src 'self' 'unsafe-inline' 'strict-dynamic' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

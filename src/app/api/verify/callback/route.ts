@@ -5,9 +5,14 @@ import { logger } from '@/lib/logger'
 
 export async function POST(request: Request) {
   try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { userId, sessionId } = await request.json()
-    if (!userId || !sessionId) {
-      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
+    if (!userId || !sessionId || userId !== user.id) {
+      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
     }
 
     const decision = await getSessionDecision(sessionId)

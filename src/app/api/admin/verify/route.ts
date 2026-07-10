@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+
+const adminVerifySchema = z.object({
+  requestId: z.string().uuid(),
+  userId: z.string().uuid(),
+  approved: z.boolean(),
+  rejectionReason: z.string().max(500).optional(),
+})
 
 export async function POST(request: Request) {
   try {
@@ -13,8 +21,9 @@ export async function POST(request: Request) {
     if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
     const body = await request.json()
-    const { requestId, userId, approved, rejectionReason } = body
-    if (!requestId || !userId) return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
+    const parsed = adminVerifySchema.safeParse(body)
+    if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    const { requestId, userId, approved, rejectionReason } = parsed.data
 
     const admin = createAdminClient()
     const newStatus = approved ? 'approved' : 'rejected'

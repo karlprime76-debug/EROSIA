@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (errors.length > 0) {
-      return NextResponse.json({ error: 'Erreur lors de la suppression du compte', details: errors }, { status: 500 })
+      logger.error('Delete account partial errors', { userId: uid, errors })
+      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })

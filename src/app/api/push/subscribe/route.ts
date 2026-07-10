@@ -56,6 +56,9 @@ export async function DELETE(request: Request) {
     }
 
     const admin = createAdminClient()
+    const { data: sub } = await admin.from('push_subscriptions').select('user_id').eq('endpoint', parsed.data.endpoint).maybeSingle()
+    if (!sub) return NextResponse.json({ error: 'Abonnement introuvable' }, { status: 404 })
+    if (sub.user_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     const { error } = await admin.from('push_subscriptions').delete().eq('endpoint', parsed.data.endpoint)
     if (error) return NextResponse.json({ error: 'Erreur lors du désabonnement' }, { status: 500 })
     return NextResponse.json({ ok: true })
