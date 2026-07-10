@@ -144,18 +144,24 @@ GRANT EXECUTE ON FUNCTION public.create_auth_user(p_email TEXT, p_password TEXT)
 
 -- ═══════════════════════════════════════════════
 -- Recreate verify_password with correct search_path
+-- Original returns UUID (user_id if match, NULL if not)
 -- ═══════════════════════════════════════════════
-CREATE OR REPLACE FUNCTION public.verify_password(p_email TEXT, p_password TEXT)
-RETURNS BOOLEAN
+DROP FUNCTION IF EXISTS public.verify_password(p_email TEXT, p_password TEXT) CASCADE;
+
+CREATE FUNCTION public.verify_password(p_email TEXT, p_password TEXT)
+RETURNS UUID
 SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
 DECLARE
-  v_encrypted TEXT;
+  v_user_id UUID;
+  v_stored TEXT;
 BEGIN
-  SELECT encrypted_password INTO v_encrypted
+  SELECT id, encrypted_password INTO v_user_id, v_stored
   FROM auth.users WHERE email = p_email;
-  RETURN v_encrypted = crypt(p_password, v_encrypted);
+  IF NOT FOUND OR v_user_id IS NULL THEN RETURN NULL; END IF;
+  IF v_stored = crypt(p_password, v_stored) THEN RETURN v_user_id; END IF;
+  RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
