@@ -34,6 +34,7 @@ export async function POST() {
 
     if (profileError) {
       logger.error('Failed to update profile verification_status', { error: profileError.message, userId: user.id })
+      return NextResponse.json({ error: 'Erreur lors de la mise à jour du profil' }, { status: 500 })
     }
 
     return NextResponse.json({ url, sessionId })

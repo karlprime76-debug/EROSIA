@@ -46,19 +46,26 @@ export interface DiditWebhookPayload {
 
 async function diditFetch(path: string, options: RequestInit = {}) {
   const url = `${DIDIT_API_BASE}${path}`
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': getDiditKey(),
-      ...options.headers,
-    },
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Didit API error ${res.status}: ${text}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getDiditKey(),
+        ...options.headers,
+      },
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Didit API error ${res.status}: ${text}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.json()
 }
 
 export async function createVerificationSession(vendorData: string, callbackUrl: string): Promise<{ sessionId: string; url: string }> {
@@ -99,6 +106,7 @@ export async function verifyWebhookSignature(payload: string, signature: string,
 }
 
 function hexToBytes(hex: string): Uint8Array {
+  if (!/^[0-9a-fA-F]+$/.test(hex)) throw new Error('Invalid hex string: non-hex characters')
   if (hex.length % 2 !== 0) throw new Error('Invalid hex string length')
   const bytes = new Uint8Array(hex.length / 2)
   for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)

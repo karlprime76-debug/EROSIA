@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import Image from 'next/image'
 import { getModerationQueue, reviewContent } from '@/lib/api'
 import { Smartphone, Gift, Users, ShieldAlert, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { useToast } from '@/components/Toast'
@@ -64,19 +63,14 @@ export default function AdminPage() {
   }, [])
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
-    const newStatus = approved ? 'approved' : 'rejected'
-    const { error: updateError } = await supabase
-      .from('verification_requests').update({
-        status: newStatus,
-        verified_at: approved ? new Date().toISOString() : null,
-      }).eq('id', reqId)
-    if (updateError) return toast(updateError.message, 'error')
-    const profileUpdate: Record<string, unknown> = {
-      verification_status: newStatus,
-      is_verified: approved,
-      verified_at: approved ? new Date().toISOString() : null,
-    }
-    await supabase.from('profiles').update(profileUpdate).eq('id', userId)
+    const label = approved ? 'Approuver' : 'Rejeter'
+    if (!window.confirm(`${label} cette demande de vérification ?`)) return
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId: reqId, userId, approved }),
+    })
+    if (!res.ok) { const d = await res.json(); return toast(d.error, 'error') }
     setVerifications(v => v.filter(r => r.id !== reqId))
   }
 
@@ -173,11 +167,7 @@ export default function AdminPage() {
           {verifications.map(req => (
             <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
-                {req.photo_url ? (
-                  <Image src={req.photo_url} alt="Photo de vérification" width={64} height={64} className="w-full h-full object-cover" />
-                ) : (
-                  <ShieldAlert size={20} className="text-secondary" />
-                )}
+                <ShieldAlert size={20} className="text-secondary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{req.profile?.name ?? 'Inconnu'}</p>

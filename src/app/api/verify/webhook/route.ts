@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { verifyWebhookSignature } from '@/lib/didit'
+import { verifyWebhookSignature, getSessionDecision } from '@/lib/didit'
 import { logger } from '@/lib/logger'
 import type { DiditWebhookPayload } from '@/lib/didit'
-
-const dedupCache = new Set<string>()
 
 function getRejectionReason(payload: DiditWebhookPayload): string | null {
   const reasons: string[] = []
@@ -26,25 +24,35 @@ function getRejectionReason(payload: DiditWebhookPayload): string | null {
   return reasons.length > 0 ? reasons.join(', ') : null
 }
 
-async function isProcessed(eventId: string): Promise<boolean> {
-  if (dedupCache.has(eventId)) return true
-  try {
-    const admin = createAdminClient()
-    const { data } = await admin.from('webhook_events').select('id').eq('event_id', eventId).maybeSingle()
-    if (data) { dedupCache.add(eventId); return true }
-  } catch {
-    // table may not exist yet; fall back to in-memory
+function mapDiditStatus(diditStatus: string): string {
+  switch (diditStatus) {
+    case 'Approved': return 'approved'
+    case 'Declined': return 'rejected'
+    case 'Expired': return 'expired'
+    case 'In Review': return 'manual_review'
+    default: return 'unknown'
   }
-  return false
 }
 
-async function markProcessed(eventId: string) {
-  dedupCache.add(eventId)
-  try {
-    const admin = createAdminClient()
-    await admin.from('webhook_events').insert({ event_id: eventId, source: 'didit' })
-  } catch {
-    // table may not exist yet; in-memory cache is the fallback
+function getNotificationTitle(status: string): string {
+  switch (status) {
+    case 'approved': return 'Vérification approuvée'
+    case 'rejected': return 'Vérification refusée'
+    case 'expired': return 'Vérification expirée'
+    case 'manual_review': return 'Vérification en cours d\'examen'
+    default: return 'Mise à jour de la vérification'
+  }
+}
+
+function getNotificationMessage(status: string, rejectionReason?: string | null): string {
+  switch (status) {
+    case 'approved': return 'Votre identité a été vérifiée avec succès.'
+    case 'rejected': return rejectionReason
+      ? `Votre vérification a été refusée : ${rejectionReason}`
+      : 'Votre vérification d\'identité a été refusée. Veuillez réessayer.'
+    case 'expired': return 'Votre session de vérification a expiré. Veuillez relancer une vérification.'
+    case 'manual_review': return 'Votre dossier est en cours d\'examen par notre équipe. Vous recevrez une réponse sous 24 à 48 heures.'
+    default: return 'Le statut de votre vérification a été mis à jour.'
   }
 }
 
@@ -61,11 +69,6 @@ export async function POST(request: Request) {
     }
 
     const payload: DiditWebhookPayload = JSON.parse(rawBody)
-
-    if (await isProcessed(payload.event_id)) {
-      logger.info('Duplicate Didit webhook event (already processed)', { eventId: payload.event_id })
-      return NextResponse.json({ received: true })
-    }
 
     if (payload.webhook_type !== 'status.updated') {
       return NextResponse.json({ received: true })
@@ -84,92 +87,62 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const diditStatus = payload.status
-    let mappedStatus: string
+    const mappedStatus = mapDiditStatus(payload.status)
 
-    switch (diditStatus) {
-      case 'Approved':
-        mappedStatus = 'approved'
-        break
-      case 'Declined':
-        mappedStatus = 'rejected'
-        break
-      case 'Expired':
-        mappedStatus = 'expired'
-        break
-      case 'In Review':
-        mappedStatus = 'manual_review'
-        break
-      default:
-        mappedStatus = 'unknown'
+    let diditVerificationId = payload.session_id
+
+    try {
+      const decision = await getSessionDecision(payload.session_id)
+      if (decision.decision?.id_verifications?.[0]?.node_id) {
+        diditVerificationId = decision.decision.id_verifications[0].node_id
+      }
+    } catch {
+      logger.warn('Could not fetch decision details, using session_id as verification_id')
     }
 
-    const { error: updateError } = await admin
-      .from('verification_requests')
-      .update({
-        status: mappedStatus,
-        didit_verification_id: payload.session_id,
+    const rejectionReason = mappedStatus === 'rejected' ? getRejectionReason(payload) : null
+
+    const { error: rpcError } = await admin.rpc('process_verification_update', {
+      p_request_id: existing.id,
+      p_user_id: existing.user_id,
+      p_status: mappedStatus,
+      p_didit_verification_id: diditVerificationId,
+      p_rejection_reason: rejectionReason,
+    })
+
+    if (rpcError) {
+      logger.error('Failed to process verification update via RPC', { error: rpcError.message, id: existing.id })
+
+      const { error: updateError } = await admin
+        .from('verification_requests')
+        .update({
+          status: mappedStatus,
+          didit_verification_id: diditVerificationId,
+          verified_at: mappedStatus === 'approved' ? new Date().toISOString() : null,
+          rejection_reason: rejectionReason,
+        })
+        .eq('id', existing.id)
+
+      if (updateError) {
+        logger.error('Fallback update also failed', { error: updateError.message })
+        return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+      }
+
+      const profileUpdate: Record<string, unknown> = {
+        verification_status: mappedStatus,
+        is_verified: mappedStatus === 'approved',
         verified_at: mappedStatus === 'approved' ? new Date().toISOString() : null,
-        rejection_reason: mappedStatus === 'rejected' ? getRejectionReason(payload) : null,
-      })
-      .eq('id', existing.id)
-
-    if (updateError) {
-      logger.error('Failed to update verification request', { error: updateError.message, id: existing.id })
-      return NextResponse.json({ error: 'Update failed' }, { status: 500 })
-    }
-
-    const profileUpdate: Record<string, unknown> = {
-      verification_status: mappedStatus,
-    }
-
-    if (mappedStatus === 'approved') {
-      profileUpdate.is_verified = true
-      profileUpdate.verified_at = new Date().toISOString()
-      profileUpdate.didit_verification_id = payload.session_id
-    } else if (mappedStatus === 'rejected' || mappedStatus === 'expired' || mappedStatus === 'unknown') {
-      profileUpdate.is_verified = false
-      profileUpdate.verified_at = null
-    }
-
-    const { error: profileError } = await admin
-      .from('profiles')
-      .update(profileUpdate)
-      .eq('id', existing.user_id)
-
-    if (profileError) {
-      logger.error('Failed to update profile', { error: profileError.message, userId: existing.user_id })
-    }
-
-    if (mappedStatus === 'approved') {
-      const { error: notifError } = await admin
-        .from('notifications')
-        .insert({
-          user_id: existing.user_id,
-          type: 'verification',
-          title: 'Vérification approuvée',
-          message: 'Votre identité a été vérifiée avec succès.',
-        })
-
-      if (notifError) {
-        logger.error('Failed to create notification', { error: notifError.message })
+        didit_verification_id: mappedStatus === 'approved' ? diditVerificationId : null,
       }
-    } else if (mappedStatus === 'rejected') {
-      const { error: notifError } = await admin
-        .from('notifications')
-        .insert({
-          user_id: existing.user_id,
-          type: 'verification',
-          title: 'Vérification refusée',
-          message: 'Votre vérification d\'identité a été refusée. Veuillez réessayer.',
-        })
-
-      if (notifError) {
-        logger.error('Failed to create rejection notification', { error: notifError.message })
-      }
+      await admin.from('profiles').update(profileUpdate).eq('id', existing.user_id)
     }
 
-    await markProcessed(payload.event_id)
+    await admin.from('notifications').insert({
+      user_id: existing.user_id,
+      type: 'verification',
+      title: getNotificationTitle(mappedStatus),
+      message: getNotificationMessage(mappedStatus, rejectionReason),
+    })
 
     return NextResponse.json({ received: true })
   } catch (err) {

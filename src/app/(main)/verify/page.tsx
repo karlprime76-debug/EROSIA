@@ -1,12 +1,25 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, BadgeCheck, Clock, Shield, ExternalLink, AlertTriangle, RefreshCw, RotateCcw, Hourglass, HelpCircle } from 'lucide-react'
 import { getVerificationStatus, createDiditSession } from '@/lib/api'
 import { DiditSdk } from '@didit-protocol/sdk-web'
 import { useToast } from '@/components/Toast'
 import { supabase } from '@/lib/supabase/client'
+
+function normalizeStatus(s: string | undefined | null): string {
+  if (!s) return 'none'
+  const map: Record<string, string> = {
+    approved: 'approved', Approved: 'approved',
+    declined: 'rejected', Declined: 'rejected', rejected: 'rejected',
+    pending: 'pending', Pending: 'pending',
+    expired: 'expired', Expired: 'expired',
+    'in review': 'manual_review', 'In Review': 'manual_review', manual_review: 'manual_review',
+    unknown: 'unknown',
+  }
+  return map[s] ?? 'unknown'
+}
 
 export default function VerifyPage() {
   const router = useRouter()
@@ -18,13 +31,14 @@ export default function VerifyPage() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const { toast } = useToast()
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const fetchStatus = useCallback(async () => {
     setError(null)
     try {
       const result = await getVerificationStatus()
       if (result && result.status) {
-        setStatus(result.status)
+        setStatus(normalizeStatus(result.status))
         setVerifiedAt(result.verified_at)
         setRejectionReason(result.rejection_reason)
       } else {
@@ -39,7 +53,7 @@ export default function VerifyPage() {
   useEffect(() => {
     getVerificationStatus().then(result => {
       if (result && result.status) {
-        setStatus(result.status)
+        setStatus(normalizeStatus(result.status))
         setVerifiedAt(result.verified_at)
         setRejectionReason(result.rejection_reason)
       } else {
@@ -52,10 +66,9 @@ export default function VerifyPage() {
   }, [])
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel>
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      channel = supabase
+      channelRef.current = supabase
         .channel('profile_verification')
         .on(
           'postgres_changes',
@@ -64,7 +77,12 @@ export default function VerifyPage() {
         )
         .subscribe()
     })
-    return () => { if (channel) supabase.removeChannel(channel) }
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
   }, [fetchStatus])
 
   const handleDiditVerify = async () => {
@@ -76,16 +94,31 @@ export default function VerifyPage() {
         return
       }
       DiditSdk.shared.onComplete = async (result: { type: string; session?: { status?: string }; error?: { message?: string } }) => {
-        if (result.type === 'completed' && (result.session?.status === 'Approved' || result.session?.status === 'approved')) {
-          setStatus('approved')
-          setVerifiedAt(new Date().toISOString())
-          toast('Vérification réussie !', 'success')
-        } else if (result.type === 'completed' && result.session?.status === 'In Review') {
-          setStatus('manual_review')
-          toast('Votre dossier est en cours d\'examen', 'info')
-        } else if (result.type === 'completed') {
-          setStatus('pending')
-          toast('Vérification en cours de revue', 'info')
+        const sessionStatus = normalizeStatus(result.session?.status)
+        try {
+          await fetch('/api/verify/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: (await supabase.auth.getUser()).data.user?.id,
+              sessionId: result.session,
+            }),
+          })
+        } catch {
+          // Persist best-effort
+        }
+        if (result.type === 'completed') {
+          if (sessionStatus === 'approved') {
+            setStatus('approved')
+            setVerifiedAt(new Date().toISOString())
+            toast('Vérification réussie !', 'success')
+          } else if (sessionStatus === 'manual_review') {
+            setStatus('manual_review')
+            toast('Votre dossier est en cours d\'examen', 'info')
+          } else {
+            setStatus(sessionStatus)
+            toast('Vérification en cours de revue', 'info')
+          }
         } else if (result.type === 'cancelled') {
           toast('Vérification annulée', 'info')
           await fetchStatus()
