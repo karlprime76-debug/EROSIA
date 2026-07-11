@@ -1,28 +1,44 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
-import { useState } from 'react'
+import { useState, useRef, Suspense } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Venus, Mars, Check } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Venus, Mars, Check, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
 type RegisterValues = { email: string; password: string; name: string; age: number; gender: 'male' | 'female' | 'non_binary'; interestedIn: ('male' | 'female' | 'non_binary')[] }
 
-export default function RegisterPage() {
+const strengthLabels = ['', 'Faible', 'Moyen', 'Fort', 'Très fort'] as const
+const strengthColors = ['', 'var(--error)', 'var(--warning)', 'var(--success)', 'var(--success)'] as const
+
+function getPasswordStrength(pw: string): number {
+  let s = 0
+  if (pw.length >= 8) s++
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++
+  if (/[0-9]/.test(pw)) s++
+  if (/[^a-zA-Z0-9]/.test(pw)) s++
+  return s
+}
+
+function RegisterPageContent() {
   const router = useRouter()
-  const [serverError, setServerError] = useState('')
+  const searchParams = useSearchParams()
+  const [serverError, setServerError] = useState(() => {
+    const err = searchParams.get('error')
+    return err === 'session_expired' ? 'Session expirée. Inscris-toi à nouveau.' : ''
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
+  const submittedRef = useRef(false)
 
   const [referralCode, setReferralCode] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
-
 
   const [showReferralInput, setShowReferralInput] = useState(() => {
     if (typeof window !== 'undefined') return !!new URLSearchParams(window.location.search).get('ref')
@@ -35,10 +51,16 @@ export default function RegisterPage() {
   })
   const watchInterestedIn = watch('interestedIn')
   const watchGender = watch('gender')
+  const watchPassword = watch('password')
+
+  const passwordStrength = getPasswordStrength(watchPassword || '')
+  const canSubmit = agreeTerms && !isSubmitting && !submittedRef.current
 
   const onSubmit = async (data: RegisterValues) => {
+    if (submittedRef.current) return
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
     setServerError('')
+    submittedRef.current = true
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -46,10 +68,15 @@ export default function RegisterPage() {
         body: JSON.stringify({ ...data, referralCode: referralCode || undefined }),
       })
       const json = await res.json()
-      if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
+      if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); submittedRef.current = false; return }
+      if (json.autoLogin === false) {
+        setServerError('Compte créé mais connexion automatique échouée — connecte-toi.')
+        return
+      }
       router.push('/onboarding')
     } catch {
       setServerError('Erreur réseau — vérifie ta connexion')
+      submittedRef.current = false
     }
   }
 
@@ -57,7 +84,6 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 safe-pb safe-pt relative">
-      {/* Lueurs de fond */}
       <div className="pointer-events-none absolute top-1/4 right-1/4 w-72 h-72 rounded-full bg-[var(--primary)] blur-[160px] opacity-[0.07]" />
       <div className="pointer-events-none absolute bottom-1/4 left-1/4 w-64 h-64 rounded-full bg-[var(--accent-warm)] blur-[140px] opacity-[0.05]" />
 
@@ -74,7 +100,6 @@ export default function RegisterPage() {
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-[var(--primary)] blur-3xl opacity-[0.08] pointer-events-none" />
 
           <div className="relative z-10 p-7 sm:p-8 space-y-5">
-            {/* Logo & Titre */}
             <div className="text-center space-y-2">
               <motion.div
                 initial={{ scale: 0, rotate: -15 }}
@@ -105,7 +130,6 @@ export default function RegisterPage() {
               </motion.p>
             </div>
 
-            {/* Erreur */}
             <AnimatePresence>
               {firstError && (
                 <motion.div
@@ -121,9 +145,7 @@ export default function RegisterPage() {
               )}
             </AnimatePresence>
 
-            {/* Formulaire */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5" noValidate>
-              {/* Prénom */}
               <div className="space-y-1.5">
                 <label htmlFor="reg-name" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Prénom</label>
                 <div className="relative group">
@@ -141,7 +163,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email */}
               <div className="space-y-1.5">
                 <label htmlFor="reg-email" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Email</label>
                 <div className="relative group">
@@ -159,7 +180,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Mot de passe */}
               <div className="space-y-1.5">
                 <label htmlFor="reg-password" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Mot de passe</label>
                 <div className="relative group">
@@ -172,6 +192,7 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="8 caractères minimum"
                     autoComplete="new-password"
+                    minLength={8}
                     className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                   <button
@@ -183,9 +204,19 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+                {watchPassword && watchPassword.length >= 8 && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex gap-1 flex-1">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-1 flex-1 rounded-full transition-colors"
+                          style={{ background: i <= passwordStrength ? strengthColors[passwordStrength] : 'rgba(255,255,255,0.1)' }} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-muted">{strengthLabels[passwordStrength]}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Âge */}
               <div className="space-y-1.5">
                 <label htmlFor="reg-age" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Âge</label>
                 <div className="relative group">
@@ -198,13 +229,13 @@ export default function RegisterPage() {
                     type="number"
                     placeholder="Ton âge (18+)"
                     min={18}
-                    max={120}
+                    max={100}
+                    inputMode="numeric"
                     className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
 
-              {/* Genre */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-secondary block tracking-wider uppercase">Je suis</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -224,7 +255,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Intérêt */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-secondary block tracking-wider uppercase">Je cherche</label>
                 <div className="flex flex-wrap gap-2">
@@ -249,7 +279,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Checkbox CGU */}
               <label className="flex items-start gap-3 cursor-pointer group pt-1" htmlFor="reg-terms">
                 <div
                   onClick={() => setAgreeTerms(v => !v)}
@@ -276,7 +305,6 @@ export default function RegisterPage() {
                 </span>
               </label>
 
-              {/* Code de parrainage */}
               {!showReferralInput ? (
                 <button type="button" onClick={() => setShowReferralInput(true)}
                   className="text-xs text-muted hover:text-secondary transition-colors duration-200 flex items-center gap-1.5 mx-auto">
@@ -285,7 +313,13 @@ export default function RegisterPage() {
                 </button>
               ) : (
                 <div className="space-y-1.5">
-                  <label htmlFor="reg-ref" className="text-xs font-semibold text-secondary block tracking-wider uppercase">Code de parrainage (optionnel)</label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="reg-ref" className="text-xs font-semibold text-secondary tracking-wider uppercase">Code de parrainage (optionnel)</label>
+                    <button type="button" onClick={() => setShowReferralInput(false)}
+                      className="text-muted hover:text-theme transition-colors p-1" aria-label="Fermer">
+                      <X size={14} />
+                    </button>
+                  </div>
                   <div className="relative group">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-200">
                       <Gift size={15} />
@@ -304,24 +338,28 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* CTA */}
               <div className="pt-2">
                 <Button
                   type="submit"
                   variant="premium"
                   size="pill-lg"
                   loading={isSubmitting}
-                  disabled={isSubmitting || !agreeTerms}
+                  disabled={!canSubmit}
                   className="w-full text-sm font-semibold tracking-wide"
                   id="register-submit"
+                  title={!agreeTerms ? "Accepte les conditions d'utilisation pour continuer" : undefined}
                 >
                   {isSubmitting ? 'Création…' : 'Créer mon compte'}
                   {!isSubmitting && <ArrowRight size={18} />}
                 </Button>
+                {!agreeTerms && (
+                  <p className="text-[10px] text-muted text-center mt-1">
+                    Accepte les CGU pour créer ton compte
+                  </p>
+                )}
               </div>
             </form>
 
-            {/* Lien vers login */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-theme" />
               <span className="text-xs text-muted font-medium tracking-wider uppercase">ou</span>
@@ -338,5 +376,13 @@ export default function RegisterPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 rounded-full" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} /></div>}>
+      <RegisterPageContent />
+    </Suspense>
   )
 }

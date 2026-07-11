@@ -2,13 +2,12 @@ import { z } from 'zod'
 
 export const registerSchema = z.object({
   email: z.string().email('Email invalide').max(255),
-  password: z.string().min(8, '8 caractères minimum').max(128)
-    .regex(/[A-Z]/, 'Au moins une majuscule requise')
-    .regex(/[0-9]/, 'Au moins un chiffre requis'),
+  password: z.string().min(8, '8 caractères minimum').max(128),
   name: z.string().min(1, 'Nom requis').max(80).transform(v => v.trim()).refine(v => v.length > 0, 'Nom requis'),
-  age: z.number().int().min(18, 'Tu dois avoir au moins 18 ans').max(120),
+  age: z.number().int().min(18, 'Tu dois avoir au moins 18 ans').max(100),
   gender: z.enum(['male', 'female', 'non_binary'], { message: 'Choisis ton genre' }),
   interestedIn: z.array(z.enum(['male', 'female', 'non_binary'])).min(1, 'Sélectionne au moins un genre'),
+  referralCode: z.string().max(20).optional(),
 })
 
 export const sendMessageSchema = z.object({
