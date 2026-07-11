@@ -2,18 +2,21 @@
 
 import { useState, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield, Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { logger } from '@/lib/logger'
 import { useToast } from '@/components/Toast'
+import { useLocale } from '@/lib/i18n'
+import type { Locale } from '@/lib/i18n/types'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { confirm } = useConfirm()
   const { toast } = useToast()
+  const { locale: currentLocale, setLocale } = useLocale()
   const [deleting, setDeleting] = useState(false)
   const [visibility, setVisibility] = useState('all')
   const [notifPush, setNotifPush] = useState(true)
@@ -192,6 +195,24 @@ const handleDelete = async () => {
           icon: Shield, label: 'Centre de sécurité',
           desc: 'Conseils, consentement, blocages et signalements',
           onClick: () => router.push('/safety'),
+        },
+      ],
+    },
+    {
+      title: 'Langue',
+      items: [
+        {
+          icon: Globe, label: 'Langue',
+          render: () => (
+            <div className="flex gap-2 mt-1">
+              {(['fr', 'en'] as Locale[]).map(l => (
+                <button type="button" key={l} onClick={() => setLocale(l)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${currentLocale === l ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
+                  {l === 'fr' ? 'Français' : 'English'}
+                </button>
+              ))}
+            </div>
+          ),
         },
       ],
     },

@@ -8,6 +8,7 @@ import { Providers } from '@/components/Providers'
 import { DynamicBackground } from '@/components/DynamicBackground'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { LocaleProvider } from '@/lib/i18n'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -56,16 +57,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DynamicBackground />
           <SwRegister />
           <div className="relative z-10 flex-1 flex flex-col">
-            <Providers>
-              <ToastProvider>
-                <ConfirmProvider>
-                  <ErrorBoundary>
+              <Providers>
+                <LocaleProvider>
+                  <ToastProvider>
+                    <ConfirmProvider>
+                      <ErrorBoundary>
                     <main id="main-content" className="flex-1 flex flex-col">
                       {children}
                     </main>
                   </ErrorBoundary>
                 </ConfirmProvider>
               </ToastProvider>
+                </LocaleProvider>
             </Providers>
           </div>
         </ThemeProvider>

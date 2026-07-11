@@ -7,14 +7,15 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Compass, Heart, Bell, User, Film, Calendar } from 'lucide-react'
 import { getNotificationUnreadCount } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
+import { useLocale } from '@/lib/i18n'
 
 const tabs = [
-  { href: '/discover', icon: Compass, label: 'Explorer' },
-  { href: '/matches', icon: Heart, label: 'Matchs' },
-  { href: '/stories', icon: Film, label: 'Stories' },
-  { href: '/notifications', icon: Bell, label: 'Actus' },
-  { href: '/dates', icon: Calendar, label: 'Rendez-vous' },
-  { href: '/island', icon: User, label: 'Profil' },
+  { href: '/discover', icon: Compass, key: 'nav_discover' as const },
+  { href: '/matches', icon: Heart, key: 'nav_matches' as const },
+  { href: '/stories', icon: Film, key: 'nav_stories' as const },
+  { href: '/notifications', icon: Bell, key: 'nav_notifications' as const },
+  { href: '/dates', icon: Calendar, key: 'nav_dates' as const },
+  { href: '/island', icon: User, key: 'nav_profile' as const },
 ]
 
 export function ContentShell({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export function ContentShell({ children }: { children: React.ReactNode }) {
 
 export function TabBar() {
   const pathname = usePathname()
+  const { t } = useLocale()
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
@@ -81,7 +83,8 @@ export function TabBar() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--border)] to-transparent" />
 
         <div className="flex items-center justify-around px-1 py-2">
-          {tabs.map(({ href, icon: Icon, label }) => {
+          {tabs.map(({ href, icon: Icon, key }) => {
+            const label = t(key)
             const active = isActive(href)
             return (
               <Link
