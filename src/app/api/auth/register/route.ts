@@ -4,8 +4,6 @@ import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
-import { verifyTurnstile, turnstileGuard } from '@/lib/turnstile'
-
 const admin = createAdminClient()
 
 async function applyReferralCode(code: string, newUserId: string): Promise<{ error?: string }> {
@@ -21,15 +19,6 @@ async function applyReferralCode(code: string, newUserId: string): Promise<{ err
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const turnstileToken: string | undefined = body.turnstileToken
-
-    if (turnstileGuard(turnstileToken)) {
-      const result = await verifyTurnstile(turnstileToken ?? '')
-      if (!result.ok) {
-        return NextResponse.json({ error: 'Vérification de sécurité échouée. Recharge la page ou réessaie.' }, { status: 403 })
-      }
-    }
-
     const parsed = registerSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'

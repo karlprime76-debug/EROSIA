@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import { Sparkles } from 'lucide-react'
@@ -11,74 +11,17 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [captchaFailed, setCaptchaFailed] = useState(false)
-  const captchaLoadedRef = useRef(false)
 
-  useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    if (!siteKey) { captchaLoadedRef.current = true; return }
-    const existing = document.querySelector('script[src*="turnstile/v0/api.js"]')
-    if (existing) { captchaLoadedRef.current = true; return }
-    let cancelled = false
-    const timeout = setTimeout(() => {
-      if (!captchaLoadedRef.current && !cancelled) {
-        captchaLoadedRef.current = true
-        setCaptchaFailed(true)
-      }
-    }, 10000)
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-    script.async = true
-    script.onload = () => {
-      if (cancelled) return
-      clearTimeout(timeout)
-      captchaLoadedRef.current = true
-      try {
-        const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
-        if (!w.turnstile?.render) { setCaptchaFailed(true); return }
-        w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
-      } catch { setCaptchaFailed(true) }
-    }
-    script.onerror = () => {
-      if (cancelled) return
-      clearTimeout(timeout)
-      captchaLoadedRef.current = true
-      setCaptchaFailed(true)
-    }
-    document.head.appendChild(script)
-    return () => { cancelled = true; clearTimeout(timeout) }
-  }, [])
-
-  const getTurnstileToken = (): string => {
-    if (captchaFailed) return '__skip__'
-    try {
-      const w = window as unknown as { turnstile?: { getResponse: () => string } }
-      if (w.turnstile?.getResponse) {
-        const token = w.turnstile.getResponse()
-        if (token) return token
-        if (captchaLoadedRef.current) return '__skip__'
-        return ''
-      }
-      if (captchaLoadedRef.current) return '__skip__'
-    } catch {}
-    return ''
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true); setError('')
     if (!email.trim()) { setError('Email requis'); setLoading(false); return }
-    const turnstileToken = getTurnstileToken()
-    if (!captchaFailed && !turnstileToken && !captchaLoadedRef.current) {
-      setError('Vérification de sécurité pas encore chargée — attends un instant')
-      setLoading(false)
-      return
-    }
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, turnstileToken }),
+        body: JSON.stringify({ email }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Erreur'); setLoading(false); return }
@@ -152,16 +95,6 @@ export default function ForgotPasswordPage() {
                   placeholder:text-[var(--text-muted)]" />
             </div>
             {error && <p role="alert" className="text-sm text-[var(--error)] text-center">{error}</p>}
-
-            {/* Turnstile */}
-            <div className="flex justify-center">
-              <div id="turnstile-widget" data-size="flexible" data-theme="dark" />
-              {captchaFailed && (
-                <p className="text-xs text-muted text-center">
-                  Captcha non disponible — vérifie ta connexion ou désactive ton bloqueur de scripts
-                </p>
-              )}
-            </div>
 
             <Button type="submit" variant="premium" size="pill-lg" loading={loading} className="w-full">
               {loading ? 'Envoi…' : 'Envoyer le lien'}

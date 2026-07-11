@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '@/lib/validations'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Eye, EyeOff, Sparkles, ArrowRight, Gift, Mail, Lock, User, Calendar, Venus, Mars, Check } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 
 type RegisterValues = { email: string; password: string; name: string; age: number; gender: 'male' | 'female' | 'non_binary'; interestedIn: ('male' | 'female' | 'non_binary')[] }
@@ -17,47 +18,11 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
-  const [captchaFailed, setCaptchaFailed] = useState(false)
-  const captchaLoadedRef = useRef(false)
+
   const [referralCode, setReferralCode] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
   )
-  useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    if (!siteKey) { captchaLoadedRef.current = true; return }
-    const existing = document.querySelector('script[src*="turnstile/v0/api.js"]')
-    if (existing) { captchaLoadedRef.current = true; return }
-    let cancelled = false
-    const timeout = setTimeout(() => {
-      if (!captchaLoadedRef.current && !cancelled) {
-        console.warn('Turnstile timeout (10s) — captcha skipped')
-        captchaLoadedRef.current = true
-        setCaptchaFailed(true)
-      }
-    }, 10000)
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-    script.async = true
-    script.onload = () => {
-      if (cancelled) return
-      clearTimeout(timeout)
-      captchaLoadedRef.current = true
-      try {
-        const w = window as unknown as { turnstile?: { render: (id: string, opts: Record<string, string>) => void } }
-        if (!w.turnstile?.render) { setCaptchaFailed(true); return }
-        w.turnstile.render('turnstile-widget', { sitekey: siteKey, theme: 'dark' })
-      } catch { setCaptchaFailed(true) }
-    }
-    script.onerror = () => {
-      if (cancelled) return
-      clearTimeout(timeout)
-      console.warn('Turnstile CDN blocked — captcha skipped')
-      captchaLoadedRef.current = true
-      setCaptchaFailed(true)
-    }
-    document.head.appendChild(script)
-    return () => { cancelled = true; clearTimeout(timeout) }
-  }, [])
+
 
   const [showReferralInput, setShowReferralInput] = useState(() => {
     if (typeof window !== 'undefined') return !!new URLSearchParams(window.location.search).get('ref')
@@ -71,40 +36,14 @@ export default function RegisterPage() {
   const watchInterestedIn = watch('interestedIn')
   const watchGender = watch('gender')
 
-  const getTurnstileToken = (): string => {
-    if (captchaFailed) return '__skip__'
-    try {
-      const w = window as unknown as { turnstile?: { getResponse: () => string } }
-      if (w.turnstile?.getResponse) {
-        const token = w.turnstile.getResponse()
-        if (token) return token
-        if (captchaLoadedRef.current) {
-          console.warn('Turnstile loaded but no token — skip')
-          return '__skip__'
-        }
-        return ''
-      }
-      if (captchaLoadedRef.current) {
-        console.warn('Turnstile ref done but object missing — skip')
-        return '__skip__'
-      }
-    } catch {}
-    return ''
-  }
-
   const onSubmit = async (data: RegisterValues) => {
     if (!agreeTerms) { setServerError("Tu dois accepter les conditions d'utilisation"); return }
-    const turnstileToken = getTurnstileToken()
-    if (!captchaFailed && !turnstileToken && !captchaLoadedRef.current) {
-      setServerError('Vérification de sécurité pas encore chargée — attends un instant')
-      return
-    }
     setServerError('')
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, referralCode: referralCode || undefined, turnstileToken }),
+        body: JSON.stringify({ ...data, referralCode: referralCode || undefined }),
       })
       const json = await res.json()
       if (!res.ok) { setServerError(json.error ?? "Erreur lors de l'inscription"); return }
@@ -364,16 +303,6 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
-
-              {/* Turnstile */}
-              <div className="flex justify-center">
-                <div id="turnstile-widget" data-size="flexible" data-theme="dark" />
-                {captchaFailed && (
-                  <p className="text-xs text-muted text-center">
-                    Captcha non disponible — vérifie ta connexion ou désactive ton bloqueur de scripts
-                  </p>
-                )}
-              </div>
 
               {/* CTA */}
               <div className="pt-2">

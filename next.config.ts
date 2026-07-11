@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
-const turnstileSrc = 'https://challenges.cloudflare.com'
-const googleSrc = 'https://www.google.com https://www.gstatic.com'
 const cspScriptSrc = process.env.NODE_ENV === 'development'
-  ? `'self' 'unsafe-inline' 'unsafe-eval' ${turnstileSrc} ${googleSrc} https://vercel.live`
-  : `'self' 'unsafe-inline' ${turnstileSrc} ${googleSrc} https://vercel.live`
+  ? `'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live`
+  : `'self' 'unsafe-inline' https://vercel.live`
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -27,7 +25,7 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(self)' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
-          { key: 'Content-Security-Policy', value: `default-src 'self'; script-src ${cspScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://vxycbjwmovfzywyvrjql.supabase.co wss://vxycbjwmovfzywyvrjql.supabase.co https://raw.githubusercontent.com https://raw.githack.com https://vercel.live wss://*.vercel.live; frame-src 'self' ${turnstileSrc} https://vercel.live; object-src 'none'; base-uri 'self'; form-action 'self'` },
+          { key: 'Content-Security-Policy', value: `default-src 'self'; script-src ${cspScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://vxycbjwmovfzywyvrjql.supabase.co wss://vxycbjwmovfzywyvrjql.supabase.co https://raw.githubusercontent.com https://raw.githack.com https://vercel.live wss://*.vercel.live; frame-src 'self' https://vercel.live; object-src 'none'; base-uri 'self'; form-action 'self'` },
         ],
       },
       {
