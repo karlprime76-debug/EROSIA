@@ -81,10 +81,10 @@ export default function DatesPage() {
   useEffect(() => { if (!loadedRef.current) { loadedRef.current = true; loadDates() } }, [loadDates])
 
   const handleRespond = async (dateId: string, accept: boolean, slotId?: string) => {
-    const res = await fetch('/api/dates/respond', {
+    const res = await fetch(`/api/dates/${dateId}/respond`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId, accept, slotId }),
+      body: JSON.stringify({ accept, slotId }),
     })
     const json = await res.json()
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }
@@ -93,10 +93,9 @@ export default function DatesPage() {
   }
 
   const handleCancel = async (dateId: string) => {
-    const res = await fetch(`/api/dates/cancel`, {
+    const res = await fetch(`/api/dates/${dateId}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId }),
     })
     const json = await res.json()
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }
@@ -105,10 +104,9 @@ export default function DatesPage() {
   }
 
   const handleConfirm = async (dateId: string) => {
-    const res = await fetch(`/api/dates/confirm`, {
+    const res = await fetch(`/api/dates/${dateId}/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId }),
     })
     const json = await res.json()
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }

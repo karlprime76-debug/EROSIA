@@ -244,10 +244,8 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
   }
 
   const handleDelete = async (storyId: string) => {
-    try {
-      const res = await fetch(`/api/stories/${storyId}`, { method: 'DELETE' })
-      if (res.ok) { onDelete?.(storyId); next() }
-    } catch { logger.warn('Delete failed') }
+    onDelete?.(storyId)
+    next()
   }
 
   const handleArchive = async (storyId: string) => {

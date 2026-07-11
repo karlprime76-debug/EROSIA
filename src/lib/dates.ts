@@ -84,10 +84,10 @@ export async function proposeDate(input: ProposeDateInput): Promise<{ data: Plan
 
 export async function respondToDate(dateId: string, accept: boolean, slotId?: string): Promise<{ error: string | null }> {
   try {
-    const res = await fetch('/api/dates/respond', {
+    const res = await fetch(`/api/dates/${dateId}/respond`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId, accept, slotId }),
+      body: JSON.stringify({ accept, slotId }),
     })
     const json = await res.json()
     if (!res.ok) return { error: json.error ?? 'Erreur' }
@@ -99,10 +99,10 @@ export async function respondToDate(dateId: string, accept: boolean, slotId?: st
 
 export async function cancelDate(dateId: string, reason?: string): Promise<{ error: string | null }> {
   try {
-    const res = await fetch(`/api/dates/cancel`, {
+    const res = await fetch(`/api/dates/${dateId}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId, reason }),
+      body: JSON.stringify({ reason }),
     })
     const json = await res.json()
     if (!res.ok) return { error: json.error ?? 'Erreur' }
@@ -114,10 +114,9 @@ export async function cancelDate(dateId: string, reason?: string): Promise<{ err
 
 export async function confirmDate(dateId: string): Promise<{ error: string | null }> {
   try {
-    const res = await fetch(`/api/dates/confirm`, {
+    const res = await fetch(`/api/dates/${dateId}/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dateId }),
     })
     const json = await res.json()
     if (!res.ok) return { error: json.error ?? 'Erreur' }
