@@ -65,8 +65,7 @@ export default function OnboardingPage() {
       logger.error('Auth error', { error: String(err) })
       toast('Erreur de chargement', 'error')
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router])
+  }, [router, toast])
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>, slotIndex: number) => {
     const file = e.target.files?.[0]

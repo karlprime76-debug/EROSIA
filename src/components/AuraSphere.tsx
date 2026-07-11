@@ -201,7 +201,22 @@ export function useAura(userId?: string) {
     setLoading(false)
   }, [userId])
 
-  useEffect(() => { refresh() }, [refresh]) // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      try {
+        const url = userId ? `/api/aura?userId=${userId}` : '/api/aura'
+        const res = await fetch(url)
+        const json = await res.json()
+        if (json.aura) setAura(json.aura)
+        else setError(json.error)
+      } catch {
+        setError('Erreur réseau')
+      }
+      setLoading(false)
+    }
+    init()
+  }, [userId])
 
   return { aura, loading, error, refresh, recompute }
 }

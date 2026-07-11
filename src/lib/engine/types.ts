@@ -1,6 +1,4 @@
-// Generic Supabase client type compatible with both browser and admin clients.
-// Using `any` here is intentional to avoid coupling the engine layer to a specific
-// Supabase client import (browser vs server vs admin).
+// Loose type for Supabase clients (browser/server/admin variants differ).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SupabaseClientLike = any
 

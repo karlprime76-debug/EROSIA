@@ -1,6 +1,6 @@
 'use client'
 
-export default function MainError({ reset }: { error: Error; reset: () => void }) {
+export function ErrorFallback({ reset }: { error?: Error; reset: () => void }) {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-transparent">
       <div className="glass-card rounded-3xl p-8 max-w-sm w-full text-center">

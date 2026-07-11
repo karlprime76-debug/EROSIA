@@ -34,7 +34,6 @@ const MOOD_COMPAT: Record<Mood, Mood[]> = {
 
 const ICEBREAKER_TEMPLATES = [
   // Intérêts partagés
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (myInterests: string[], theirInterests: string[], _myMood: Mood, _theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const shared = myInterests.filter(i => theirInterests.includes(i))
     if (shared.length > 0) {
@@ -51,7 +50,6 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Mood compatible
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (_myInterests: string[], _theirInterests: string[], myMood: Mood, theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const isCompat = MOOD_COMPAT[myMood]?.includes(theirMood) ?? false
     if (isCompat) {
@@ -72,7 +70,6 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Intentions alignées
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (_myInterests: string[], _theirInterests: string[], _myMood: Mood, _theirMood: Mood, myLF: LookingFor, theirLF: LookingFor, _location: string | null): string | null => {
     if (myLF === theirLF) {
       const sameLF = [
@@ -85,7 +82,6 @@ const ICEBREAKER_TEMPLATES = [
   },
 
   // Interêt unique chez l'autre
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (myInterests: string[], theirInterests: string[], _myMood: Mood, _theirMood: Mood, _myLF: LookingFor, _theirLF: LookingFor, _location: string | null): string | null => {
     const unique = theirInterests.filter(i => !myInterests.includes(i))
     if (unique.length > 0) {

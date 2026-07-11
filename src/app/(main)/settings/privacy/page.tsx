@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Eye, Shield, Lock, MessageCircle, Bell, BookUser, Radar } from 'lucide-react'
 import { useToast } from '@/components/Toast'
@@ -53,12 +53,15 @@ export default function PrivacyPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  const fetched = useRef(false)
   useEffect(() => {
+    if (fetched.current) return
+    fetched.current = true
     fetch('/api/privacy').then(r => r.json()).then(j => {
       if (j.settings) setSettings(j.settings)
       setLoading(false)
     }).catch(() => { setLoading(false); toast('Erreur chargement', 'error') })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [toast])
 
   const update = async (patch: Partial<PrivacySettings>) => {
     if (!settings) return

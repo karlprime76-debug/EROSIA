@@ -34,7 +34,7 @@ class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError
 }
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock, BarChart3, Brain, Plane } from 'lucide-react'
+import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock, BarChart3, Brain, Plane, Sparkles, CalendarDays, Lightbulb } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -246,6 +246,10 @@ function ProfilePageInner() {
     { icon: BarChart3, label: 'Statistiques', desc: 'Activité & progression', action: () => router.push('/stats') },
     { icon: Brain, label: 'Coach IA', desc: 'Améliore ton profil', action: () => router.push('/coach') },
     { icon: Plane, label: 'Mode voyage', desc: 'Change ta localisation', action: () => router.push('/travel') },
+    { icon: Sparkles, label: 'Quiz compatibilité', desc: 'Trouve ton match parfait', action: () => router.push('/quiz') },
+    { icon: CalendarDays, label: 'Événements', desc: 'Rencontres & sorties', action: () => router.push('/events') },
+    { icon: Lightbulb, label: 'Idées de rendez-vous', desc: 'Inspire-toi', action: () => router.push('/date-ideas') },
+    { icon: Star, label: 'Profil du jour', desc: 'Un profil mis en avant', action: () => router.push('/daily-profile') },
     { icon: HelpCircle, label: 'Aide', desc: 'Support & FAQ', action: () => router.push('/faq') },
     { icon: LogOut, label: 'Déconnexion', desc: '', danger: true, action: handleLogout },
   ]

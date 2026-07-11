@@ -80,7 +80,7 @@ export default async function proxy(request: NextRequest) {
 
   // ── CSRF Protection ──
   // Protect mutating API requests against cross-site attacks
-  if (pathname.startsWith('/api/') && isMutation && pathname !== '/api/paydunya/webhook' && pathname !== '/api/verify/webhook') {
+  if (pathname.startsWith('/api/') && isMutation && pathname !== '/api/paydunya/webhook' && pathname !== '/api/paydunya/payout-callback' && pathname !== '/api/verify/webhook') {
     const originHeader = request.headers.get('origin')
     const referer = request.headers.get('referer')
     const allowed = ALLOWED_ORIGINS.some(ao =>
