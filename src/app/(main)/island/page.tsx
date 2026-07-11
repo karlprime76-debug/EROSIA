@@ -34,7 +34,7 @@ class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError
 }
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock } from 'lucide-react'
+import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock, BarChart3, Brain, Plane } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -243,6 +243,9 @@ function ProfilePageInner() {
     { icon: Shield, label: 'Paramètres', desc: 'Confidentialité, notifications', action: () => router.push('/settings') },
     { icon: Lock, label: 'Confidentialité', desc: 'Mode privé, visibilité', action: () => router.push('/settings/privacy') },
     { icon: Palette, label: 'Apparence', desc: 'Thème sombre/clair', action: () => setThemePicker(true) },
+    { icon: BarChart3, label: 'Statistiques', desc: 'Activité & progression', action: () => router.push('/stats') },
+    { icon: Brain, label: 'Coach IA', desc: 'Améliore ton profil', action: () => router.push('/coach') },
+    { icon: Plane, label: 'Mode voyage', desc: 'Change ta localisation', action: () => router.push('/travel') },
     { icon: HelpCircle, label: 'Aide', desc: 'Support & FAQ', action: () => router.push('/faq') },
     { icon: LogOut, label: 'Déconnexion', desc: '', danger: true, action: handleLogout },
   ]

@@ -58,6 +58,7 @@ function ContrastValidator() {
     if (typeof window === 'undefined' || process.env.NODE_ENV !== 'development') return
 
     const checkContrast = () => {
+      if (process.env.NODE_ENV !== 'development') return
       const styles = window.getComputedStyle(document.documentElement)
       const pairsToCheck = [
         { text: '--textPrimary', bg: '--bg', label: 'Primary Text on Background', min: 4.5 },

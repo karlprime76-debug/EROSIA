@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 const resetSchema = z.object({
-  password: z.string().min(8, '8 caractères minimum'),
+  password: z.string().min(8, '8 caractères minimum').max(128),
 })
 
 export async function POST(request: Request) {

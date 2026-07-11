@@ -293,3 +293,24 @@ export async function getStoryById(storyId: string): Promise<{ data: Story | nul
 
   return { data: data as Story | null, error: error?.message }
 }
+
+export async function archiveStory(storyId: string): Promise<{ error?: string }> {
+  try {
+    const res = await fetch(`/api/stories/${storyId}/archive`, { method: 'POST' })
+    if (!res.ok) {
+      const json = await res.json()
+      return { error: json.error ?? 'Erreur' }
+    }
+    return {}
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
+}
+
+export async function getArchivedStories(): Promise<{ data: Story[]; error?: string }> {
+  const { data: { user } } = await supabase().auth.getUser()
+  if (!user) return { data: [], error: 'Not authenticated' }
+  const { data, error } = await supabase()
+    .rpc('get_archived_stories', { p_user_id: user.id })
+  return { data: (data ?? []) as Story[], error: error?.message }
+}

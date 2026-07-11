@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
+  password: z.string().min(8, '8 caractères minimum'),
 })
 
 export async function POST(request: Request) {
@@ -21,11 +21,12 @@ export async function POST(request: Request) {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
+      logger.warn('Login failed', { email: email.replace(/(?<=.).(?=.*@)/g, '*'), error: authError.message })
       const message = authError.message === 'Invalid login credentials'
         ? 'Email ou mot de passe incorrect'
         : authError.message === 'Email not confirmed'
           ? 'Email non confirmé — vérifie ta boîte mail'
-          : authError.message
+          : 'Email ou mot de passe incorrect'
       return NextResponse.json({ error: message }, { status: 401 })
     }
 

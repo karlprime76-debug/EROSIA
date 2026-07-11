@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag } from 'lucide-react'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag, Crown } from 'lucide-react'
 import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile, type Gender } from '@/lib/api'
 import { getPrivacySettings } from '@/lib/privacy'
 import { getActiveStories } from '@/lib/stories'
@@ -515,6 +515,9 @@ export default function DiscoverPage() {
               className="w-full py-3 rounded-full text-theme font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-primary shadow-glow hover:shadow-glow">
               Appliquer les filtres
             </button>
+            <Link href="/search" className="block text-center text-xs text-primary/70 hover:text-primary underline underline-offset-2 mt-1">
+              Recherche avancée →
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>
@@ -690,6 +693,9 @@ export default function DiscoverPage() {
                         {current.is_verified
                           ? <BadgeCheck size={17} className="inline ml-1.5 text-info drop-shadow-[0_0_8px_var(--info)]" />
                           : <span className="inline ml-1.5 text-[10px] font-semibold text-[var(--warning)] border border-[var(--warning)]/30 rounded-full px-2 py-0.5">Non vérifié</span>}
+                        {current.subscription_tier === 'premium' && (
+                          <Crown size={16} className="inline ml-1 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]" />
+                        )}
                       </h2>
                       {current.age && <span className="text-lg text-theme/75 font-semibold">{current.age}</span>}
                     </div>

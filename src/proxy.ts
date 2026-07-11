@@ -50,7 +50,7 @@ function isKnownHost(request: NextRequest): boolean {
     'erosia-app.vercel.app',
     'erosia-alpha.vercel.app',
   ].filter(Boolean) as string[]
-  return known.some(k => host === k || host.endsWith('.vercel.app'))
+  return known.some(k => host === k)
 }
 
 function originMatchesHost(originHeader: string | null, request: NextRequest): boolean {
@@ -80,7 +80,7 @@ export default async function proxy(request: NextRequest) {
 
   // ── CSRF Protection ──
   // Protect mutating API requests against cross-site attacks
-  if (pathname.startsWith('/api/') && isMutation && !pathname.startsWith('/api/paydunya/webhook') && !pathname.startsWith('/api/verify/webhook')) {
+  if (pathname.startsWith('/api/') && isMutation && pathname !== '/api/paydunya/webhook' && pathname !== '/api/verify/webhook') {
     const originHeader = request.headers.get('origin')
     const referer = request.headers.get('referer')
     const allowed = ALLOWED_ORIGINS.some(ao =>
@@ -111,7 +111,7 @@ export default async function proxy(request: NextRequest) {
               ...options,
               secure,
               sameSite: 'lax',
-              httpOnly: name.startsWith('sb-'),
+              httpOnly: true,
             })
           )
         },
@@ -125,7 +125,7 @@ export default async function proxy(request: NextRequest) {
     let maxReqs = 30
     if (pathname === '/api/auth/register') maxReqs = 10
     else if (pathname === '/api/auth/delete-account') maxReqs = 5
-    else if (pathname === '/api/auth/callback') maxReqs = 10
+    else if (pathname === '/auth/callback') maxReqs = 10
     else if (pathname === '/api/delete-match') maxReqs = 5
     else if (pathname.includes('/paydunya/')) maxReqs = 10
 
@@ -159,7 +159,7 @@ export default async function proxy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paydunya.com https://api.didit.me https://*.vercel.app",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paydunya.com https://api.didit.me https://*.vercel.app https: http:",
     "frame-src 'self' https://challenges.cloudflare.com https://www.google.com",
     "frame-ancestors 'self'",
     "media-src 'self' https:",

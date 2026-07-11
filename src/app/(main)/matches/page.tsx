@@ -6,20 +6,7 @@ import Image from 'next/image'
 import { Search, MessageCircle, X, Star, Archive, MoreHorizontal, ShieldOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { unmatchUser } from '@/lib/api'
-
-function formatMessageTime(date: string | Date) {
-  const d = new Date(date)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  if (diff < 86400000) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  if (diff < 172800000) return 'Hier'
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-}
-
-function truncateMessage(text: string | null | undefined, max = 80) {
-  if (!text) return ''
-  return text.length > max ? text.slice(0, max) + '…' : text
-}
+import { formatMessageTime, truncateMessage } from '@/lib/chat/utils'
 import { MatchesSkeleton } from '@/components/Skeleton'
 import { OnlineStatus } from '@/components/chat/OnlineStatus'
 import { TypingDots } from '@/components/chat/TypingIndicator'

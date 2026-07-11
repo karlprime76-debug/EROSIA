@@ -53,7 +53,29 @@ Variables d'environnement à définir dans Vercel (cf .env.example) :
 - `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `PAYDUNYA_MODE`
 - `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_WEBHOOK_SECRET`
 
-Le service email intégré Supabase (Resend) est actif par défaut sur free plan — templates en anglais uniquement. Pour les personnaliser en français, passer au plan Pro ou configurer un SMTP custom.
+## Audit 2026-07 — 138 findings (🔴/🟡/🟢)
+
+### Phase 1 🔴 (all fixed)
+- `proxy.ts` : `isKnownHost` restreint (plus `.endsWith('.vercel.app')`), webhook exclusion exacte, `httpOnly: true` unifié, rate limit key `/auth/callback`
+- `login/route.ts` : password `min(8)`, erreurs anonymisées, `logger.warn` avec email masqué
+- `delete-account/route.ts` : prefix `profile_videos` corrigé (`${uid}/`), messages batch delete 50/50, retourne `errors` au lieu de fail
+- `auth/callback/route.ts` : rewrite complet avec try/catch, erreurs OAuth, redirect allowlist, logging
+- `ThemeProvider.tsx` : `console.log` du ContrastValidator wrappé dans `NODE_ENV` guard
+- `reset-password/route.ts` : password `max(128)` ajouté
+- `validations.ts` : deleteAccountSchema password `min(8)`
+- `next.config.ts` : CSP `connect-src` dynamique via `NEXT_PUBLIC_SUPABASE_URL`, plus de projectId hardcodé
+
+### Phase 2 🟡 (all fixed)
+- `formatMessageTime` : consolidé dans `@/lib/chat/utils`, imports dans `MessageBubble.tsx` et `matches/page.tsx`
+- `MainLayout` : séparé en serveur (`layout.tsx`) + client (`tab-bar.tsx`), `ContentShell` pour padding nav
+- `onboarding` : ajout `error.tsx` boundary
+- `StoryReader.tsx` : `catch {}` remplacé par `catch (e) { logger.warn(...) }`
+- `next.config.ts` : doublon `raw.githubusercontent.com` supprimé du CSP
+
+### Phase 3 🟢 (pending)
+- `loading.tsx` : vérifier les routes qui en manquent
+- `eslint-disable` comments résiduels
+- Petits polishing
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app

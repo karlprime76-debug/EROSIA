@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // ── Storage cleanup ──
     const storagePaths = [
       { bucket: 'photos', prefix: `${uid}/` },
-      { bucket: 'profile_videos', prefix: `profile_videos/${uid}/` },
+      { bucket: 'profile_videos', prefix: `${uid}/` },
       { bucket: 'event_images', prefix: `events/${uid}/` },
       { bucket: 'stories', prefix: `stories/${uid}/` },
     ]
@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
       ['messages',        async () => {
         const { data: matchRows } = await admin.from('matches').select('id').or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
         if (matchRows && matchRows.length > 0) {
-          for (const m of matchRows) { await admin.from('messages').delete().eq('match_id', m.id) }
+          const ids = matchRows.map(m => m.id)
+          for (let i = 0; i < ids.length; i += 50) {
+            await admin.from('messages').delete().in('match_id', ids.slice(i, i + 50))
+          }
         }
         await admin.from('messages').delete().eq('sender_id', uid)
       }],
@@ -79,10 +82,9 @@ export async function POST(request: NextRequest) {
 
     if (errors.length > 0) {
       logger.error('Delete account partial errors', { userId: uid, errors })
-      return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, errors: errors.length > 0 ? errors : undefined })
   } catch (err) {
     logger.error('Delete account error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })

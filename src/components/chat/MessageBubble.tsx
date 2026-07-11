@@ -5,14 +5,7 @@ import Image from 'next/image'
 import { motion } from 'motion/react'
 import { Check, CheckCheck, Pencil, Trash2, Copy, Reply, Flag, X } from 'lucide-react'
 import type { ChatMessage } from '@/lib/chat/types'
-
-function formatMessageTime(date: string | Date) {
-  const d = new Date(date)
-  const diff = Date.now() - d.getTime()
-  if (diff < 86400000) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  if (diff < 172800000) return 'Hier'
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-}
+import { formatMessageTime } from '@/lib/chat/utils'
 
 function useTimeAgo(createdAt: string) {
   const [timeAgo, setTimeAgo] = useState(() => {

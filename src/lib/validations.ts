@@ -156,7 +156,7 @@ export const deleteMatchSchema = z.object({
 })
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1, 'Mot de passe requis'),
+  password: z.string().min(8, '8 caractères minimum'),
 })
 
 export const recomputeEngineSchema = z.object({
@@ -205,6 +205,34 @@ export const joinSpaceSchema = z.object({
   x: z.number().optional(),
   y: z.number().optional(),
   z: z.number().optional(),
+})
+
+export const proposeDateSchema = z.object({
+  matchId: z.string().uuid('matchId invalide'),
+  category: z.enum(['restaurant','cafe','cinema','bar','walk','hotel','other'], {
+    message: 'Catégorie invalide',
+  }),
+  slots: z.array(z.object({
+    proposed_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide (YYYY-MM-DD)'),
+    proposed_time: z.string().regex(/^\d{2}:\d{2}$/, 'Heure invalide (HH:MM)'),
+  })).min(1, 'Au moins un créneau requis').max(10, 'Maximum 10 créneaux'),
+  location: z.string().max(300).optional(),
+  note: z.string().max(500).optional(),
+})
+
+export const respondDateSchema = z.object({
+  dateId: z.string().uuid(),
+  accept: z.boolean(),
+  slotId: z.string().uuid().optional(),
+})
+
+export const cancelDateSchema = z.object({
+  dateId: z.string().uuid(),
+  reason: z.string().max(300).optional(),
+})
+
+export const confirmDateSchema = z.object({
+  dateId: z.string().uuid(),
 })
 
 
