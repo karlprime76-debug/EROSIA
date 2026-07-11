@@ -48,7 +48,7 @@ describe('Validation Schemas', () => {
     })
 
     it('should reject missing gender', () => {
-      const { gender, ...rest } = validData
+      const { gender: _gender, ...rest } = validData
       const result = registerSchema.safeParse(rest)
       expect(result.success).toBe(false)
     })

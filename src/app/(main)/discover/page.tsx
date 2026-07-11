@@ -232,7 +232,7 @@ export default function DiscoverPage() {
         setLoading(false)
       }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
-  }, [myId, toast])
+  }, [myId, myGender, myInterestedIn, toast])
 
   useEffect(() => {
     getActiveStories().then(({ data }) => {

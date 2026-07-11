@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MessageCircle, X, Star, Archive, MoreHorizontal, ShieldOff } from 'lucide-react'
@@ -42,7 +42,7 @@ export default function ConversationsPage() {
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
   const pageRef = useRef(0)
 
-  const loadMatches = async (uid: string, page: number) => {
+  const loadMatches = useCallback(async (uid: string, page: number) => {
     const from = page * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
     let matches
@@ -96,7 +96,7 @@ export default function ConversationsPage() {
       }
     }
     return { list, hasMore: matches ? matches.length >= PAGE_SIZE : false }
-  }
+  }, [toast])
 
   useEffect(() => {
     let cancelled = false
@@ -130,7 +130,7 @@ export default function ConversationsPage() {
       channelsRef.current.forEach(ch => supabase.removeChannel(ch))
       channelsRef.current = []
     }
-  }, [toast])
+  }, [toast, loadMatches])
 
   const filtered = useMemo(() => {
     let result = [...convs]

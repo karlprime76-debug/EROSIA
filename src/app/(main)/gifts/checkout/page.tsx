@@ -65,7 +65,6 @@ export default function CheckoutPage() {
     return () => clearTimeout(timer)
   }, [router])
 
-  const getOtherId = (m: MatchItem) => m.user1_id === myId ? m.user2_id : m.user1_id
   const total = cartTotal(cart)
 
   const handleSavePayment = async () => {
@@ -87,7 +86,7 @@ export default function CheckoutPage() {
     try {
       const match = matches.find(m => m.id === selectedMatch)
       if (!match) return
-      const result = await createCartCheckout(cart.map(g => g.id), getOtherId(match), selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
+      const result = await createCartCheckout(cart.map(g => g.id), match.user1_id === myId ? match.user2_id : match.user1_id, selectedMatch, message || undefined, payPhone || undefined, payOperator || undefined)
       if (result.error) { toast(result.error, 'error'); setSending(false); return }
       if (result.data?.sent) {
         toast('Demande de paiement envoyée sur votre téléphone.', 'success')
@@ -133,7 +132,7 @@ export default function CheckoutPage() {
             className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-sm outline-none">
             <option value="">Sélectionner un match...</option>
             {matches.map(m => (
-              <option key={m.id} value={m.id}>{matchNames[getOtherId(m)] ?? `Match #${m.id.slice(0, 8)}`}</option>
+              <option key={m.id} value={m.id}>{matchNames[m.user1_id === myId ? m.user2_id : m.user1_id] ?? `Match #${m.id.slice(0, 8)}`}</option>
             ))}
           </select>
         </div>
