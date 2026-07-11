@@ -7,6 +7,7 @@ const fr: Translations = {
   nav_stories: 'Stories',
   nav_notifications: 'Actus',
   nav_dates: 'Rendez-vous',
+  nav_boutique: 'Boutique',
   nav_profile: 'Profil',
 
   // Discover

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
-import { Compass, Heart, Bell, User, Film, Calendar } from 'lucide-react'
+import { Compass, Heart, Bell, User, Film, Calendar, Gift } from 'lucide-react'
 import { getNotificationUnreadCount } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { useLocale } from '@/lib/i18n'
@@ -15,6 +15,7 @@ const tabs = [
   { href: '/stories', icon: Film, key: 'nav_stories' as const },
   { href: '/notifications', icon: Bell, key: 'nav_notifications' as const },
   { href: '/dates', icon: Calendar, key: 'nav_dates' as const },
+  { href: '/gifts', icon: Gift, key: 'nav_boutique' as const },
   { href: '/island', icon: User, key: 'nav_profile' as const },
 ]
 

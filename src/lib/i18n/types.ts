@@ -7,6 +7,7 @@ export interface Translations {
   nav_stories: string
   nav_notifications: string
   nav_dates: string
+  nav_boutique: string
   nav_profile: string
 
   // Discover / Cards

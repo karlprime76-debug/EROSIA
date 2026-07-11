@@ -93,7 +93,8 @@ export default function VerifyPage() {
         toast(sessionError ?? 'Erreur lors de la création de la session', 'error')
         return
       }
-      DiditSdk.shared.onComplete = async (result: { type: string; session?: { status?: string }; error?: { message?: string } }) => {
+      DiditSdk.shared.onComplete = async (result: { type: string; session?: { id?: string; status?: string }; error?: { message?: string } }) => {
+        const sessionId = result.session?.id || (result.session as unknown as string)
         const sessionStatus = normalizeStatus(result.session?.status)
         try {
           await fetch('/api/verify/callback', {
@@ -101,7 +102,7 @@ export default function VerifyPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userId: (await supabase.auth.getUser()).data.user?.id,
-              sessionId: result.session,
+              sessionId,
             }),
           })
         } catch {
