@@ -77,13 +77,10 @@ export default function OnboardingPage() {
 
     setUploading(slotIndex)
     try {
-      const result = await uploadPhoto(file, userId, slotIndex)
+      const result = await uploadPhoto(file)
       if (result.error) { toast(result.error, 'error'); return }
-      if (result.url) {
-        const updatedPhotos = [...photos]
-        updatedPhotos[slotIndex] = result.url
-        setPhotos(updatedPhotos)
-        await updateProfile(userId, { photos: updatedPhotos })
+      if (result.photos) {
+        setPhotos(result.photos)
       }
     } catch (err) {
       logger.error('handleAddPhoto error', { error: String(err) })

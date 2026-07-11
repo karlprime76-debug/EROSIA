@@ -36,7 +36,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { signOut, uploadPhoto, updateProfile, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
+import { signOut, uploadPhoto, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
 import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
@@ -117,13 +117,10 @@ function ProfilePageInner() {
       if (!file || !profile) return
       setUploading(true)
       try {
-        const result = await uploadPhoto(file, profile.id, profile.photos.length)
+        const result = await uploadPhoto(file)
         if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-        if (result.url) {
-          const photos = [result.url, ...(profile.photos?.filter(p => p !== result.url) ?? [])]
-          const { error: updateErr } = await updateProfile(profile.id, { photos })
-          if (updateErr) { logger.error('handlePhoto updateProfile error', updateErr); toast(updateErr, 'error'); setUploading(false); return }
-          setProfile({ ...profile, photos })
+        if (result.photos) {
+          setProfile({ ...profile, photos: result.photos })
           toast('Photo ajoutée', 'success')
         }
       } catch (err) { logger.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
@@ -323,12 +320,12 @@ function ProfilePageInner() {
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
-                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
+                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(photo); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                         className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
                         <Star size={14} className="text-warning" />
                       </button>
                     )}
-                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(profile.id, photo, profile.photos); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
+                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(photo); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
                       className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
                       <Trash2 size={14} className="text-error" />
                     </button>

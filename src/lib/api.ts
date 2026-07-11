@@ -250,37 +250,47 @@ export async function sendMessage(matchId: string, text: string) {
   }
 }
 
-export async function uploadPhoto(uri: File, uid: string, index: number) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { error: 'Not authenticated' }
-  if (userId !== uid) return { error: 'Non autorisé' }
-  const err = validateFile(uri, 'photo')
-  if (err) return { error: err }
-  const fileName = `${uid}/${index}.${sanitizeFilename(uri.name)}`
-  const { error } = await supabase().storage.from('photos').upload(fileName, uri, { upsert: true })
-  if (error) return { error: error.message }
-  const { data: urlData } = supabase().storage.from('photos').getPublicUrl(fileName)
-  return { url: urlData.publicUrl }
+export async function uploadPhoto(uri: File) {
+  const formData = new FormData()
+  formData.append('file', uri)
+  try {
+    const res = await fetch('/api/profile/photos', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error ?? "Erreur lors de l'upload" }
+    return { url: data.url, photos: data.photos }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
 }
 
-export async function deletePhoto(uid: string, photoUrl: string, currentPhotos: string[]) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { photos: currentPhotos, error: 'Not authenticated' }
-  if (userId !== uid) return { photos: currentPhotos, error: 'Non autorisé' }
-  const objectPath = photoUrl.split('/storage/v1/object/public/photos/')[1] ?? photoUrl.split('/').pop()
-  if (objectPath) await supabase().storage.from('photos').remove([objectPath])
-  const photos = currentPhotos.filter(p => p !== photoUrl)
-  const { error } = await supabase().from('profiles').update({ photos }).eq('id', uid)
-  return { photos, error: error?.message }
+export async function deletePhoto(photoUrl: string) {
+  try {
+    const res = await fetch('/api/profile/photos', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoUrl }),
+    })
+    const data = await res.json()
+    if (!res.ok) return { photos: null as unknown as string[], error: data.error ?? 'Erreur lors de la suppression' }
+    return { photos: data.photos, error: undefined }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
 }
 
-export async function setPrimaryPhoto(uid: string, photoUrl: string, currentPhotos: string[]) {
-  const userId = await getCurrentUserId()
-  if (!userId) return { photos: currentPhotos, error: 'Not authenticated' }
-  if (userId !== uid) return { photos: currentPhotos, error: 'Non autorisé' }
-  const photos = [photoUrl, ...currentPhotos.filter(p => p !== photoUrl)]
-  const { error } = await supabase().from('profiles').update({ photos }).eq('id', uid)
-  return { photos, error: error?.message }
+export async function setPrimaryPhoto(photoUrl: string) {
+  try {
+    const res = await fetch('/api/profile/photos', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoUrl, action: 'set-primary' }),
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error ?? 'Erreur lors du changement de photo principale' }
+    return { photos: data.photos, error: undefined }
+  } catch {
+    return { error: 'Erreur réseau' }
+  }
 }
 
 export async function sendFlirt(receiverId: string) {
