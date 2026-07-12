@@ -85,7 +85,7 @@ export default function SubscriptionsPage() {
     getSubscriptionStatus().then(s => {
       setCurrentTier(s.tier)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
     import('@/lib/supabase/client').then(({ supabase }) => {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return

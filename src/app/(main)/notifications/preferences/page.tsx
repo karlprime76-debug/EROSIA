@@ -129,12 +129,14 @@ export default function NotificationPreferencesPage() {
 
   const savePref = async (patch: Partial<NotifPrefs>) => {
     if (!userId) return
+    const prev = prefs
     setPrefs(prev => ({ ...prev, ...patch }))
     const { error } = await supabase
       .from('notification_preferences')
-      .upsert({ user_id: userId, ...prefs, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      .upsert({ user_id: userId, ...prev, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
     if (error) {
       logger.error('Notification prefs save error', { error: error.message })
+      setPrefs(prev)
       toast('Erreur de sauvegarde', 'error')
     }
   }

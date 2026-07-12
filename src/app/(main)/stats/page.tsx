@@ -101,7 +101,7 @@ export default function StatsPage() {
             <div className="w-full h-3 rounded-full bg-primary/10 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                style={{ width: `${Math.min(100, (level.xp / level.xp_to_next) * 100)}%` }}
+                style={{ width: `${Math.min(100, level.xp_to_next ? (level.xp / level.xp_to_next) * 100 : 0)}%` }}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">{level.xp} / {level.xp_to_next} XP</p>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { Wrench, Clock } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 export default function MaintenancePage() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function MaintenancePage() {
           if (data.message) setMessage(data.message)
           if (data.estimated_duration) setEstimatedDuration(data.estimated_duration)
         }
-      } catch {}
+      } catch { logger.warn('Maintenance check failed') }
     }
     check()
     const interval = setInterval(check, 30000)

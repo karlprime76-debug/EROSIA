@@ -95,7 +95,7 @@ function ProfilePageInner() {
           }
         } else {
           logger.debug('API profile loaded')
-          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); setGender(profileData.gender ?? 'male'); setInterestedIn(profileData.interested_in ?? []); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait)) }).catch(() => {}); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch(() => {})
+          setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); setGender(profileData.gender ?? 'male'); setInterestedIn(profileData.interested_in ?? []); getProfileTraits(profileData.id).then(({ data: traits }) => { if (traits && !cancelled) setProfileTraits(traits.map(t => t.trait))         }).catch((err) => logger.warn('getProfileTraits error', err)); getStreak().then(({ data: sd }) => { if (sd && !cancelled) setStreak(sd.current_streak ?? 0) }).catch((err) => logger.warn('getStreak error', err))
         }
       } catch (err) { logger.error('loadProfile: exception', err) }
       if (!cancelled) setLoading(false)
@@ -176,7 +176,7 @@ function ProfilePageInner() {
       if (error) { toast(error.message, 'error'); setSavingProfile(false); savingRef.current = false; return }
       if (!data) { toast('Impossible de sauvegarder. Vérifie ta connexion.', 'error'); setSavingProfile(false); savingRef.current = false; return }
       logger.debug('profile saved')
-      updateEnergyScore(); fetch('/api/engine/trust-score', { method: 'POST' }).catch(() => {}); recomputeAura()
+      updateEnergyScore(); fetch('/api/engine/trust-score', { method: 'POST' }).catch((err) => logger.warn('trust-score error', err)); recomputeAura()
       setProfile({ ...p, ...data } as Profile)
       setNameValue((data.name ?? p.name) || '')
       setBio((data.bio ?? p.bio) || '')
@@ -318,7 +318,7 @@ function ProfilePageInner() {
             </div>
           </div>
 
-          {profile && profile.photos.length > 0 && (
+          {profile && (profile.photos?.length ?? 0) > 0 && (
             <div className="grid grid-cols-3 gap-2.5">
               {profile.photos.map((photo, idx) => (
                 <div key={photo} className="relative group aspect-[3/4] rounded-xl overflow-hidden bg-hover">

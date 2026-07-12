@@ -171,10 +171,11 @@ export default function ConversationsPage() {
   }
 
   const handleUnmatch = async (matchId: string) => {
+    const removed = convs.find(c => c.matchId === matchId)
     setConvs(prev => prev.filter(c => c.matchId !== matchId))
     const { error } = await unmatchUser(matchId)
-    if (error) {
-      setConvs(prev => [...prev])
+    if (error && removed) {
+      setConvs(prev => [...prev, removed])
       toast('Erreur lors de la suppression', 'error')
     }
   }

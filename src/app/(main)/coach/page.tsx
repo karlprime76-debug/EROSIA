@@ -105,7 +105,7 @@ export default function CoachPage() {
               <div className="space-y-3">
                 <h2 className="font-semibold flex items-center gap-2"><Lightbulb className="w-4 h-4 text-amber-400" /> Suggestions</h2>
                 {result.suggestions.map((s: Suggestion, i: number) => {
-                  const Icon = severityIcon[s.severity]
+                  const Icon = severityIcon[s.severity] ?? Info
                   return (
                     <div key={i} className={`p-4 rounded-xl border ${severityColor[s.severity]}`}>
                       <div className="flex items-start gap-3">

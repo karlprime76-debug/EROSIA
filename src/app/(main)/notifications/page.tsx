@@ -74,7 +74,7 @@ export default function NotificationsPage() {
         window.dispatchEvent(new CustomEvent('notif-read'))
       }
       const url = n.metadata?.action_url
-      if (url) { router.push(url); return }
+      if (url && (url.startsWith('/') || url.startsWith(window.location.origin))) { router.push(url); return }
       switch (n.type) {
         case 'match':
         case 'message':

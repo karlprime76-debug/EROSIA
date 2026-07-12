@@ -37,13 +37,12 @@ function RegisterPageContent() {
   const submittedRef = useRef(false)
 
   const [referralCode, setReferralCode] = useState(() =>
-    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref')?.toUpperCase() ?? '' : ''
+    searchParams.get('ref')?.toUpperCase() ?? ''
   )
 
-  const [showReferralInput, setShowReferralInput] = useState(() => {
-    if (typeof window !== 'undefined') return !!new URLSearchParams(window.location.search).get('ref')
-    return false
-  })
+  const [showReferralInput, setShowReferralInput] = useState(() =>
+    !!searchParams.get('ref')
+  )
 
   const { register: reg, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),

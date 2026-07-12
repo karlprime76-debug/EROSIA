@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { ArrowLeft, Database, Shield, HardDrive, Server, Clock } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface ServiceStatus {
   status: 'healthy' | 'degraded' | 'down'
@@ -42,7 +43,7 @@ export default function StatusPage() {
           const data: HealthData = await res.json()
           setHealth(data)
         }
-      } catch {} finally {
+      } catch { logger.warn('Health check failed') } finally {
         setLoading(false)
       }
     }
@@ -55,9 +56,9 @@ export default function StatusPage() {
     ? Object.values(health.services).every(s => s.status === 'healthy')
       ? 'healthy'
       : Object.values(health.services).some(s => s.status === 'down')
-        ? 'degraded'
+        ? 'down'
         : 'degraded'
-    : 'healthy'
+    : 'degraded'
 
   const overall = statusConfig[overallStatus] ?? statusConfig.healthy
 
