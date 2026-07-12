@@ -259,7 +259,7 @@ export async function deleteStory(storyId: string): Promise<{ error?: string }> 
 
   const storagePath = story.media_url.split('/stories/').pop()
   if (storagePath) {
-    await supabase().storage.from('stories').remove([`stories/${storagePath}`])
+    await supabase().storage.from('stories').remove([storagePath])
   }
 
   await supabase().from('story_views').delete().eq('story_id', storyId)

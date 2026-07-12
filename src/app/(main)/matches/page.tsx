@@ -36,7 +36,7 @@ export default function ConversationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<FilterMode>('all')
   const [typingMap, setTypingMap] = useState<Record<string, boolean>>({})
-  const [onlineMap] = useState<Record<string, boolean>>({})
+  const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({})
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const { toast } = useToast()
   const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([])
@@ -121,6 +121,18 @@ export default function ConversationsPage() {
         })
         typingChannel.subscribe()
       }
+
+      const presenceChannel = supabase.channel('online-users')
+      channelsRef.current.push(presenceChannel)
+      presenceChannel.on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        const online: Record<string, boolean> = {}
+        for (const [userId] of Object.entries(state)) {
+          online[userId] = true
+        }
+        if (!cancelled) setOnlineMap(online)
+      })
+      presenceChannel.subscribe()
 
       if (!cancelled) setLoading(false)
     }).catch(() => { toast('Erreur', 'error') })

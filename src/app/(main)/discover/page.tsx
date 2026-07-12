@@ -234,12 +234,6 @@ export default function DiscoverPage() {
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
   }, [myId, myGender, myInterestedIn, toast])
 
-  useEffect(() => {
-    getActiveStories().then(({ data }) => {
-      if (data) setStoriesUserIds(new Set(data.map((s: { userId: string }) => s.userId)))
-    }).catch(() => { toast('Erreur chargement stories', 'error') })
-  }, [toast])
-
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragStart(e.clientX)
   }

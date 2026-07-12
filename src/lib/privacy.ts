@@ -36,9 +36,9 @@ export async function getPrivacySettings(): Promise<{ data: PrivacySettings | nu
   const { data, error } = await supabase.from('privacy_settings').select('*').eq('user_id', user.id).maybeSingle()
   if (error) return { data: null, error: error.message }
   if (data) return { data: data as PrivacySettings }
-  const { error: insError } = await supabase.from('privacy_settings').insert({ user_id: user.id })
+  const { data: inserted, error: insError } = await supabase.from('privacy_settings').insert({ user_id: user.id }).select().single()
   if (insError) return { data: null, error: insError.message }
-  return { data: DEFAULT_PRIVACY }
+  return { data: (inserted as PrivacySettings) ?? DEFAULT_PRIVACY }
 }
 
 export async function getTargetPrivacy(userId: string): Promise<{ data: PrivacySettings | null; error?: string }> {
@@ -54,16 +54,16 @@ export async function getTargetPrivacy(userId: string): Promise<{ data: PrivacyS
     if (!row) return { data: DEFAULT_PRIVACY }
     return {
       data: {
-        profile_visible: true,
-        visible_to_compatible_only: row.visible_to_compatible_only,
-        hide_exact_age: false,
-        hide_exact_distance: false,
-        blur_photos: false,
-        first_message_permission: row.first_message_permission,
-        story_visibility: row.story_visibility,
-        online_status_visibility: row.online_status_visibility,
-        read_receipts: row.read_receipts,
-        auto_block_reported: false,
+        profile_visible: row.profile_visible ?? true,
+        visible_to_compatible_only: row.visible_to_compatible_only ?? false,
+        hide_exact_age: row.hide_exact_age ?? false,
+        hide_exact_distance: row.hide_exact_distance ?? false,
+        blur_photos: row.blur_photos ?? false,
+        first_message_permission: row.first_message_permission ?? 'everyone',
+        story_visibility: row.story_visibility ?? 'everyone',
+        online_status_visibility: row.online_status_visibility ?? 'everyone',
+        read_receipts: row.read_receipts ?? true,
+        auto_block_reported: row.auto_block_reported ?? false,
       },
     }
   } catch {

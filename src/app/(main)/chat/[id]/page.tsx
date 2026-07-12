@@ -486,11 +486,21 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            <DateSeparator messages={messages} />
-            {messages.map(msg => (
-              <MessageBubble key={msg.id} msg={msg} isOwn={msg.sender_id === myId}
-                onReply={handleReply} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
+            {(() => {
+              const seen = new Set<string>()
+              return messages.map(msg => {
+                const d = new Date(msg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                const showSep = !seen.has(d)
+                if (showSep) seen.add(d)
+                return (
+                  <React.Fragment key={msg.id}>
+                    {showSep && <DateSeparator label={d} />}
+                    <MessageBubble msg={msg} isOwn={msg.sender_id === myId}
+                      onReply={handleReply} onEdit={handleEdit} onDelete={handleDelete} />
+                  </React.Fragment>
+                )
+              })
+            })()}
           </>
         )}
 
@@ -670,26 +680,13 @@ export default function ChatPage() {
   )
 }
 
-const DateSeparator = React.memo(function DateSeparator({ messages }: { messages: ChatMessage[] }) {
-  const seen = new Set<string>()
-  const separators: { date: string; label: string }[] = []
-  for (const msg of messages) {
-    const d = new Date(msg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    if (!seen.has(d)) {
-      seen.add(d)
-      separators.push({ date: d, label: d })
-    }
-  }
+const DateSeparator = React.memo(function DateSeparator({ label }: { label: string }) {
   return (
-    <>
-      {separators.map(s => (
-        <div key={s.date} className="flex items-center gap-3 py-2">
-          <div className="flex-1 h-px bg-theme" />
-          <span className="text-[10px] text-muted font-medium">{s.label}</span>
-          <div className="flex-1 h-px bg-theme" />
-        </div>
-      ))}
-    </>
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex-1 h-px bg-theme" />
+      <span className="text-[10px] text-muted font-medium">{label}</span>
+      <div className="flex-1 h-px bg-theme" />
+    </div>
   )
 })
 

@@ -116,7 +116,7 @@ export async function resetPassword(email: string) {
   return { error: error?.message ?? null }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood'
 
 async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): Promise<Profile[] | null> {
   if (!profiles || profiles.length === 0) return profiles as Profile[] | null
@@ -129,7 +129,7 @@ async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): 
       ...p,
       energy_score: s?.energy_score ? Math.round(s.energy_score * 100) : 50,
       trust_score: s?.trust_score ? Math.round(s.trust_score * 100) : 50,
-      mood: 'discuter',
+      mood: p.mood,
     } as Profile
   })
 }
@@ -182,7 +182,7 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
     const { count } = await supabase()
       .from('swipes').select('*', { count: 'exact', head: true })
       .eq('swiper_id', userId)
-      .gte('created_at', new Date().toISOString().slice(0, 10))
+      .gte('created_at', (() => { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString() })())
     if ((count ?? 0) >= 20) return { error: 'Limite de swipe atteinte' }
   }
   const { data, error } = await supabase().from('swipes').insert({
@@ -473,23 +473,32 @@ export async function getSuperLikesRemaining() {
   const resetDate = new Date(data.super_likes_reset_at)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  if (resetDate < today) {
-    await supabase().from('profiles').update({ super_likes_remaining: 1, super_likes_reset_at: new Date().toISOString() }).eq('id', userId)
-    return 1
-  }
+  if (resetDate < today) return 1
   return data.super_likes_remaining ?? 0
 }
 
 export async function useSuperLike() {
-  const remaining = await getSuperLikesRemaining()
-  if (remaining <= 0) return { error: 'Plus de super like disponible aujourd\'hui' }
   const userId = await getCurrentUserId()
   if (!userId) return { error: 'Not authenticated' }
   const { tier } = await getSubscriptionStatus()
-  if (tier !== 'premium') {
-    const { error } = await supabase().from('profiles').update({ super_likes_remaining: remaining - 1 }).eq('id', userId)
-    return { error: error?.message }
-  }
+  if (tier === 'premium') return {}
+  const { data, error } = await supabase()
+    .from('profiles')
+    .select('super_likes_remaining, super_likes_reset_at')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error || !data) return { error: 'Profil introuvable' }
+  const resetDate = new Date(data.super_likes_reset_at)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const remaining = resetDate < today ? 1 : (data.super_likes_remaining ?? 0)
+  if (remaining <= 0) return { error: 'Plus de super like disponible aujourd\'hui' }
+  const { error: updErr } = await supabase()
+    .from('profiles')
+    .update({ super_likes_remaining: remaining - 1, super_likes_reset_at: new Date().toISOString() })
+    .eq('id', userId)
+    .eq('super_likes_remaining', data.super_likes_remaining)
+  if (updErr) return { error: updErr.message }
   return {}
 }
 

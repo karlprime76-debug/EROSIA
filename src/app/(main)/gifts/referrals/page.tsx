@@ -21,13 +21,13 @@ export default function ReferralsPage() {
 
   const copyCode = useCallback(() => {
     if (!referralCode) return
-    navigator.clipboard.writeText(referralCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
+    navigator.clipboard.writeText(referralCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(e => logger.error('Copy referral code error', e))
   }, [referralCode])
 
   const shareLink = useCallback(() => {
     if (!referralCode) return
     const url = `${window.location.origin}/register?ref=${referralCode}`
-    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(logger.error)
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(e => logger.error('Copy share link error', e))
   }, [referralCode])
 
   const handleRedeem = useCallback(async () => {
@@ -103,7 +103,7 @@ export default function ReferralsPage() {
               { step: '3', text: 'Quand 5 amis ont rejoint, tu débloques 30 jours Premium' },
             ].map(s => (
               <div key={s.step} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'var(--primary)/15', color: 'var(--primary)' }}>{s.step}</div>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: 'color-mix(in srgb, var(--primary) 15%, transparent)', color: 'var(--primary)' }}>{s.step}</div>
                 <p className="text-sm text-secondary">{s.text}</p>
               </div>
             ))}

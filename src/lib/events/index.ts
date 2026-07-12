@@ -164,7 +164,7 @@ export async function deleteEvent(eventId: string): Promise<{ error?: string }> 
   if (event.image_url) {
     const storagePath = event.image_url.split('/event_images/').pop()
     if (storagePath) {
-      await supabase().storage.from('event_images').remove([`event_images/${storagePath}`])
+      await supabase().storage.from('event_images').remove([storagePath])
     }
   }
 

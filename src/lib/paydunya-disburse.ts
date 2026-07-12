@@ -44,7 +44,7 @@ export function getWithdrawMode(country: string, operator: string): string | nul
 }
 
 export function extractPhoneAlias(phone: string): string {
-  return phone.replace(/[^0-9]/g, '').replace(/^00?(?:221|225|223|226|228|229|237)?/, '')
+  return phone.replace(/[^0-9]/g, '').replace(/^(?:00?)?(?:221|225|223|226|228|229|237)/, '')
 }
 
 async function safeJson<T>(res: Response): Promise<T> {

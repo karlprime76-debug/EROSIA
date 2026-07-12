@@ -75,7 +75,7 @@ export default function SubscriptionsPage() {
         <p className="text-xs text-secondary uppercase tracking-wider px-1 font-semibold">Nos formules</p>
         <div className="space-y-3">
           {plans.map(plan => {
-            const isCurrent = plan.id === 'free' ? !isPremium : plan.id === 'premium_monthly' && isPremium
+            const isCurrent = plan.id === 'free' ? !isPremium : isPremium && (plan.id === 'premium_monthly' || plan.id === 'premium_yearly')
             return (
               <div key={plan.id} className={`glass-card rounded-2xl p-5 relative transition-all duration-200 ${plan.popular ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg)]' : ''}`}>
                 {plan.popular && (
@@ -91,7 +91,7 @@ export default function SubscriptionsPage() {
                     </div>
                   </div>
                   {plan.id === 'premium_yearly' && (
-                    <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'var(--successVibrant)/15', color: 'var(--successVibrant)' }}>-17%</span>
+                    <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'color-mix(in srgb, var(--successVibrant) 15%, transparent)', color: 'var(--successVibrant)' }}>-17%</span>
                   )}
                 </div>
                 <ul className="space-y-2 mb-4">
@@ -116,7 +116,7 @@ export default function SubscriptionsPage() {
         <div className="grid grid-cols-2 gap-2">
           {premiumFeatures.map(f => (
             <div key={f.label} className="glass-card rounded-xl p-3 space-y-1.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)/10' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--primary) 10%, transparent)' }}>
                 <f.icon size={14} style={{ color: 'var(--primary)' }} />
               </div>
               <p className="text-xs font-semibold">{f.label}</p>
