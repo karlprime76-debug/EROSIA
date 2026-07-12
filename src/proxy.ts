@@ -143,14 +143,38 @@ export default async function proxy(request: NextRequest) {
   const result = await supabase.auth.getUser()
   user = result.data?.user ?? null
 
-  // Skip auth redirect for API, static files, SW, and public pages
+  if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && pathname !== '/sw.js' && pathname !== '/maintenance') {
+    try {
+      const { data: maintenance } = await supabase
+        .from('maintenance_mode')
+        .select('active')
+        .limit(1)
+        .maybeSingle()
+      if (maintenance?.active) {
+        if (!user) {
+          return NextResponse.redirect(new URL('/maintenance', origin))
+        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .maybeSingle()
+        if (!profile?.is_admin) {
+          return NextResponse.redirect(new URL('/maintenance', origin))
+        }
+      }
+    } catch {
+    }
+  }
+
   if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && pathname !== '/sw.js') {
     const isPublic = publicPaths.some(p => pathname.startsWith(p)) || pathname === '/'
       || pathname.startsWith('/privacy') || pathname.startsWith('/cgu')
       || pathname.startsWith('/delete-data') || pathname === '/offline'
+      || pathname === '/maintenance' || pathname === '/status'
 
     if (!user && !isPublic && !pathname.startsWith('/onboarding')) return NextResponse.redirect(new URL('/welcome', origin))
-    if (user && isPublic && pathname !== '/' && !pathname.startsWith('/onboarding')) return NextResponse.redirect(new URL('/discover', origin))
+    if (user && isPublic && pathname !== '/' && !pathname.startsWith('/onboarding') && pathname !== '/maintenance' && pathname !== '/status') return NextResponse.redirect(new URL('/discover', origin))
   }
 
   const csp = [

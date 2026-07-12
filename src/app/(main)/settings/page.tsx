@@ -175,6 +175,10 @@ const handleDelete = async () => {
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--textOnPrimary)] transition ${notifEmail ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </label>
+              <button type="button" onClick={() => router.push('/notifications/preferences')}
+                className="text-xs font-medium mt-1" style={{ color: 'var(--primary)' }}>
+                Gérer les notifications →
+              </button>
             </div>
           ),
         },
