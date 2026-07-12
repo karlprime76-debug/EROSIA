@@ -39,7 +39,10 @@ $$;
 -- 4. 🟡 propose_date / process_payout : search_path explicite
 --    (SECURITY DEFINER sans search_path = vulnérabilité)
 -- ============================================================
-CREATE OR REPLACE FUNCTION propose_date(
+DROP FUNCTION IF EXISTS propose_date(UUID, UUID, TIMESTAMPTZ, TEXT, TEXT);
+DROP FUNCTION IF EXISTS process_payout(UUID, INTEGER, TEXT);
+
+CREATE FUNCTION propose_date(
   p_match_id UUID,
   p_proposer_id UUID,
   p_date TIMESTAMPTZ,
@@ -59,7 +62,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION process_payout(
+CREATE FUNCTION process_payout(
   p_user_id UUID,
   p_amount_cents INTEGER,
   p_payment_method TEXT
