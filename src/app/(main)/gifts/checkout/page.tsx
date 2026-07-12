@@ -108,7 +108,7 @@ export default function CheckoutPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.push('/gifts/cart')} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.push('/gifts/cart')} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Commander</h2>
       </header>
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">

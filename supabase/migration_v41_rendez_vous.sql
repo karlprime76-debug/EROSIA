@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS planned_dates (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_planned_dates_match ON planned_dates(match_id);
-CREATE INDEX idx_planned_dates_proposer ON planned_dates(proposer_id);
-CREATE INDEX idx_planned_dates_proposee ON planned_dates(proposee_id);
-CREATE INDEX idx_planned_dates_status ON planned_dates(status);
+CREATE INDEX IF NOT EXISTS idx_planned_dates_match ON planned_dates(match_id);
+CREATE INDEX IF NOT EXISTS idx_planned_dates_proposer ON planned_dates(proposer_id);
+CREATE INDEX IF NOT EXISTS idx_planned_dates_proposee ON planned_dates(proposee_id);
+CREATE INDEX IF NOT EXISTS idx_planned_dates_status ON planned_dates(status);
 
 -- 2. date_slots — proposed time slots per date
 CREATE TABLE IF NOT EXISTS date_slots (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS date_slots (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_date_slots_date ON date_slots(date_id);
+CREATE INDEX IF NOT EXISTS idx_date_slots_date ON date_slots(date_id);
 
 -- 3. date_reminders — auto reminders
 CREATE TABLE IF NOT EXISTS date_reminders (
@@ -49,9 +49,9 @@ CREATE TABLE IF NOT EXISTS date_reminders (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_date_reminders_date ON date_reminders(date_id);
-CREATE INDEX idx_date_reminders_pending ON date_reminders(sent, remind_at)
-  WHERE sent = false AND remind_at <= now();
+CREATE INDEX IF NOT EXISTS idx_date_reminders_date ON date_reminders(date_id);
+CREATE INDEX IF NOT EXISTS idx_date_reminders_pending ON date_reminders(sent, remind_at)
+  WHERE sent = false;
 
 -- 4. RLS Policies
 ALTER TABLE planned_dates ENABLE ROW LEVEL SECURITY;

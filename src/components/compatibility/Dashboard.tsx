@@ -50,7 +50,7 @@ export function CompatibilityDashboard({ matchId, onBack }: { matchId: string; o
   return (
     <div className="flex-1 flex flex-col bg-transparent">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={onBack} aria-label="Retour" className="p-1">
+        <button type="button" onClick={onBack} aria-label="Retour" className="p-2.5 rounded-xl">
           <ArrowLeft size={22} style={{ color: 'var(--text)' }} />
         </button>
         <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Centre de compatibilité</h2>

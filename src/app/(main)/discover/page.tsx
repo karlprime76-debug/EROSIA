@@ -251,7 +251,7 @@ export default function DiscoverPage() {
     setDragStart(null)
   }
 
-  const haptic = (ms = 10) => { try { navigator.vibrate(ms) } catch {} }
+  const haptic = (ms = 10) => { if (typeof navigator.vibrate === 'function') navigator.vibrate(ms) }
 
   useEffect(() => {
     const current = profilesRef.current

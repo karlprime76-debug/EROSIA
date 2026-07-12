@@ -1,91 +1,12 @@
-import { supabase as sbClient } from './supabase/client'
+import { supabase as sbClient } from '../supabase/client'
 import type { PostgrestMaybeSingleResponse } from '@supabase/supabase-js'
-import type { BehaviorAction } from './engine/types'
-import { sanitize } from './sanitize'
-import { validateFile, sanitizeFilename } from './media'
-import { logger } from './logger'
+import type { BehaviorAction } from '../engine/types'
+import { sanitize } from '../sanitize'
+import { validateFile, sanitizeFilename } from '../media'
+import { logger } from '../logger'
 
-export type LookingFor = 'friendship' | 'casual' | 'fwb' | 'serious' | 'open'
-export type Mood = 'discuter' | 'rencontre' | 'disponible_ce_soir' | 'relation_serieuse' | 'chill' | 'de_passage'
-export type Gender = 'male' | 'female' | 'non_binary'
-
-export interface Profile {
-  id: string
-  name: string
-  age: number | null
-  bio: string | null
-  occupation: string | null
-  location: string | null
-  photos: string[]
-  interests: string[]
-  is_verified: boolean
-  verification_status?: string | null
-  verified_at?: string | null
-  looking_for: LookingFor
-  created_at: string
-  last_seen?: string
-  incognito: boolean
-  ghost_mode: boolean
-  last_active_at?: string
-  latitude?: number
-  longitude?: number
-  super_likes_remaining: number
-  super_likes_reset_at: string
-  travel_city?: string
-  travel_active?: boolean
-  subscription_tier?: 'free' | 'premium'
-  premium_expires_at?: string
-  video_url?: string | null
-  mood?: Mood
-  energy_score?: number
-  trust_score?: number
-  profile_visible?: boolean
-  is_admin?: boolean
-  gender?: Gender
-  interested_in?: string[]
-}
-
-export interface Swipe {
-  id: string
-  swiper_id: string
-  swiped_id: string
-  direction: 'like' | 'pass' | 'super_like'
-  created_at: string
-}
-
-export interface Match {
-  id: string
-  user1_id: string
-  user2_id: string
-  created_at: string
-  ephemeral?: boolean
-  read_count?: number
-}
-
-export interface Message {
-  id: string
-  match_id: string
-  sender_id: string
-  text: string | null
-  image_url: string | null
-  audio_url?: string
-  video_url?: string
-  gif_url?: string
-  reply_to?: string
-  reply_preview?: { text: string | null; sender_id: string } | null
-  view_once: boolean
-  expires_at?: string
-  read_at?: string
-  edited_at?: string
-  deleted_for_all: boolean
-  created_at: string
-}
-
-export interface BlockedProfile {
-  blocked_id: string
-  created_at: string
-  blocked: { name: string; photos: string[] } | null
-}
+import type { Profile, Swipe, Match, Message, ProfileFilters } from './types'
+export type { LookingFor, Mood, Gender, Profile, Swipe, Match, Message, BlockedProfile, ProfileFilters, GiftTransaction } from './types'
 
 export async function getCurrentUserId(): Promise<string | null> {
   const { data: { user } } = await supabase().auth.getUser()
@@ -103,17 +24,6 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
   if (!data) return { error: 'Match introuvable' }
   if (data.user1_id !== userId && data.user2_id !== userId) return { error: 'Non autorisé' }
   return { userId }
-}
-
-export async function signOut() {
-  const { error } = await supabase().auth.signOut()
-  return { error: error?.message ?? null }
-}
-
-export async function resetPassword(email: string) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
-  const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset-password` })
-  return { error: error?.message ?? null }
 }
 
 const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood'
@@ -888,8 +798,6 @@ async function getCompatibleOnlyExclude(): Promise<string[]> {
   }
 }
 
-export interface ProfileFilters { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean; gender?: Gender; interestedIn?: string[] }
-
 export async function getProfilesPaginated(excludeIds: string[], page: number, filters?: ProfileFilters) {
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
@@ -1087,14 +995,6 @@ export async function completeOnboarding() {
   return { error: error?.message }
 }
 
-export interface GiftTransaction {
-  id: string
-  user_id: string
-  type: 'gift_received' | 'payout'
-  amount_cents: number
-  sent_gift_id: string | null
-  payment_details: string | null
-  status: 'completed' | 'pending' | 'failed' | 'cancelled'
-  created_at: string
-  updated_at: string
-}
+export { signOut, resetPassword } from './auth'
+
+

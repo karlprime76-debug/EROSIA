@@ -294,7 +294,7 @@ export default function SafetyPage() {
 function Header({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-      <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} style={{ color: 'var(--textPrimary)' }} /></button>
+      <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} style={{ color: 'var(--textPrimary)' }} /></button>
       <h2 className="text-2xl font-bold" style={{ color: 'var(--textPrimary)' }}>Centre de sécurité</h2>
     </header>
   )

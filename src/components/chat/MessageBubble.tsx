@@ -88,7 +88,7 @@ export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onR
         )}
 
         {lightbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
           <Image src={lightbox} alt="Photo" width={800} height={800} className="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl" />
         </div>
       )}

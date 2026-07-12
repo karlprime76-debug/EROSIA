@@ -206,7 +206,7 @@ export default function AdminPage() {
           {!loading && payouts.length === 0 && <p className="text-secondary text-sm">Aucun retrait en attente</p>}
           {payouts.map(tx => {
             let details = { type: '', identifier: '' }
-            try { details = JSON.parse(tx.payment_details ?? '{}') } catch {}
+            try { details = JSON.parse(tx.payment_details ?? '{}') } catch { details = { type: '', identifier: '' } }
             return (
               <div key={tx.id} className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">

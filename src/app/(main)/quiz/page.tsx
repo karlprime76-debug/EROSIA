@@ -78,7 +78,7 @@ export default function QuizPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <h1 className="sr-only">Quiz</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">Quiz de compatibilité</h2>
           <p className="text-xs text-secondary">Question {current + 1}/{questions.length}</p>

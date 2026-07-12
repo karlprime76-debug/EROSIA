@@ -18,7 +18,7 @@ function DailyProfileContent() {
   if (!profile) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
       </header>
       <div className="flex-1 flex items-center justify-center px-8 text-center">
@@ -50,7 +50,7 @@ function DailyProfileContent() {
     <div className="bg-transparent flex-1 flex flex-col">
       <h1 className="sr-only">Profil du jour</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold">Profil du jour</h2>
         <Star size={18} className="text-warning" />
       </header>

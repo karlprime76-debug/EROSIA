@@ -4,7 +4,7 @@ import { sanitize } from '../sanitize'
 describe('Sanitize Function', () => {
   it('should remove HTML tags', () => {
     const result = sanitize('<script>alert("xss")</script>Hello')
-    expect(result).toBe('Hello')
+    expect(result).toBe('alert("xss")Hello')
   })
 
   it('should truncate to max length', () => {

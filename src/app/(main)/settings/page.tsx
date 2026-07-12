@@ -258,9 +258,9 @@ const handleDelete = async () => {
                 else { logger.error('Save name error', await res.json()) }
                 setSavingName(false)
               })().catch(logger.error) }} disabled={savingName}
-                className="rounded-full p-1.5 text-[var(--successVibrant)] hover:bg-[var(--surfaceElevated)]"><Check size={16} /></button>
+                className="rounded-full p-2.5 text-[var(--successVibrant)] hover:bg-[var(--surfaceElevated)]"><Check size={16} /></button>
               <button type="button" aria-label="Annuler" onClick={() => { setNameValue(profileName); setEditingName(false) }}
-                className="rounded-full p-1.5 text-[var(--textSecondary)] hover:bg-[var(--surfaceElevated)]"><X size={16} /></button>
+                className="rounded-full p-2.5 text-[var(--textSecondary)] hover:bg-[var(--surfaceElevated)]"><X size={16} /></button>
             </div>
           ) : (
             <button type="button" onClick={() => setEditingName(true)}
@@ -330,7 +330,7 @@ const handleDelete = async () => {
   if (!settingsLoaded) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold" style={{ color: 'var(--textPrimary)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">
@@ -360,7 +360,7 @@ const handleDelete = async () => {
     <div className="bg-transparent flex-1 flex flex-col">
       <h1 className="sr-only">Paramètres</h1>
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-2xl font-bold" style={{ color: 'var(--textPrimary)' }}>Paramètres</h2>
       </header>
       <div className="flex-1 px-4 space-y-6 pb-8 overflow-y-auto">

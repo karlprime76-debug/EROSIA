@@ -332,7 +332,7 @@ const ConversationCard = React.memo(function ConversationCard({ conv, myId, isOn
 
       <div className="relative">
         <button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); onMenuOpen(menuOpen === conv.matchId ? null : conv.matchId) }} aria-label="Menu"
-          className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-hover">
+          className="p-2.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-hover">
           <MoreHorizontal size={16} className="text-muted" />
         </button>
         {menuOpen === conv.matchId && (

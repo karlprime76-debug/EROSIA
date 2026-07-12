@@ -12,7 +12,7 @@ INSERT INTO achievements (key, name, description, icon, xp_reward, category) VAL
   ('storyteller', 'Conteur', 'Publie 10 stories', '🎬', 60, 'content'),
   ('early_bird', 'Lève-tôt', 'Connecte-toi avant 8h', '🌅', 15, 'habits'),
   ('night_owl', 'Oiseau de nuit', 'Connecte-toi après minuit', '🦉', 15, 'habits'),
-  ('social_butterfly', 'Papillon social', 'Affiche 5 centres d\'intérêt', '🦋', 30, 'profile'),
+  ('social_butterfly', 'Papillon social', 'Affiche 5 centres d''intérêt', '🦋', 30, 'profile'),
   ('profile_star', 'Profil complet', 'Remplis toutes les sections du profil', '⭐', 40, 'profile'),
   ('verified', 'Vérifié', 'Vérifie ton identité', '✅', 100, 'trust'),
   ('streak_7', 'Semaine complète', 'Maintiens une série de 7 jours', '📆', 70, 'habits'),

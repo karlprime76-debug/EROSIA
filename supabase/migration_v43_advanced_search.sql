@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS saved_searches (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_saved_searches_user ON saved_searches(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);
 
 ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
 

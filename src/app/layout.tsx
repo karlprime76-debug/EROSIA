@@ -22,13 +22,36 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://erosia.app'
+
 export const metadata: Metadata = {
-  title: "Erosia",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Erosia — Là où les cœurs se rencontrent",
+    template: "%s — Erosia",
+  },
   description: "Là où les cœurs se rencontrent",
   manifest: "/manifest.json",
   icons: {
     icon: { url: "/favicon.svg", type: "image/svg+xml" },
     apple: { url: "/icone.png", sizes: "180x180", type: "image/png" },
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Erosia",
+    title: "Erosia — Là où les cœurs se rencontrent",
+    description: "Là où les cœurs se rencontrent",
+    url: "/",
+    locale: "fr_FR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Erosia — Là où les cœurs se rencontrent",
+    description: "Là où les cœurs se rencontrent",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 

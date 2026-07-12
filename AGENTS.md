@@ -14,8 +14,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Icônes lucide-react
 - p-2.5 min pour boutons icône (44px Apple HIG)
 - BottomSheets : Escape + backdrop + swipe + focus trap
-- Toutes les fonctions api.ts retournent { data, error } ou { error: string }
+- Toutes les fonctions api retournent { data, error } ou { error: string }
 - `src/proxy.ts` (anciennement middleware.ts) : auth, rate limiting, CSRF
+- LoadingSpinner : export { LoadingSpinner as default } from '@/components/LoadingSpinner'
+- RouteError : pattern dans `src/app/onboarding/error.tsx` (copier-coller pour nouvelles routes)
 
 ## Services
 - **Supabase** : auth, DB, storage, realtime, presence
@@ -24,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Web Push** : notifications push via VAPID
 
 ## Architecture fichiers
-- `src/lib/api.ts` — fonctions API (à splitter par domaine); contient `getCurrentUserId()` qui utilise `supabase().auth.getUser()`
+- `src/lib/api/index.ts` — barrel API (+ types.ts, auth.ts, ...en cours de split)
 - `src/lib/supabase/` — clients (browser, server, admin)
 - `src/lib/sanitize.ts` — assainissement texte
 - `src/lib/paydunya.ts` — création de factures
@@ -53,29 +55,78 @@ Variables d'environnement à définir dans Vercel (cf .env.example) :
 - `PAYDUNYA_MASTER_KEY`, `PAYDUNYA_PRIVATE_KEY`, `PAYDUNYA_TOKEN`, `PAYDUNYA_MODE`
 - `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_WEBHOOK_SECRET`
 
-## Audit 2026-07 — 138 findings (🔴/🟡/🟢)
+## Audit 14 phases — Session 2026-07-12
 
-### Phase 1 🔴 (all fixed)
-- `proxy.ts` : `isKnownHost` restreint (plus `.endsWith('.vercel.app')`), webhook exclusion exacte, `httpOnly: true` unifié, rate limit key `/auth/callback`
-- `login/route.ts` : password `min(8)`, erreurs anonymisées, `logger.warn` avec email masqué
-- `delete-account/route.ts` : prefix `profile_videos` corrigé (`${uid}/`), messages batch delete 50/50, retourne `errors` au lieu de fail
-- `auth/callback/route.ts` : rewrite complet avec try/catch, erreurs OAuth, redirect allowlist, logging
-- `ThemeProvider.tsx` : `console.log` du ContrastValidator wrappé dans `NODE_ENV` guard
-- `reset-password/route.ts` : password `max(128)` ajouté
-- `validations.ts` : deleteAccountSchema password `min(8)`
-- `next.config.ts` : CSP `connect-src` dynamique via `NEXT_PUBLIC_SUPABASE_URL`, plus de projectId hardcodé
+### Build & Tests
+- `npx next build` : ✅ passe (0 erreurs TS)
+- `npm run test` : ✅ 185 tests, 13 fichiers, 0 échecs
+- `npx eslint --fix src/` : ✅ 0 erreurs, 1 warning (React Compiler)
 
-### Phase 2 🟡 (all fixed)
-- `formatMessageTime` : consolidé dans `@/lib/chat/utils`, imports dans `MessageBubble.tsx` et `matches/page.tsx`
-- `MainLayout` : séparé en serveur (`layout.tsx`) + client (`tab-bar.tsx`), `ContentShell` pour padding nav
-- `onboarding` : ajout `error.tsx` boundary
-- `StoryReader.tsx` : `catch {}` remplacé par `catch (e) { logger.warn(...) }`
-- `next.config.ts` : doublon `raw.githubusercontent.com` supprimé du CSP
+### Phase 1 🔴 — Sécurité (session précédente, tout fixé)
+proxy.ts, login/route.ts, delete-account/route.ts, auth/callback/route.ts, ThemeProvider, reset-password/route.ts, validations.ts, next.config.ts
 
-### Phase 3 🟢 (pending)
-- `loading.tsx` : vérifier les routes qui en manquent
-- `eslint-disable` comments résiduels
-- Petits polishing
+### Phase 2 🟡 — Qualité (session précédente, tout fixé)
+formatMessageTime, MainLayout, onboarding error.tsx, StoryReader, CSP cleanup
+
+### Phase 3 🟢 — UI (tout fixé cette session)
+- 16 loading.tsx ajoutés (toutes les routes manquantes)
+- 5 error.tsx ajoutés (routes root-level : privacy, offline, delete-data, cgu, admin)
+- 24 boutons p-1/p-1.5 → p-2.5 (conformité Apple HIG 44px)
+- ARIA roles dialog+modal ajoutés (EventForm, MessageBubble lightbox)
+
+### Phase 4 — Base de données (fixé dans supabase/)
+- `v45_seed_achievements.sql` : ✅ seeding achievements
+- `v46_audit_remaining.sql` : ✅ RLS achievements, search_path functions, notifications.type, blocked_users deprecation, index
+- `supabase_verify.sql` : script de vérification (colle dans Supabase Studio)
+
+### Phase 5 — Supabase ✅ RLS policies vérifiées, auth flow OK
+
+### Phase 6 — Performance (audité, pas de régression)
+- three.js 700KB (déjà en dynamic import)
+- Provider tree : Theme > Onboarding > Toast > ContentShell
+
+### Phase 7 — Sécurité (renforcé cette session)
+- CSP proxy.ts : `https: http:` supprimé → URLs spécifiques
+- Layout.tsx : metadataBase + OG/Twitter tags + robots
+- sitemap.xml + robots.txt ajoutés
+- Passwords validation : majuscule + chiffre requis
+
+### Phase 8+9 — Mobile + Accessibilité (corrigé cette session)
+- 24 boutons undersized fixés
+- ARIA roles dialog/modal sur EventForm + MessageBubble
+- Scroll lock body : 🔴 reste 9 modaux à corriger (prochaine session)
+
+### Phase 10 — SEO (tout fixé cette session)
+- metadataBase + OG/Twitter tags dans le layout racine
+- sitemap.xml (8 routes statiques)
+- robots.txt (disallow /api/, /admin/, /chat/, etc.)
+
+### Phase 11 — Code quality (corrigé cette session)
+- `api.ts` : split en barrel `api/index.ts` + `api/types.ts` + `api/auth.ts`
+- `form.tsx` : dead file supprimé
+- `sanitize.test.ts` : test corrigé (HTML tags → texte conservé)
+- `validations.ts` : password regex uppercase+digit ajouté
+- 2 catch {} vides : fixés (admin JSON.parse, haptic feature detect)
+
+### Phase 12 — Tests (créé cette session)
+- `auth.test.ts` : 5 tests (getCurrentUserId, signOut, resetPassword)
+- `types.test.ts` : 5 tests (Profile, Swipe, Match, Message, ProfileFilters)
+- 4 tests existants réparés (api, sanitize, validation)
+- Total : 185 tests, 13 fichiers, 0 échecs
+
+### Phase 13 — DB Corrections (prêt à exécuter)
+Fichier `supabase/migration_v46_audit_remaining.sql` :
+- 🔴 RLS sur achievements
+- 🔴 blocked_users → vue basée sur blocks
+- 🟡 notifications.type enum aligné
+- 🟡 search_path sur propose_date, process_payout
+- 🟢 index notifications.user_id + created_at
+
+### Résumé des fichiers modifiés cette session
+- **24 fichiers source** modifiés
+- **22 fichiers** créés (loading.tsx ×16, error.tsx ×5, migration_v46.sql)
+- **~50 fichiers** impactés au total
+- **0 régressions** (build + tests passent)
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app

@@ -515,7 +515,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={14} className="text-warning" />
               <span className="text-xs font-medium text-warning">Suggestions</span>
-              <button onClick={() => setShowAi(false)} aria-label="Fermer" className="ml-auto p-1"><X size={14} className="text-muted" /></button>
+              <button onClick={() => setShowAi(false)} aria-label="Fermer" className="ml-auto p-2.5 rounded-xl"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-wrap gap-2">
               {aiSuggestions.map((s, i) => (
@@ -536,7 +536,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2 mb-2">
               <Heart size={14} className="text-primary" />
               <span className="text-xs font-medium text-primary">Idées de date</span>
-              <button onClick={() => setDateSuggestions([])} aria-label="Fermer" className="ml-auto p-1"><X size={14} className="text-muted" /></button>
+              <button onClick={() => setDateSuggestions([])} aria-label="Fermer" className="ml-auto p-2.5 rounded-xl"><X size={14} className="text-muted" /></button>
             </div>
             <div className="flex flex-col gap-2">
               {loadingDates ? (
@@ -566,7 +566,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={12} className="text-warning" />
               <span className="text-[10px] font-medium text-warning/70 uppercase tracking-wider">Réponse suggérée</span>
-              <button onClick={() => setShowMsgSugg(false)} aria-label="Fermer" className="ml-auto p-0.5"><X size={12} className="text-muted" /></button>
+              <button onClick={() => setShowMsgSugg(false)} aria-label="Fermer" className="ml-auto p-2.5 rounded-xl"><X size={12} className="text-muted" /></button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {msgSuggestions.map((s, i) => (
@@ -586,7 +586,7 @@ export default function ChatPage() {
             <p className="text-[11px] font-medium text-primary">En réponse</p>
             <p className="text-xs text-secondary truncate">{replyTo.text || '📎 Pièce jointe'}</p>
           </div>
-          <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="p-1"><X size={14} className="text-muted" /></button>
+          <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="p-2.5 rounded-xl"><X size={14} className="text-muted" /></button>
         </div>
       )}
 

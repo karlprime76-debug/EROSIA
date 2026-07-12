@@ -36,7 +36,9 @@ vi.mock('@/lib/supabase/client', () => ({
 import { signOut, createSwipe, sendMessage } from '../api'
 
 beforeEach(() => {
-  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch mock'))
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+    Promise.resolve(new Response(JSON.stringify({ data: { id: 'msg1', match_id: 'match1', sender_id: 'user1', text: 'Hello' } }), { status: 200 }))
+  )
 })
 
 afterEach(() => {
@@ -95,6 +97,9 @@ describe('sendMessage', () => {
   })
 
   it('sends a text message', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify({ data: { id: 'msg1', match_id: 'match1', sender_id: 'user1', text: 'Hello' } }), { status: 200 }))
+    )
     const result = await sendMessage('match1', 'Hello')
     expect(result.data).toBeDefined()
     expect(result.data?.text).toBe('Hello')

@@ -47,7 +47,7 @@ export default function EventDetailPage() {
   if (!event) return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
       </header>
       <div className="flex-1 flex items-center justify-center text-secondary text-sm">Événement introuvable</div>
     </div>
@@ -93,11 +93,11 @@ export default function EventDetailPage() {
   return (
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3">
-        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-1"><ArrowLeft size={22} /></button>
+        <button type="button" onClick={() => router.back()} aria-label="Retour" className="p-2.5 rounded-xl"><ArrowLeft size={22} /></button>
         <h2 className="text-lg font-bold">Événement</h2>
         <div className="flex-1" />
         {isCreator && (
-          <button type="button" onClick={handleDelete} aria-label="Supprimer" className="p-1 text-secondary hover:text-primary transition">
+          <button type="button" onClick={handleDelete} aria-label="Supprimer" className="p-2.5 rounded-xl text-secondary hover:text-primary transition">
             <Trash2 size={18} />
           </button>
         )}
