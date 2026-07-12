@@ -6,6 +6,7 @@
 -- ============================================================
 ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "achievements_select_all" ON achievements;
 CREATE POLICY "achievements_select_all" ON achievements
   FOR SELECT USING (true);
 

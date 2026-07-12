@@ -114,19 +114,31 @@ formatMessageTime, MainLayout, onboarding error.tsx, StoryReader, CSP cleanup
 - 4 tests existants réparés (api, sanitize, validation)
 - Total : 185 tests, 13 fichiers, 0 échecs
 
-### Phase 13 — DB Corrections (prêt à exécuter)
-Fichier `supabase/migration_v46_audit_remaining.sql` :
-- 🔴 RLS sur achievements
-- 🔴 blocked_users → vue basée sur blocks
-- 🟡 notifications.type enum aligné
-- 🟡 search_path sur propose_date, process_payout
-- 🟢 index notifications.user_id + created_at
+### Phase 13 — DB Corrections ✅
+Migration `v46_audit_remaining.sql` appliquée (2026-07-12) :
+- ✅ RLS achievements + policy select all
+- ✅ blocked_users_view basée sur blocks
+- ✅ notification_type aligné (match, like, super_like)
+- ✅ search_path explicite sur propose_date, process_payout
+- ✅ index notifications.user_id + created_at DESC
 
-### Résumé des fichiers modifiés cette session
-- **24 fichiers source** modifiés
-- **22 fichiers** créés (loading.tsx ×16, error.tsx ×5, migration_v46.sql)
-- **~50 fichiers** impactés au total
-- **0 régressions** (build + tests passent)
+### Phase 14 — Premium Features ✅
+Migration `v47_premium_features.sql` appliquée (2026-07-12).
+
+### Phase 15 — Audit sous-pages (vérifié le 2026-07-12)
+- 7 sous-pages auditées, 8 bugs corrigés
+- `chat/[id]` : `URL.createObjectURL` → `useMemo` ; `handleEdit` no-op fixé
+- `settings` : `prompt()` password → modal sécurisée
+- `profile` : redirect `/gifts` → `/island`
+- `stories` : filtre `groups[0]` renforcé
+- `discover` : `swipeTimeoutsRef` + cleanup
+- `gifts/checkout` : `cancelled` flag anti-ops après démontage
+- `dates` : code mort retiré
+- Build ✅ 115 routes, 185/185 tests ✅
+
+### Prochaine session conseillée
+- Scroll lock body : 9 modaux à corriger (problème connu Phase 8)
+- Déploiement Vercel : vérifier que les nouvelles variables d'env sont définies
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app
