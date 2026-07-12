@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase/client'
 import { getModerationQueue, reviewContent } from '@/lib/api'
 import {
@@ -337,6 +338,7 @@ export default function AdminPage() {
       }
       setChecking(false)
     })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSearchChange = (val: string) => {
@@ -800,9 +802,9 @@ export default function AdminPage() {
               {verifications.length === 0 && <p className="text-secondary text-sm">Aucune demande en attente</p>}
               {verifications.map(req => (
                 <div key={req.id} className="glass-card rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="relative w-14 h-14 rounded-xl bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
                     {req.photo_url ? (
-                      <img src={req.photo_url} alt="Photo vérification" className="w-full h-full object-cover" />
+                      <Image src={req.photo_url} alt="Photo vérification" fill className="object-cover" sizes="56px" />
                     ) : (
                       <BadgeCheck size={20} className="text-secondary" />
                     )}

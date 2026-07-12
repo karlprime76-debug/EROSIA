@@ -96,7 +96,7 @@ export default function NotificationsPage() {
           router.push('/dates')
           break
         case 'gift':
-          router.push('/profile')
+          router.push('/island')
           break
         case 'level_up':
         case 'achievement':
