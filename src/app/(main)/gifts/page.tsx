@@ -55,7 +55,7 @@ export default function GiftsPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-        if (!data.user) return
+        if (!data.user) { setInitialLoad(true); return }
         const [giftsData, receivedData, payAcc] = await Promise.all([getGifts(), getReceivedGifts(), getPaymentAccount()])
         if (giftsData.data) setGifts(giftsData.data)
         if (receivedData.data) setReceived(receivedData.data as typeof received)

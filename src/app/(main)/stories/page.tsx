@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Plus, Trash2, Eye, Heart, Loader } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 import { checkPremium } from '@/lib/api'
 import { getActiveStories, deleteStory, uploadStory, getStoryViews, getStoryReactions } from '@/lib/stories'
 import { useToast } from '@/components/Toast'
@@ -38,6 +39,8 @@ export default function StoriesPage() {
   useEffect(() => {
     let cancelled = false
     const initialize = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setLoading(false); return }
       await load(1)
       if (!cancelled) {
         setLoading(false)

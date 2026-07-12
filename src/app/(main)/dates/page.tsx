@@ -63,7 +63,7 @@ export default function DatesPage() {
 
   const loadDates = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
     setUserId(user.id)
     const { data: upcoming } = await supabase.rpc('get_upcoming_dates', { p_user_id: user.id })
     if (upcoming) setDates(upcoming as unknown as PlannedDateItem[])
