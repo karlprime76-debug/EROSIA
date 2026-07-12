@@ -37,16 +37,20 @@ export default function CheckoutPage() {
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
 
   useEffect(() => {
+    let cancelled = false
     const timer = setTimeout(async () => {
       const items = getCart()
+      if (cancelled) return
       setCart(items)
       if (items.length === 0) { router.replace('/gifts/cart'); return }
 
       supabase.auth.getUser().then(async ({ data }) => {
+      if (cancelled) return
       if (!data.user) { router.push('/login'); return }
       setMyId(data.user.id)
       const uid = data.user.id
       const [matchData, payAcc] = await Promise.all([getMatches(), getPaymentAccount()])
+      if (cancelled) return
       if (matchData.data) {
         setMatches(matchData.data)
         const otherIds = matchData.data.map(m => m.user1_id === uid ? m.user2_id : m.user1_id).filter(Boolean)
@@ -62,7 +66,7 @@ export default function CheckoutPage() {
       }
       })
     }, 0)
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [router])
 
   const total = cartTotal(cart)

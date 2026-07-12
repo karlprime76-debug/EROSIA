@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Send, Image as ImageIcon, Mic, Square, Smile, X, MoreHorizontal, UserMinus, Flag, Sparkles, Heart, BarChart3, ShieldOff, Film } from 'lucide-react'
@@ -40,7 +40,7 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
-  const recordedUrl = recordedBlob ? URL.createObjectURL(recordedBlob) : null
+  const recordedUrl = useMemo(() => recordedBlob ? URL.createObjectURL(recordedBlob) : null, [recordedBlob])
   useEffect(() => () => { if (recordedUrl) URL.revokeObjectURL(recordedUrl) }, [recordedUrl])
   const [showEmoji, setShowEmoji] = useState(false)
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
@@ -56,6 +56,7 @@ export default function ChatPage() {
   const [showReport, setShowReport] = useState(false)
   const [msgSuggestions, setMsgSuggestions] = useState<string[]>([])
   const [showMsgSugg, setShowMsgSugg] = useState(false)
+  const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null)
   const [hasStories, setHasStories] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -181,9 +182,22 @@ export default function ChatPage() {
     }
   }, [matchId, router, toast, scrollToBottom, loadMessageSuggestions])
 
+  const handleEditSave = async () => {
+    if (!editingMsg || !input.trim()) return
+    const { error } = await supabase.from('messages').update({ text: input.trim(), edited_at: new Date().toISOString() }).eq('id', editingMsg.id)
+    if (error) { toast('Erreur de modification', 'error') }
+    setEditingMsg(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingMsg(null)
+    setInput('')
+  }
+
   const handleSend = useCallback(async () => {
     const text = input.trim()
     if (!text || sending) return
+    if (editingMsg) { handleEditSave(); return }
     setSending(true)
     const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const tempMsg = {
@@ -220,7 +234,7 @@ export default function ChatPage() {
       setMessages(prev => [...prev.filter(m => m.id !== clientId), data as ChatMessage])
     }
     setSending(false)
-  }, [input, sending, matchId, myId, toast, scrollToBottom])
+  }, [input, sending, matchId, myId, toast, scrollToBottom, editingMsg, handleEditSave])
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value)
@@ -302,11 +316,12 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }
 
-  const handleEdit = async (msg: ChatMessage) => {
+  const handleEdit = (msg: ChatMessage) => {
     const diff = Date.now() - new Date(msg.created_at).getTime()
     if (diff > 900000) { toast('Délai de modification expiré (15 min)', 'error'); return }
-    const { error } = await supabase.from('messages').update({ text: msg.text, edited_at: new Date().toISOString() }).eq('id', msg.id)
-    if (error) toast('Erreur de modification', 'error')
+    setEditingMsg(msg)
+    setInput(msg.text || '')
+    inputRef.current?.focus()
   }
 
   const handleDelete = async (msg: ChatMessage) => {
@@ -606,9 +621,15 @@ export default function ChatPage() {
           </button>
 
           <div className="flex-1 flex items-end gap-2 bg-surface rounded-2xl px-3 py-1 border border-theme focus-within:border-primary/30 transition-colors">
+            {editingMsg && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[10px] text-primary font-medium">Modification</span>
+                <button onClick={cancelEdit} aria-label="Annuler modification" className="p-1"><X size={12} className="text-muted" /></button>
+              </div>
+            )}
             <input
               ref={inputRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
-              placeholder="Écrivez un message..."
+              placeholder={editingMsg ? 'Modifie ton message...' : 'Écrivez un message...'}
               className="flex-1 bg-transparent text-sm py-2 outline-none text-theme placeholder:text-muted min-w-0"
               maxLength={5000}
             />

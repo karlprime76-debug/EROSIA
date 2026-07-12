@@ -226,7 +226,7 @@ export default function DatesPage() {
                         )}
                       </div>
                     ))}
-                    {(!d.slots || d.slots.length === 0) && acceptedSlot && (
+                    {acceptedSlot && (
                       <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-primary/10 text-primary">
                         <Clock size={12} />
                         <span>

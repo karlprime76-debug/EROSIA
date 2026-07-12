@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, startTransition } from 'react'
+import { useState, useEffect, useRef, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield, Globe } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
@@ -85,16 +85,21 @@ export default function SettingsPage() {
   } catch (e) { logger.error('Profile update network error', e) }
 }
 
-const handleDelete = async () => {
-    const password = prompt('Confirme ton mot de passe pour supprimer ton compte :')
-    if (!password) return
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const deletePasswordRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { if (showDeleteModal) setTimeout(() => deletePasswordRef.current?.focus(), 100) }, [showDeleteModal])
+
+  const handleDelete = async () => {
+    if (!deletePassword) return
     if (!(await confirm('Supprimer définitivement ton compte ? Cette action est irréversible.'))) return
     setDeleting(true)
     try {
       const res = await fetch('/api/auth/delete-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: deletePassword }),
       })
       const data = await res.json()
       if (!res.ok) { toast(data.error || 'Erreur lors de la suppression', 'error'); setDeleting(false); return }
@@ -273,7 +278,7 @@ const handleDelete = async () => {
         },
         {
           icon: Trash2, label: 'Supprimer mon compte', desc: 'Irréversible', danger: true,
-          onClick: handleDelete,
+          onClick: () => { setShowDeleteModal(true); setDeletePassword('') },
         },
       ],
     },
@@ -399,6 +404,31 @@ const handleDelete = async () => {
           </div>
         ))}
       </div>
+
+      {showDeleteModal && (
+        <div aria-hidden="true" role="presentation" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" onClick={() => setShowDeleteModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowDeleteModal(false) }}>
+          <div role="dialog" aria-modal="true" tabIndex={-1} className="w-full max-w-sm bg-[var(--card)] rounded-t-2xl sm:rounded-2xl p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-1">Supprimer le compte</h3>
+            <p className="text-xs text-secondary mb-4">Confirme ton mot de passe pour supprimer définitivement ton compte.</p>
+            <div className="mb-4">
+              <label htmlFor="delete-password" className="text-xs font-medium text-secondary mb-1 block">Mot de passe</label>
+              <input id="delete-password" ref={deletePasswordRef} type="password" value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleDelete() }}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] text-sm border border-[var(--border)] outline-none focus:border-[var(--primary)]"
+                autoComplete="current-password" />
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 rounded-full text-sm font-medium border border-[var(--border)] text-secondary">Annuler</button>
+              <button type="button" onClick={handleDelete} disabled={!deletePassword || deleting}
+                className="flex-1 py-3 rounded-full text-sm font-semibold text-on-primary disabled:opacity-40" style={{ background: 'var(--error)' }}>
+                {deleting ? 'Suppression...' : 'Confirmer la suppression'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

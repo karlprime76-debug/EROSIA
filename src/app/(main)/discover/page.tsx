@@ -163,6 +163,7 @@ export default function DiscoverPage() {
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
   const [blurPhotos, setBlurPhotos] = useState(false)
+  const swipeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const [unblurredIds, setUnblurredIds] = useState<Set<string>>(new Set())
   const profilesRef = useRef(profiles)
   useEffect(() => { profilesRef.current = profiles }, [profiles])
@@ -338,6 +339,8 @@ export default function DiscoverPage() {
     logBehavior(dir === 'super_like' ? 'swipe_super_like' : dir === 'like' ? 'swipe_like' : 'swipe_pass', p.id)
 
     const next = idx + 1
+    swipeTimeoutsRef.current.forEach(clearTimeout)
+    swipeTimeoutsRef.current = []
     if (next >= profiles.length) {
       setProfiles([])
       setIdx(0)
@@ -347,7 +350,7 @@ export default function DiscoverPage() {
     setSwipeAnim(dir === 'like' ? 'right' : 'left')
 
     if (dir === 'like') { setHeartBurst(true); setTimeout(() => setHeartBurst(false), 600) }
-    setTimeout(async () => {
+    const swipeTimeout = setTimeout(async () => {
       setSwipeAnim('idle')
       await createSwipe(p.id, dir).catch(() => { toast('Erreur lors du swipe', 'error') })
       setHasSwiped(true)
@@ -366,6 +369,7 @@ export default function DiscoverPage() {
         }
       }
     }, 0)
+    swipeTimeoutsRef.current.push(swipeTimeout)
   }
 
   const handleRewind = async () => {

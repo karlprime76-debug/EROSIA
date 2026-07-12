@@ -189,7 +189,7 @@ export default function StoriesPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {groups.filter(g => g.userId !== groups[0]?.userId).map(group => (
+            {groups.filter(g => g.userId !== groups[0]?.userId && g.userId).map(group => (
               <div key={group.userId}>
                 <div className="flex items-center gap-2 mb-3">
                   <button type="button" onClick={() => openReader(groups.indexOf(group))} className="flex items-center gap-2 flex-1">
