@@ -131,7 +131,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { photoUrl, action } = await request.json()
+    const body = await request.json()
+    const { photoUrl, action, photos: reordered } = body
     if (!photoUrl || typeof photoUrl !== 'string') {
       return NextResponse.json({ error: 'URL de photo manquante' }, { status: 400 })
     }
@@ -152,7 +153,6 @@ export async function PUT(request: Request) {
     if (action === 'set-primary') {
       updatedPhotos = [photoUrl, ...currentPhotos.filter(p => p !== photoUrl)]
     } else if (action === 'reorder') {
-      const { photos: reordered } = await request.json()
       if (!Array.isArray(reordered) || reordered.length !== currentPhotos.length) {
         return NextResponse.json({ error: 'Ordre invalide' }, { status: 400 })
       }

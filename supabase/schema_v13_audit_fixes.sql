@@ -534,12 +534,12 @@ END $$;
 -- 9. STORAGE BUCKETS (ensure all exist)
 -- ==============================
 
-INSERT INTO storage.buckets (id, name, public) VALUES
-  ('photos', 'photos', true),
-  ('stories', 'stories', true),
-  ('profile_videos', 'profile_videos', true),
-  ('chat_photos', 'chat_photos', true),
-  ('chat_audio', 'chat_audio', true),
-  ('verification_photos', 'verification_photos', true),
-  ('event_images', 'event_images', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES
+  ('photos', 'photos', true, NULL, NULL),
+  ('stories', 'stories', true, NULL, NULL),
+  ('profile_videos', 'profile_videos', true, NULL, NULL),
+  ('chat_photos', 'chat_photos', true, NULL, NULL),
+  ('chat_audio', 'chat_audio', true, NULL, NULL),
+  ('verification_photos', 'verification_photos', true, NULL, NULL),
+  ('event_images', 'event_images', true, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET public = true, file_size_limit = NULL, allowed_mime_types = NULL;

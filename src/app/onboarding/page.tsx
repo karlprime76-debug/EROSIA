@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
 import { Camera, Check, ChevronRight, Shield, Sparkles, Image as ImageIcon, Plus, X, Heart, Users, Coffee, Flame } from 'lucide-react'
-import { uploadPhoto, updateProfile, completeOnboarding, type LookingFor } from '@/lib/api'
+import { uploadPhoto, deletePhoto, updateProfile, completeOnboarding, type LookingFor } from '@/lib/api'
 import { validateFile, sanitizeFilename } from '@/lib/media'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
@@ -91,10 +91,12 @@ export default function OnboardingPage() {
 
   const handleDeletePhoto = async (indexToDelete: number) => {
     if (!userId) return
-    const updatedPhotos = photos.filter((_, i) => i !== indexToDelete)
-    setPhotos(updatedPhotos)
+    const photoUrl = photos[indexToDelete]
+    if (!photoUrl) return
     try {
-      await updateProfile(userId, { photos: updatedPhotos })
+      const result = await deletePhoto(photoUrl)
+      if (result.error) { toast(result.error, 'error'); return }
+      if (result.photos) setPhotos(result.photos)
       toast('Photo supprimée', 'success')
     } catch (err) {
       logger.error('delete photo error', { error: String(err) })
