@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import { Camera, Lock, Globe, Loader } from 'lucide-react'
 import type { StoryPrivacy } from '@/lib/stories/types'
+import { toast } from 'sonner'
+import { validateFile } from '@/lib/media'
 
 interface StoryCreatorProps {
   onUpload: (file: File, privacy: StoryPrivacy) => Promise<void>
@@ -19,6 +21,8 @@ export function StoryCreator({ onUpload, disabled, premiumRequired }: StoryCreat
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const err = validateFile(file, 'story')
+    if (err) { toast.error(err); e.target.value = ''; return }
     setUploading(true)
     try {
       await onUpload(file, privacy)

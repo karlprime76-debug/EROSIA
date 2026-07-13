@@ -42,6 +42,7 @@ import { useToast } from '@/components/Toast'
 import { logger } from '@/lib/logger'
 import dynamic from 'next/dynamic'
 import { AuraBadge, useAura } from '@/components/AuraSphere'
+import { validateFile } from '@/lib/media'
 import { useTheme } from 'next-themes'
 
 const AuraSphere = dynamic(() => import('@/components/AuraSphere').then(m => ({ default: m.AuraSphere })), { ssr: false })
@@ -53,6 +54,7 @@ function ProfilePageInner() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [photoActionLoading, setPhotoActionLoading] = useState<string | null>(null)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [nameValue, setNameValue] = useState('')
@@ -109,25 +111,26 @@ function ProfilePageInner() {
       if (profileData) { setProfile(profileData); setNameValue(profileData.name ?? ''); setBio(profileData.bio ?? ''); setInterests(profileData.interests?.join(', ') ?? ''); setLookingFor(profileData.looking_for ?? 'friendship'); setMood(profileData.mood ?? 'discuter'); setGender(profileData.gender ?? 'male'); setInterestedIn(profileData.interested_in ?? []) }
     } catch (err) { logger.error('loadProfile: exception', err) }
   }
-  const handlePhoto = async () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file || !profile) return
-      setUploading(true)
-      try {
-        const result = await uploadPhoto(file)
-        if (result.error) { toast(result.error, 'error'); setUploading(false); return }
-        if (result.photos) {
-          setProfile({ ...profile, photos: result.photos })
-          toast('Photo ajoutée', 'success')
-        }
-      } catch (err) { logger.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
-      setUploading(false)
-    }
-    input.click()
+  const handlePhotoTap = () => {
+    photoInputRef.current?.click()
+  }
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!profile) { toast('Profil pas encore chargé', 'error'); return }
+    const validationErr = validateFile(file, 'photo')
+    if (validationErr) { toast(validationErr, 'error'); e.target.value = ''; return }
+    setUploading(true)
+    try {
+      const result = await uploadPhoto(file)
+      if (result.error) { toast(result.error, 'error'); setUploading(false); return }
+      if (result.photos) {
+        setProfile({ ...profile, photos: result.photos })
+        toast('Photo ajoutée', 'success')
+      }
+    } catch (err) { logger.error('handlePhoto error', err); toast('Erreur lors de l\'ajout de la photo', 'error') }
+    setUploading(false)
+    e.target.value = ''
   }
 
   const [savingProfile, setSavingProfile] = useState(false)
@@ -291,10 +294,11 @@ function ProfilePageInner() {
                   )}
                 </div>
               </div>
-              <button type="button" onClick={handlePhoto} disabled={uploading} aria-label="Ajouter une photo"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-[var(--bg)]"
+              <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              <button type="button" onClick={handlePhotoTap} disabled={uploading} aria-label="Ajouter une photo"
+                className="absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center border-2 border-[var(--bg)]"
                 style={{ background: 'var(--primary)' }}>
-                {uploading ? <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={14} className="text-theme" />}
+                {uploading ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Camera size={16} className="text-theme" />}
               </button>
             </div>
             <div>
@@ -335,8 +339,8 @@ function ProfilePageInner() {
                         if (r.photos) setProfile({ ...profile, photos: r.photos })
                         setPhotoActionLoading(null)
                       })().catch(logger.error) }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Photo principale" title="Photo principale" disabled={photoActionLoading === `set-${photo}`}>
-                        {photoActionLoading === `set-${photo}` ? <Loader size={14} className="animate-spin text-warning" /> : <Star size={14} className="text-warning" />}
+                        className="p-2.5 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Photo principale" title="Photo principale" disabled={photoActionLoading === `set-${photo}`}>
+                        {photoActionLoading === `set-${photo}` ? <Loader size={16} className="animate-spin text-warning" /> : <Star size={16} className="text-warning" />}
                       </button>
                     )}
                     <button type="button" onClick={() => { (async () => {
@@ -346,8 +350,8 @@ function ProfilePageInner() {
                       if (r.photos) setProfile({ ...profile, photos: r.photos })
                       setPhotoActionLoading(null)
                     })().catch(logger.error) }}
-                      className="p-2 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Supprimer" title="Supprimer" disabled={photoActionLoading === `del-${photo}`}>
-                      {photoActionLoading === `del-${photo}` ? <Loader size={14} className="animate-spin text-error" /> : <Trash2 size={14} className="text-error" />}
+                      className="p-2.5 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Supprimer" title="Supprimer" disabled={photoActionLoading === `del-${photo}`}>
+                      {photoActionLoading === `del-${photo}` ? <Loader size={16} className="animate-spin text-error" /> : <Trash2 size={16} className="text-error" />}
                     </button>
                   </div>
                   {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-warning text-theme px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}

@@ -18,6 +18,7 @@ const ConsentDialog = dynamic(() => import('@/components/safety/ConsentDialog'),
 const SafetyReminder = dynamic(() => import('@/components/safety/SafetyReminder'), { ssr: false })
 const ReportSheet = dynamic(() => import('@/components/safety/ReportSheet'), { ssr: false })
 import { reportUser, blockUser, logConsent } from '@/lib/safety/api'
+import { validateFile } from '@/lib/media'
 
 import { motion, AnimatePresence } from 'motion/react'
 import type { ChatMessage } from '@/lib/chat/types'
@@ -42,6 +43,8 @@ export default function ChatPage() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const recordedUrl = useMemo(() => recordedBlob ? URL.createObjectURL(recordedBlob) : null, [recordedBlob])
   useEffect(() => () => { if (recordedUrl) URL.revokeObjectURL(recordedUrl) }, [recordedUrl])
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  useEffect(() => () => { if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl) }, [photoPreviewUrl])
   const [showEmoji, setShowEmoji] = useState(false)
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
@@ -252,6 +255,10 @@ export default function ChatPage() {
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const err = validateFile(file, 'chat_photo')
+    if (err) { toast(err, 'error'); e.target.value = ''; return }
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoPreviewUrl(URL.createObjectURL(file))
     setPendingPhoto(file)
     setShowConsent(true)
     if (fileRef.current) fileRef.current.value = ''
@@ -273,12 +280,14 @@ export default function ChatPage() {
       scrollToBottom()
     }
     setPendingPhoto(null)
+    if (photoPreviewUrl) { URL.revokeObjectURL(photoPreviewUrl); setPhotoPreviewUrl(null) }
   }
 
   const cancelPhotoSend = () => {
     setShowConsent(false)
     setShowSafety(false)
     setPendingPhoto(null)
+    if (photoPreviewUrl) { URL.revokeObjectURL(photoPreviewUrl); setPhotoPreviewUrl(null) }
   }
 
   const handleVoiceToggle = async () => {
@@ -473,6 +482,7 @@ export default function ChatPage() {
         onConfirm={confirmPhotoSend}
         onCancel={cancelPhotoSend}
         onRevoke={() => { logConsent(myId, 'consent_revoked'); toast('Consentement retiré', 'success'); cancelPhotoSend() }}
+        imageUrl={photoPreviewUrl ?? undefined}
       />
 
       <SafetyReminder

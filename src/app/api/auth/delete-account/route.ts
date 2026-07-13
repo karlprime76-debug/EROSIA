@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
       { bucket: 'profile_videos', prefix: `${uid}/` },
       { bucket: 'event_images', prefix: `events/${uid}/` },
       { bucket: 'stories', prefix: `stories/${uid}/` },
+      { bucket: 'chat_photos', prefix: `chat/` },
+      { bucket: 'chat_audio', prefix: `chat_audio/` },
+      { bucket: 'verification_photos', prefix: `${uid}/` },
     ]
     for (const { bucket, prefix } of storagePaths) {
       try {

@@ -458,8 +458,8 @@ export default function OnboardingPage() {
                         <Image src={photos[0]} alt="Photo principale" fill className="object-cover" sizes="224px" />
                         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-3">
                           <button type="button" onClick={() => handleDeletePhoto(0)}
-                            className="w-8 h-8 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
-                            <X size={14} />
+                            className="w-11 h-11 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
+                            <X size={16} />
                           </button>
                         </div>
                       </>
@@ -529,8 +529,8 @@ export default function OnboardingPage() {
                             <Image src={photoUrl} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="(max-w-768px) 33vw, 150px" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-2.5">
                               <button type="button" onClick={() => handleDeletePhoto(i)}
-                                className="w-7 h-7 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
-                                <X size={14} />
+                                className="w-11 h-11 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
+                                <X size={16} />
                               </button>
                             </div>
                           </>

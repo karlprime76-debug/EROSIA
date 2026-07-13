@@ -57,7 +57,13 @@ export async function createEvent(
     .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
     .single()
 
-  if (error) return { data: null, error: error.message }
+  if (error) {
+    if (image_url) {
+      const storagePath = image_url.split('/event_images/').pop()
+      if (storagePath) await supabase().storage.from('event_images').remove([storagePath])
+    }
+    return { data: null, error: error.message }
+  }
   onProgress?.(100)
 
   return { data: data as EventItem | null }

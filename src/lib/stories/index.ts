@@ -238,7 +238,10 @@ export async function uploadStory(
     .select('*, profile:profiles!stories_user_id_fkey(id, name, photos, is_verified)')
     .single()
 
-  if (error) return { data: null, error: error.message }
+  if (error) {
+    await supabase().storage.from('stories').remove([fileName])
+    return { data: null, error: error.message }
+  }
   onProgress?.(100)
 
   return { data: data as Story | null }

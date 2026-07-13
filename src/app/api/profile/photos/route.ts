@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { validateFile } from '@/lib/media'
 
 const MAX_PHOTOS = 6
-const MAX_SIZE = 10 * 1024 * 1024
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 
 export async function POST(request: Request) {
   try {
@@ -21,11 +20,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Fichier manquant' }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Format non accepté. Formats autorisés : jpeg, png, webp, avif' }, { status: 400 })
-    }
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: `Le fichier dépasse la limite de ${MAX_SIZE / 1024 / 1024} Mo` }, { status: 400 })
+    const validationErr = validateFile(file, 'photo')
+    if (validationErr) {
+      return NextResponse.json({ error: validationErr }, { status: 400 })
     }
 
     const { data: profile } = await supabase

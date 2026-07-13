@@ -287,11 +287,14 @@ export async function sendPhotoMessage(matchId: string, file: File) {
     const { error } = await supabase().from('messages').insert({
       match_id: matchId, sender_id: userId, image_url: urlData.publicUrl,
     })
-    return { error: error?.message }
+    if (error) {
+      await supabase().storage.from('chat_photos').remove([fileName])
+      return { error: error.message }
+    }
+    return {}
   } catch (err) {
     logger.error('sendPhotoMessage error', { error: String(err) })
     return { error: 'Erreur lors de l\'envoi de la photo' }
-  } finally {
   }
 }
 

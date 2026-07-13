@@ -13,6 +13,7 @@ interface ConsentDialogProps {
   onConfirm: () => void
   onCancel: () => void
   onRevoke?: () => void
+  imageUrl?: string
 }
 
 export default function ConsentDialog({
@@ -23,6 +24,7 @@ export default function ConsentDialog({
   onConfirm,
   onCancel,
   onRevoke,
+  imageUrl,
 }: ConsentDialogProps) {
   useEffect(() => {
     if (open) { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } }
@@ -57,6 +59,11 @@ export default function ConsentDialog({
               <h2 className="text-lg font-semibold text-theme">{title}</h2>
             </div>
             <p className="text-sm text-secondary mb-3 leading-relaxed">{description}</p>
+            {imageUrl && (
+              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-surface mb-3">
+                <img src={imageUrl} alt="Aperçu de la photo" className="w-full h-full object-cover" />
+              </div>
+            )}
             <p className="text-xs text-muted bg-surface rounded-lg p-3 mb-5 leading-relaxed">
               {contentLabel}
             </p>

@@ -7,6 +7,7 @@ import type { CreateEventInput, EventCategory } from '@/lib/events'
 import { EVENT_CATEGORIES } from '@/lib/events'
 import { FocusTrap } from '@/components/FocusTrap'
 import { useToast } from '@/components/Toast'
+import { validateFile } from '@/lib/media'
 
 interface EventFormProps {
   onSubmit: (input: CreateEventInput, file?: File) => Promise<void>
@@ -39,6 +40,8 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
+    const err = validateFile(f, 'photo')
+    if (err) { toast(err, 'error'); e.target.value = ''; return }
     if (preview) URL.revokeObjectURL(preview)
     setFile(f)
     setPreview(URL.createObjectURL(f))
@@ -99,8 +102,8 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
             {preview ? (
               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[var(--surfaceElevated)]">
                 <Image src={preview} alt="Aperçu de l'événement" fill className="object-cover" sizes="200px" />
-                <button type="button" onClick={removeImage} aria-label="Supprimer l'image" className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
-                  <X size={14} />
+                <button type="button" onClick={removeImage} aria-label="Supprimer l'image" className="absolute top-2 right-2 w-11 h-11 rounded-full bg-black/50 flex items-center justify-center">
+                  <X size={16} />
                 </button>
               </div>
             ) : (
