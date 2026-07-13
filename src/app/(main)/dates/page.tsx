@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Calendar, Clock, MapPin, Check, X, AlertCircle,
+  Calendar, Clock, MapPin, Check, X, AlertCircle, Loader,
   Plus, Utensils, Coffee, Film, GlassWater,
   TreePine, Hotel, MoreHorizontal, History
 } from 'lucide-react'
@@ -58,6 +58,7 @@ export default function DatesPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'upcoming' | 'history'>('upcoming')
   const [userId, setUserId] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const { toast } = useToast()
   const loadedRef = useRef(false)
 
@@ -81,34 +82,43 @@ export default function DatesPage() {
   useEffect(() => { if (!loadedRef.current) { loadedRef.current = true; loadDates() } }, [loadDates])
 
   const handleRespond = async (dateId: string, accept: boolean, slotId?: string) => {
+    if (actionLoading) return
+    setActionLoading(dateId)
     const res = await fetch(`/api/dates/${dateId}/respond`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accept, slotId }),
     })
     const json = await res.json()
+    setActionLoading(null)
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }
     toast(accept ? 'Rendez-vous accepté !' : 'Rendez-vous refusé', 'success')
     loadDates()
   }
 
   const handleCancel = async (dateId: string) => {
+    if (actionLoading) return
+    setActionLoading(dateId)
     const res = await fetch(`/api/dates/${dateId}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
     const json = await res.json()
+    setActionLoading(null)
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }
     toast('Rendez-vous annulé', 'success')
     loadDates()
   }
 
   const handleConfirm = async (dateId: string) => {
+    if (actionLoading) return
+    setActionLoading(dateId)
     const res = await fetch(`/api/dates/${dateId}/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
     const json = await res.json()
+    setActionLoading(null)
     if (!res.ok) { toast(json.error ?? 'Erreur', 'error'); return }
     toast('Rendez-vous confirmé !', 'success')
     loadDates()
@@ -187,17 +197,17 @@ export default function DatesPage() {
                     </div>
                     <div className="flex gap-1">
                       {d.status === 'accepted' && d.proposee_id === userId && (
-                        <button type="button" onClick={() => handleConfirm(d.id)}
-                          className="p-2 rounded-lg bg-success/20 text-success active:scale-90 transition"
+                        <button type="button" onClick={() => handleConfirm(d.id)} disabled={actionLoading === d.id}
+                          className="p-2 rounded-lg bg-success/20 text-success active:scale-90 transition disabled:opacity-40"
                           aria-label="Confirmer">
-                          <Check size={16} />
+                          {actionLoading === d.id ? <Loader size={14} className="animate-spin" /> : <Check size={16} />}
                         </button>
                       )}
                       {(d.status === 'pending' || d.status === 'accepted') && (
-                        <button type="button" onClick={() => handleCancel(d.id)}
-                          className="p-2 rounded-lg bg-error/20 text-error active:scale-90 transition"
+                        <button type="button" onClick={() => handleCancel(d.id)} disabled={actionLoading === d.id}
+                          className="p-2 rounded-lg bg-error/20 text-error active:scale-90 transition disabled:opacity-40"
                           aria-label="Annuler">
-                          <X size={16} />
+                          {actionLoading === d.id ? <Loader size={14} className="animate-spin" /> : <X size={16} />}
                         </button>
                       )}
                     </div>
@@ -219,9 +229,9 @@ export default function DatesPage() {
                         <span>{slot.proposed_time}</span>
                         {slot.accepted && <Check size={12} className="ml-auto text-success" />}
                         {!slot.accepted && d.status === 'pending' && d.proposee_id === userId && (
-                          <button type="button" onClick={() => handleRespond(d.id, true, slot.id)}
-                            className="ml-auto px-2 py-0.5 rounded-full bg-primary text-on-primary text-[9px] font-medium active:scale-90 transition">
-                            Choisir
+                          <button type="button" onClick={() => handleRespond(d.id, true, slot.id)} disabled={actionLoading === d.id}
+                            className="ml-auto px-2 py-0.5 rounded-full bg-primary text-on-primary text-[9px] font-medium active:scale-90 transition disabled:opacity-40">
+                            {actionLoading === d.id ? <Loader size={10} className="animate-spin" /> : 'Choisir'}
                           </button>
                         )}
                       </div>

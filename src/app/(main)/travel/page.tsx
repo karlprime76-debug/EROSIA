@@ -12,6 +12,7 @@ export default function TravelPage() {
   const [active, setActive] = useState(false)
   const [city, setCity] = useState('')
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     getTravelMode().then(m => {
@@ -21,11 +22,14 @@ export default function TravelPage() {
   }, [])
 
   const handleSave = async () => {
+    if (saving) return
     if (active && !city.trim()) {
       toast('Veuillez entrer une ville')
       return
     }
+    setSaving(true)
     const { error } = await setTravelMode(city.trim(), active)
+    setSaving(false)
     if (error) toast(error, 'error')
     else toast(active ? `Mode voyage activé : ${city}` : 'Mode voyage désactivé')
   }
@@ -74,10 +78,10 @@ export default function TravelPage() {
 
           <button
             onClick={handleSave}
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            disabled={loading || saving}
+            className="w-full py-3 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? 'Chargement…' : 'Enregistrer'}
+            {saving ? 'Enregistrement...' : loading ? 'Chargement…' : 'Enregistrer'}
           </button>
         </div>
 

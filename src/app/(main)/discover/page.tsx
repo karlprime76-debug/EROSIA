@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag, Crown } from 'lucide-react'
+import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag, Crown, Loader } from 'lucide-react'
 import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile, type Gender } from '@/lib/api'
 import { getPrivacySettings } from '@/lib/privacy'
 import { getActiveStories } from '@/lib/stories'
@@ -145,6 +145,9 @@ export default function DiscoverPage() {
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
+  const [blocking, setBlocking] = useState(false)
+  const [flirting, setFlirting] = useState(false)
+  const [reporting, setReporting] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [swipeAnim, setSwipeAnim] = useState<'idle' | 'left' | 'right'>('idle')
   const [heartBurst, setHeartBurst] = useState(false)
@@ -505,13 +508,14 @@ export default function DiscoverPage() {
                 className="w-full bg-surface-secondary text-theme border border-theme rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <button type="button" onClick={() => { (async () => {
+              if (loading) return
               setShowFilters(false); setLoading(true); setPage(1); setHasMore(true)
               const { data } = await fetchProfiles([], 1)
               if (data) { setProfiles(data); setHasMore(data.length >= DISCOVER_PAGE_SIZE) }
               setLoading(false)
-            })().catch(logger.error) }}
-              className="w-full py-3 rounded-full text-theme font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-primary shadow-glow hover:shadow-glow">
-              Appliquer les filtres
+            })().catch(logger.error) }} disabled={loading}
+              className="w-full py-3 rounded-full text-theme font-semibold text-sm transition-all duration-300 active:scale-[0.97] bg-primary shadow-glow hover:shadow-glow disabled:opacity-40">
+              {loading ? 'Chargement...' : 'Appliquer les filtres'}
             </button>
             <Link href="/search" className="block text-center text-xs text-primary/70 hover:text-primary underline underline-offset-2 mt-1">
               Recherche avancée →
@@ -637,16 +641,18 @@ export default function DiscoverPage() {
                   <div className="absolute top-4 right-4 flex flex-col gap-1.5 items-end">
                     {/* Block button */}
                     <button type="button" onClick={() => { (async () => {
-                      if (!current) return
+                      if (!current || blocking) return
+                      setBlocking(true)
                       if (await confirm('Bloquer ce profil ?')) {
                         await blockProfile(current.id)
                         const { data } = await fetchProfiles([current.id])
                         if (data) setProfiles(data)
                         setIdx(0)
                       }
-                    })().catch(logger.error) }} aria-label="Bloquer"
-                      className="w-8 h-8 bg-theme/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-theme/60 transition-all duration-200">
-                      <Shield size={13} className="text-theme/40" />
+                      setBlocking(false)
+                    })().catch(logger.error) }} aria-label="Bloquer" disabled={blocking}
+                      className="w-8 h-8 bg-theme/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-theme/60 transition-all duration-200 disabled:opacity-40">
+                      {blocking ? <Loader size={13} className="animate-spin text-theme/40" /> : <Shield size={13} className="text-theme/40" />}
                     </button>
 
                     {current.trust_score !== undefined && current.trust_score !== null && (
@@ -745,19 +751,21 @@ export default function DiscoverPage() {
 
                     {/* Flirt / wink */}
                     <button type="button" onClick={() => { (async () => {
-                      if (!current || flirtedIds.includes(current.id)) return
+                      if (!current || flirtedIds.includes(current.id) || flirting) return
+                      setFlirting(true)
                       await sendFlirt(current.id)
                       logBehavior('send_flirt', current.id)
                       setFlirtedIds(ids => [...ids, current.id])
-                    })().catch(logger.error) }} aria-label="Clin d'oeil"
-                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border"
+                      setFlirting(false)
+                    })().catch(logger.error) }} aria-label="Clin d'oeil" disabled={flirting}
+                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 border disabled:opacity-40"
                       style={{
                         background: 'color-mix(in srgb, var(--bg) 75%, transparent)',
                         backdropFilter: 'blur(20px)',
                         borderColor: flirtedIds.includes(current?.id ?? '') ? 'color-mix(in srgb, var(--primary) 35%, transparent)' : 'color-mix(in srgb, var(--textPrimary) 6%, transparent)',
                         boxShadow: flirtedIds.includes(current?.id ?? '') ? '0 0 12px color-mix(in srgb, var(--primary) 15%, transparent)' : 'none',
                       }}>
-                      <Eye size={17} className={flirtedIds.includes(current?.id ?? '') ? 'text-[var(--primary)]' : 'text-theme/40'} />
+                      {flirting ? <Loader size={14} className="animate-spin" /> : <Eye size={17} className={flirtedIds.includes(current?.id ?? '') ? 'text-[var(--primary)]' : 'text-theme/40'} />}
                     </button>
 
                     {/* Like */}
@@ -804,14 +812,16 @@ export default function DiscoverPage() {
               <div className="space-y-2">
                 {REPORT_REASONS.map((reason) => (
                   <button type="button" key={reason} onClick={() => { (async () => {
-                    if (!current) return
+                    if (!current || reporting) return
+                    setReporting(true)
                     const { error } = await reportProfile(current.id, reason)
                     setShowReportModal(false)
+                    setReporting(false)
                     if (error) { toast('Erreur lors du signalement', 'error') }
                     else { toast('Signalement envoyé', 'success') }
-                  })().catch(logger.error) }}
-                    className="w-full py-3 rounded-xl text-sm font-medium bg-surface-secondary text-theme hover:bg-hover transition-all duration-200 border border-theme">
-                    {reason}
+                  })().catch(logger.error) }} disabled={reporting}
+                    className="w-full py-3 rounded-xl text-sm font-medium bg-surface-secondary text-theme hover:bg-hover transition-all duration-200 border border-theme disabled:opacity-40">
+                    {reporting ? 'Envoi...' : reason}
                   </button>
                 ))}
               </div>

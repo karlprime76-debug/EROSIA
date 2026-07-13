@@ -8,6 +8,7 @@ import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { FocusTrap } from '@/components/FocusTrap'
+import { logger } from '@/lib/logger'
 import { addToCart, getCart } from '@/lib/cart-storage'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
@@ -42,6 +43,7 @@ export default function GiftsPage() {
   const [showPayoutModal, setShowPayoutModal] = useState(false)
   const [payoutAmount, setPayoutAmount] = useState('')
   const [payoutProcessing, setPayoutProcessing] = useState(false)
+  const [savingPayment, setSavingPayment] = useState(false)
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
   const cart = getCart()
@@ -229,9 +231,14 @@ export default function GiftsPage() {
                     </div>
                   </div>
                 )}
-                <button type="button" onClick={handleSavePayment}
-                  className="w-full py-2.5 rounded-full text-on-primary text-sm font-semibold" style={{ background: 'var(--primary)' }}>
-                  {paySaved ? 'Modifier' : 'Enregistrer'}
+                <button type="button" onClick={() => { (async () => {
+                  if (savingPayment) return
+                  setSavingPayment(true)
+                  await handleSavePayment()
+                  setSavingPayment(false)
+                })().catch(logger.error) }} disabled={savingPayment}
+                  className="w-full py-2.5 rounded-full text-on-primary text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: 'var(--primary)' }}>
+                  {savingPayment ? 'Enregistrement...' : paySaved ? 'Modifier' : 'Enregistrer'}
                 </button>
               </div>
             )}

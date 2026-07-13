@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Flag, X, Send, Loader2, Check } from 'lucide-react'
 import { FocusTrap } from '../FocusTrap'
@@ -23,6 +23,9 @@ interface ReportSheetProps {
 }
 
 export default function ReportSheet({ open, onClose, onSubmit, reportedName }: ReportSheetProps) {
+  useEffect(() => {
+    if (open) { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } }
+  }, [open])
   const [selectedReason, setSelectedReason] = useState<string>('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)

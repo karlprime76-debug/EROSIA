@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import { X, Trash2, MessageCircle, Archive } from 'lucide-react'
+import { X, Trash2, MessageCircle, Archive, Loader2 } from 'lucide-react'
 import type { StoryGroup, Story } from '@/lib/stories/types'
 import { FocusTrap } from '@/components/FocusTrap'
 import { logger } from '@/lib/logger'
@@ -49,6 +49,7 @@ function StoryViewer({
 }) {
   const [progress, setProgress] = useState(0)
   const [showReactions, setShowReactions] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressRef = useRef(0)
@@ -168,24 +169,34 @@ function StoryViewer({
 
       <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
         {onReply && (
-          <button type="button" onClick={() => onReply(story.id)}
-            aria-label="Répondre en privé"
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition">
-            <MessageCircle size={14} />
+          <button type="button" onClick={() => { if (!actionLoading) { setActionLoading('reply'); onReply(story.id) } }}
+            aria-label="Répondre en privé" disabled={!!actionLoading}
+            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'reply' ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={14} />}
           </button>
         )}
         {onArchive && (
-          <button type="button" onClick={() => onArchive(story.id)}
-            aria-label="Archiver"
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition">
-            <Archive size={14} />
+          <button type="button" onClick={() => { (async () => {
+            if (actionLoading) return
+            setActionLoading('archive')
+            await onArchive(story.id)
+            setActionLoading(null)
+          })() }}
+            aria-label="Archiver" disabled={!!actionLoading}
+            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'archive' ? <Loader2 size={12} className="animate-spin" /> : <Archive size={14} />}
           </button>
         )}
         {onDelete && (
-          <button type="button" onClick={() => onDelete(story.id)}
-            aria-label="Supprimer"
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition">
-            <Trash2 size={14} />
+          <button type="button" onClick={() => { (async () => {
+            if (actionLoading) return
+            setActionLoading('delete')
+            onDelete(story.id)
+            setActionLoading(null)
+          })() }}
+            aria-label="Supprimer" disabled={!!actionLoading}
+            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'delete' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={14} />}
           </button>
         )}
       </div>

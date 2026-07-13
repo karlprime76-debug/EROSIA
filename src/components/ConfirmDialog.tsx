@@ -23,7 +23,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!state) return
+    if (!state) { document.body.style.overflow = ''; return }
+    document.body.style.overflow = 'hidden'
     const previousFocus = document.activeElement as HTMLElement | null
 
     const confirmBtn = document.querySelector<HTMLButtonElement>('[role="alertdialog"] button:last-of-type')

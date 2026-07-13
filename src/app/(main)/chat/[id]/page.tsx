@@ -57,6 +57,7 @@ export default function ChatPage() {
   const [msgSuggestions, setMsgSuggestions] = useState<string[]>([])
   const [showMsgSugg, setShowMsgSugg] = useState(false)
   const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null)
+  const [sendingAudio, setSendingAudio] = useState(false)
   const [hasStories, setHasStories] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -667,12 +668,15 @@ export default function ChatPage() {
               className="flex items-center gap-2 mt-2 px-1">
               <audio src={recordedUrl ?? undefined} controls className="h-10 flex-1 max-w-[180px] rounded-lg" />
               <button onClick={async () => {
+                if (sendingAudio) return
+                setSendingAudio(true)
                 const { error } = await sendAudioMessage(matchId, recordedBlob)
                 if (error) toast(error, 'error')
                 else scrollToBottom()
                 setRecordedBlob(null)
-              }} className="px-3 py-1.5 rounded-lg text-xs font-medium text-theme" style={{ background: 'var(--primary)' }}>
-                Envoyer
+                setSendingAudio(false)
+              }} disabled={sendingAudio} className="px-3 py-1.5 rounded-lg text-xs font-medium text-theme disabled:opacity-40 flex items-center gap-1" style={{ background: 'var(--primary)' }}>
+                {sendingAudio ? 'Envoi...' : 'Envoyer'}
               </button>
               <button onClick={() => setRecordedBlob(null)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-secondary bg-surface border border-theme">
                 Annuler

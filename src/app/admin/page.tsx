@@ -216,6 +216,7 @@ export default function AdminPage() {
 
   const [payouts, setPayouts] = useState<PayoutTx[]>([])
   const [payoutsLoading, setPayoutsLoading] = useState(false)
+  const [adminActionLoading, setAdminActionLoading] = useState(false)
 
   const [maintenance, setMaintenance] = useState<MaintenanceData | null>(null)
   const [maintenanceActive, setMaintenanceActive] = useState(false)
@@ -348,38 +349,50 @@ export default function AdminPage() {
   }
 
   const handleVerify = async (reqId: string, userId: string, approved: boolean) => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requestId: reqId, userId, approved }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); return toast(d.error, 'error') }
     setVerifications(v => v.filter(r => r.id !== reqId))
     toast(approved ? 'Vérification approuvée' : 'Vérification refusée', 'success')
   }
 
   const handleModeration = async (id: string, approved: boolean) => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     await reviewContent(id, approved)
     setModQueue(m => m.filter(i => i.id !== id))
+    setAdminActionLoading(false)
   }
 
   const handlePayoutAction = async (txId: string, status: 'completed' | 'failed') => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ txId, status }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     setPayouts(p => p.filter(tx => tx.id !== txId))
     toast(status === 'completed' ? 'Retrait marqué effectué' : 'Retrait marqué échoué', 'success')
   }
 
   const handleUserAction = async (userId: string, action: 'suspend' | 'ban' | 'warn', reason?: string) => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ _action: action, userId, reason }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     toast(`Utilisateur ${action === 'ban' ? 'banni' : action === 'suspend' ? 'suspendu' : 'averti'}`, 'success')
     loadUsers()
@@ -404,11 +417,14 @@ export default function AdminPage() {
   }
 
   const handleMaintenanceToggle = async () => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin/maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ active: !maintenanceActive, message: maintenanceMessage, estimated_duration: maintenanceDuration }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     setMaintenanceActive(!maintenanceActive)
     toast(maintenanceActive ? 'Maintenance désactivée' : 'Maintenance activée', 'success')
@@ -416,12 +432,15 @@ export default function AdminPage() {
   }
 
   const handlePremiumGrant = async () => {
+    if (adminActionLoading) return
     if (!grantUserId) return toast('ID utilisateur requis', 'error')
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin/premium', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ _action: 'grant', userId: grantUserId, plan: grantPlan }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     toast('Premium accordé', 'success')
     setGrantUserId('')
@@ -430,11 +449,14 @@ export default function AdminPage() {
   }
 
   const handlePremiumRevoke = async (userId: string) => {
+    if (adminActionLoading) return
+    setAdminActionLoading(true)
     const res = await fetch('/api/admin/premium', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ _action: 'revoke', userId }),
     })
+    setAdminActionLoading(false)
     if (!res.ok) { const d = await res.json(); toast(d.error, 'error'); return }
     toast('Premium révoqué', 'success')
     loadPremium()
@@ -643,12 +665,12 @@ export default function AdminPage() {
                             <td className="p-3 text-secondary text-xs">{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
                             <td className="p-3">
                               <div className="flex items-center gap-1">
-                                <button type="button" onClick={e => { e.stopPropagation(); handleUserAction(u.id, 'warn', 'Avertissement administratif') }}
-                                  className="p-2 text-warning hover:bg-warningBg rounded-lg transition" title="Avertir"><AlertTriangle size={14} /></button>
-                                <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Suspendre', message: `Suspendre ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'suspend', 'Suspension administrative') }) }}
-                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition" title="Suspendre"><UserX size={14} /></button>
-                                <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Bannir', message: `Bannir ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'ban', 'Bannissement administratif') }) }}
-                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition" title="Bannir"><Ban size={14} /></button>
+                                <button type="button" onClick={e => { e.stopPropagation(); handleUserAction(u.id, 'warn', 'Avertissement administratif') }} disabled={adminActionLoading}
+                                  className="p-2 text-warning hover:bg-warningBg rounded-lg transition disabled:opacity-40" title="Avertir"><AlertTriangle size={14} /></button>
+                                <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Suspendre', message: `Suspendre ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'suspend', 'Suspension administrative') }) }} disabled={adminActionLoading}
+                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" title="Suspendre"><UserX size={14} /></button>
+                                <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Bannir', message: `Bannir ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'ban', 'Bannissement administratif') }) }} disabled={adminActionLoading}
+                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" title="Bannir"><Ban size={14} /></button>
                               </div>
                             </td>
                           </tr>
@@ -783,12 +805,12 @@ export default function AdminPage() {
                   </div>
                   {item.content_text && <p className="text-sm">{item.content_text}</p>}
                   <div className="flex gap-2 mt-3">
-                    <button type="button" onClick={() => handleModeration(item.id, true)}
-                      className="px-4 py-2 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition flex items-center gap-1">
+                    <button type="button" onClick={() => handleModeration(item.id, true)} disabled={adminActionLoading}
+                      className="px-4 py-2 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition flex items-center gap-1 disabled:opacity-40">
                       <CheckCircle size={12} /> Approuver
                     </button>
-                    <button type="button" onClick={() => handleModeration(item.id, false)}
-                      className="px-4 py-2 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition flex items-center gap-1">
+                    <button type="button" onClick={() => handleModeration(item.id, false)} disabled={adminActionLoading}
+                      className="px-4 py-2 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition flex items-center gap-1 disabled:opacity-40">
                       <XCircle size={12} /> Rejeter
                     </button>
                   </div>
@@ -813,10 +835,10 @@ export default function AdminPage() {
                     <p className="font-medium text-sm truncate">{req.profile?.name ?? 'Inconnu'}</p>
                     <p className="text-[10px] text-secondary">{new Date(req.created_at).toLocaleDateString('fr-FR')}</p>
                   </div>
-                  <button type="button" onClick={() => handleVerify(req.id, req.user_id, true)}
-                    className="px-4 py-2 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition">Approuver</button>
-                  <button type="button" onClick={() => handleVerify(req.id, req.user_id, false)}
-                    className="px-4 py-2 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition">Rejeter</button>
+                  <button type="button" onClick={() => handleVerify(req.id, req.user_id, true)} disabled={adminActionLoading}
+                    className="px-4 py-2 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition disabled:opacity-40">Approuver</button>
+                  <button type="button" onClick={() => handleVerify(req.id, req.user_id, false)} disabled={adminActionLoading}
+                    className="px-4 py-2 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition disabled:opacity-40">Rejeter</button>
                 </div>
               ))}
             </div>
@@ -840,8 +862,8 @@ export default function AdminPage() {
                       <option value="premium_yearly">Annuel</option>
                     </select>
                   </div>
-                  <button type="button" onClick={handlePremiumGrant}
-                    className="px-5 py-2.5 rounded-full text-sm font-medium bg-primary text-on-primary hover:opacity-90 transition">Accorder</button>
+                  <button type="button" onClick={handlePremiumGrant} disabled={adminActionLoading}
+                    className="px-5 py-2.5 rounded-full text-sm font-medium bg-primary text-on-primary hover:opacity-90 transition disabled:opacity-40">Accorder</button>
                 </div>
               </div>
 
@@ -882,8 +904,8 @@ export default function AdminPage() {
               <div className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold">Mode maintenance</h3>
-                  <button type="button" onClick={handleMaintenanceToggle}
-                    className={`relative w-12 h-6 rounded-full transition ${maintenanceActive ? 'bg-error' : 'bg-surface-elevated'}`}>
+                  <button type="button" onClick={handleMaintenanceToggle} disabled={adminActionLoading}
+                    className={`relative w-12 h-6 rounded-full transition ${maintenanceActive ? 'bg-error' : 'bg-surface-elevated'} disabled:opacity-40`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition ${maintenanceActive ? 'left-6' : 'left-0.5'}`} />
                   </button>
                 </div>
@@ -943,12 +965,12 @@ export default function AdminPage() {
                       {details.identifier || 'Inconnu'} — {new Date(tx.created_at).toLocaleDateString('fr-FR')}
                     </p>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => handlePayoutAction(tx.id, 'completed')}
-                        className="flex-1 py-2.5 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition flex items-center justify-center gap-1">
+                      <button type="button" onClick={() => handlePayoutAction(tx.id, 'completed')} disabled={adminActionLoading}
+                        className="flex-1 py-2.5 rounded-full text-xs font-medium bg-successBg text-success hover:bg-success/20 transition flex items-center justify-center gap-1 disabled:opacity-40">
                         <CheckCircle size={12} /> Marquer effectué
                       </button>
-                      <button type="button" onClick={() => handlePayoutAction(tx.id, 'failed')}
-                        className="flex-1 py-2.5 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition flex items-center justify-center gap-1">
+                      <button type="button" onClick={() => handlePayoutAction(tx.id, 'failed')} disabled={adminActionLoading}
+                        className="flex-1 py-2.5 rounded-full text-xs font-medium bg-errorBg text-error hover:bg-error/20 transition flex items-center justify-center gap-1 disabled:opacity-40">
                         <XCircle size={12} /> Marquer échoué
                       </button>
                     </div>

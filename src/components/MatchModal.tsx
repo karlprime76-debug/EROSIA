@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'motion/react'
@@ -18,6 +19,12 @@ interface MatchModalProps {
 
 export function MatchModal({ matchModal, myPhoto, onClose }: MatchModalProps) {
   const router = useRouter()
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   if (!matchModal) return null
 
   return (

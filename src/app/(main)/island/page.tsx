@@ -34,7 +34,7 @@ class ProfileErrorBoundary extends Component<{ children: ReactNode }, { hasError
 }
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock, BarChart3, Brain, Plane, Sparkles, CalendarDays, Lightbulb } from 'lucide-react'
+import { Camera, LogOut, Shield, HelpCircle, Palette, Trash2, BadgeCheck, Star, Check, Sun, Moon, Monitor, Lock, BarChart3, Brain, Plane, Sparkles, CalendarDays, Lightbulb, Loader } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { signOut, uploadPhoto, deletePhoto, setPrimaryPhoto, uploadProfileVideo, deleteProfileVideo, getProfileTraits, getStreak, updateEnergyScore, type Profile, type LookingFor, type Mood, type Gender } from '@/lib/api'
 import Lightbox from '@/components/Lightbox'
@@ -53,6 +53,7 @@ function ProfilePageInner() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [photoActionLoading, setPhotoActionLoading] = useState<string | null>(null)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [nameValue, setNameValue] = useState('')
   const [bio, setBio] = useState('')
@@ -327,14 +328,26 @@ function ProfilePageInner() {
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 backdrop-blur-sm transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                     {idx > 0 && (
-                      <button type="button" onClick={() => { (async () => { const r = await setPrimaryPhoto(photo); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Photo principale" title="Photo principale">
-                        <Star size={14} className="text-warning" />
+                      <button type="button" onClick={() => { (async () => {
+                        if (photoActionLoading) return
+                        setPhotoActionLoading(`set-${photo}`)
+                        const r = await setPrimaryPhoto(photo)
+                        if (r.photos) setProfile({ ...profile, photos: r.photos })
+                        setPhotoActionLoading(null)
+                      })().catch(logger.error) }}
+                        className="p-2 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Photo principale" title="Photo principale" disabled={photoActionLoading === `set-${photo}`}>
+                        {photoActionLoading === `set-${photo}` ? <Loader size={14} className="animate-spin text-warning" /> : <Star size={14} className="text-warning" />}
                       </button>
                     )}
-                    <button type="button" onClick={() => { (async () => { const r = await deletePhoto(photo); if (r.photos) setProfile({ ...profile, photos: r.photos }) })().catch(logger.error) }}
-                      className="p-2 bg-white/90 rounded-full hover:bg-white" aria-label="Supprimer" title="Supprimer">
-                      <Trash2 size={14} className="text-error" />
+                    <button type="button" onClick={() => { (async () => {
+                      if (photoActionLoading) return
+                      setPhotoActionLoading(`del-${photo}`)
+                      const r = await deletePhoto(photo)
+                      if (r.photos) setProfile({ ...profile, photos: r.photos })
+                      setPhotoActionLoading(null)
+                    })().catch(logger.error) }}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Supprimer" title="Supprimer" disabled={photoActionLoading === `del-${photo}`}>
+                      {photoActionLoading === `del-${photo}` ? <Loader size={14} className="animate-spin text-error" /> : <Trash2 size={14} className="text-error" />}
                     </button>
                   </div>
                   {idx === 0 && <span className="absolute top-1 left-1 text-[10px] bg-warning text-theme px-1.5 py-0.5 rounded font-bold">PRINCIPALE</span>}

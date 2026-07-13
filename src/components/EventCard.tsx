@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
-import { MapPin, Calendar, Users } from 'lucide-react'
+import { MapPin, Calendar, Users, Loader } from 'lucide-react'
 import type { EventItem } from '@/lib/events'
 
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -13,10 +14,11 @@ interface EventCardProps {
   event: EventItem
   joined: boolean
   participantCount: number
-  onToggle: (eventId: string, join: boolean) => void
+  onToggle: (eventId: string, join: boolean) => Promise<void> | void
 }
 
 export function EventCard({ event, joined, participantCount, onToggle }: EventCardProps) {
+  const [toggling, setToggling] = useState(false)
   const catEmoji = CATEGORY_EMOJIS[event.category ?? 'other'] ?? '📌'
   const dateStr = event.event_date
     ? new Date(event.event_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -82,14 +84,15 @@ export function EventCard({ event, joined, participantCount, onToggle }: EventCa
           )}
           <button
             type="button"
-            onClick={() => onToggle(event.id, !joined)}
-            className={`ml-auto px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+            onClick={() => { (async () => { setToggling(true); try { await onToggle(event.id, !joined) } finally { setToggling(false) } })() }}
+            disabled={toggling}
+            className={`ml-auto px-3.5 py-1.5 rounded-full text-xs font-medium transition disabled:opacity-40 ${
               joined
                 ? 'bg-primary/10 text-primary border border-[var(--primary)]/20'
                 : 'bg-[var(--primary)] text-[var(--textOnPrimary)] hover:bg-[var(--primaryLight)]'
             }`}
           >
-            {joined ? '✓ Participé' : 'Participer'}
+            {toggling ? <Loader size={12} className="animate-spin" /> : joined ? '✓ Participé' : 'Participer'}
           </button>
         </div>
       </div>

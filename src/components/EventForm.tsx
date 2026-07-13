@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, Camera, Loader, X } from 'lucide-react'
+import { ArrowLeft, Camera, Loader, X, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import type { CreateEventInput, EventCategory } from '@/lib/events'
 import { EVENT_CATEGORIES } from '@/lib/events'
@@ -24,7 +24,13 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   useEffect(() => {
     return () => { if (preview) URL.revokeObjectURL(preview) }
@@ -36,6 +42,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
     if (preview) URL.revokeObjectURL(preview)
     setFile(f)
     setPreview(URL.createObjectURL(f))
+    setErrors(prev => { const { image: _, ...rest } = prev; return rest })
   }
 
   const removeImage = () => {
@@ -45,9 +52,18 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {}
+    if (!title.trim()) errs.title = 'Le titre est requis'
+    if (title.trim().length > 100) errs.title = 'Le titre ne peut pas dépasser 100 caractères'
+    if (eventDate && new Date(eventDate) < new Date()) errs.eventDate = 'La date doit être dans le futur'
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!validate()) return
     setLoading(true)
     try {
       await onSubmit({
@@ -58,8 +74,9 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
         max_participants: maxParticipants ? parseInt(maxParticipants, 10) : undefined,
         category: category === 'other' ? undefined : category,
       }, file ?? undefined)
-    } catch { toast('Erreur', 'error') }
-    finally {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erreur lors de la création', 'error')
+    } finally {
       setLoading(false)
     }
   }
@@ -68,15 +85,15 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
-      <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto border border-[var(--border)]">
-        <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[var(--border)]">
+      <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col border border-[var(--border)]">
+        <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[var(--border)] shrink-0">
           <button type="button" onClick={onClose} aria-label="Fermer" className="p-2.5 rounded-xl">
             <ArrowLeft size={20} />
           </button>
           <h2 className="font-semibold">Nouvel événement</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
           {/* Image */}
           <div>
             {preview ? (
@@ -101,12 +118,16 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
             <input
               type="text"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => { setTitle(e.target.value); if (errors.title) setErrors(prev => { const { title: _, ...rest } = prev; return rest }) }}
               maxLength={100}
-              required
-              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
+              className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
+                errors.title ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
+              }`}
               placeholder="Soirée bowling, Brunch..."
             />
+            {errors.title && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.title}</p>
+            )}
           </div>
 
           {/* Description */}
@@ -153,7 +174,6 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
               type="text"
               value={location}
               onChange={e => setLocation(e.target.value)}
-              required
               className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
               placeholder="Paris 11e, Chez Michel..."
             />
@@ -165,10 +185,15 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
             <input
               type="datetime-local"
               value={eventDate}
-              onChange={e => setEventDate(e.target.value)}
+              onChange={e => { setEventDate(e.target.value); if (errors.eventDate) setErrors(prev => { const { eventDate: _, ...rest } = prev; return rest }) }}
               min={today}
-              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)] text-[var(--textPrimary)]"
+              className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
+                errors.eventDate ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
+              } text-[var(--textPrimary)]`}
             />
+            {errors.eventDate && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.eventDate}</p>
+            )}
           </div>
 
           {/* Max participants */}
@@ -184,19 +209,20 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
               placeholder="Illimité"
             />
           </div>
+        </form>
 
+        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 shrink-0">
           <button
             type="submit"
-            disabled={loading || !title.trim()}
+            disabled={loading}
             className="w-full bg-[var(--primary)] text-[var(--textOnPrimary)] rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--primaryLight)] transition disabled:opacity-40"
+            onClick={(e) => { const form = (e.target as HTMLElement).closest('form'); if (form) form.requestSubmit() }}
           >
             {loading && <Loader size={14} className="animate-spin" />}
             {loading ? 'Création...' : 'Créer l\'événement'}
           </button>
-        </form>
+        </div>
       </div></FocusTrap>
     </div>
   )
 }
-
-
