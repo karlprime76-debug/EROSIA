@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Film, Calendar, Gift, Bot, Settings, HelpCircle, FileText, Shield, LogOut, Sparkles, PartyPopper, X } from 'lucide-react'
+import { Film, Calendar, Gift, Bot, Settings, HelpCircle, FileText, Shield, LogOut, Sparkles, PartyPopper, X, Loader } from 'lucide-react'
 import { FocusTrap } from '@/components/FocusTrap'
+import { signOut } from '@/lib/api'
+import { useToast } from '@/components/Toast'
 
 interface MoreMenuProps {
   onClose: () => void
@@ -24,7 +25,8 @@ const items = [
 ]
 
 export function MoreMenu({ onClose }: MoreMenuProps) {
-  const router = useRouter()
+  const { toast } = useToast()
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -60,12 +62,16 @@ export function MoreMenu({ onClose }: MoreMenuProps) {
           </div>
 
           <div className="border-t border-[var(--border)] p-3">
-            <button type="button" onClick={() => { onClose(); router.push('/settings') }}
-              className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl hover:bg-[var(--surface)] transition-colors w-full text-left group">
+            <button type="button" onClick={() => { (async () => {
+              if (signingOut) return
+              setSigningOut(true)
+              await signOut().catch(() => { toast('Erreur lors de la déconnexion', 'error'); setSigningOut(false) })
+            })() }} disabled={signingOut}
+              className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl hover:bg-[var(--surface)] transition-colors w-full text-left group disabled:opacity-40">
               <div className="w-9 h-9 rounded-xl bg-error/10 flex items-center justify-center">
-                <LogOut size={18} className="text-error" />
+                {signingOut ? <Loader size={18} className="animate-spin text-error" /> : <LogOut size={18} className="text-error" />}
               </div>
-              <span className="text-sm font-medium text-error">Déconnexion</span>
+              <span className="text-sm font-medium text-error">{signingOut ? 'Déconnexion...' : 'Déconnexion'}</span>
             </button>
           </div>
         </div>

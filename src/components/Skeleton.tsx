@@ -4,32 +4,6 @@ export function Skeleton({ className = '' }: { className?: string }) {
   </div>
 }
 
-export function ProfileSkeleton() {
-  return (
-    <div className="space-y-6 px-5 pt-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="w-20 h-20 rounded-full" />
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-3 w-20" />
-        </div>
-      </div>
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-4 w-1/2" />
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-20 rounded-full" />
-        <Skeleton className="h-8 w-24 rounded-full" />
-        <Skeleton className="h-8 w-16 rounded-full" />
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl" />
-      </div>
-    </div>
-  )
-}
 
 export function DiscoverSkeleton() {
   return (
