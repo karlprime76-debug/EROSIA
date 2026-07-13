@@ -136,9 +136,15 @@ Migration `v47_premium_features.sql` appliquée (2026-07-12).
 - `dates` : code mort retiré
 - Build ✅ 115 routes, 185/185 tests ✅
 
+### Phase 16 — Audit interactif global (2026-07-13)
+- **EventForm** (bug signalé) : validation inline (`<AlertCircle>`), sticky footer submit, `body.style.overflow` scroll lock, erreurs claires au lieu de `catch {}` générique
+- **12+ boutons async** sécurisés contre le double-tap : admin (10+ handlers), dates (confirm/cancel/choose), discover (block/flirt/report/filters), travel (saving), gifts (savePayment), island (photo set/delete), chat (audio send), StoryReader (archive/delete), EventCard (join/leave)
+- **Scroll lock** ajouté à 4 modales réutilisables : MatchModal, ConfirmDialog, ReportSheet, ConsentDialog
+- **Admin page** : `adminActionLoading` state + `disabled` sur warn/suspend/ban, modération, vérification, premium grant/revoke, maintenance toggle, payout actions
+- Build ✅ 114 routes, 185/185 tests ✅
+
 ### Prochaine session conseillée
-- Scroll lock body : 9 modaux à corriger (problème connu Phase 8)
-- Déploiement Vercel : vérifier que les nouvelles variables d'env sont définies
+- Déploiement Vercel : vérifier les nouvelles variables d'env
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app
