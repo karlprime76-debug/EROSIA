@@ -97,31 +97,4 @@ export async function respondToDate(dateId: string, accept: boolean, slotId?: st
   }
 }
 
-export async function cancelDate(dateId: string, reason?: string): Promise<{ error: string | null }> {
-  try {
-    const res = await fetch(`/api/dates/${dateId}/cancel`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason }),
-    })
-    const json = await res.json()
-    if (!res.ok) return { error: json.error ?? 'Erreur' }
-    return { error: null }
-  } catch {
-    return { error: 'Erreur réseau' }
-  }
-}
 
-export async function confirmDate(dateId: string): Promise<{ error: string | null }> {
-  try {
-    const res = await fetch(`/api/dates/${dateId}/confirm`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    const json = await res.json()
-    if (!res.ok) return { error: json.error ?? 'Erreur' }
-    return { error: null }
-  } catch {
-    return { error: 'Erreur réseau' }
-  }
-}

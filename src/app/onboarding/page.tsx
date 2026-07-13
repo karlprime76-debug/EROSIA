@@ -457,7 +457,7 @@ export default function OnboardingPage() {
                       <>
                         <Image src={photos[0]} alt="Photo principale" fill className="object-cover" sizes="224px" />
                         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-3">
-                          <button type="button" onClick={() => handleDeletePhoto(0)}
+                          <button type="button" onClick={() => handleDeletePhoto(0)} aria-label="Supprimer la photo"
                             className="w-11 h-11 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
                             <X size={16} />
                           </button>
@@ -528,7 +528,7 @@ export default function OnboardingPage() {
                           <>
                             <Image src={photoUrl} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="(max-w-768px) 33vw, 150px" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)]/50 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-2.5">
-                              <button type="button" onClick={() => handleDeletePhoto(i)}
+                              <button type="button" onClick={() => handleDeletePhoto(i)} aria-label="Supprimer la photo"
                                 className="w-11 h-11 rounded-full bg-[var(--bg)]/60 border border-theme flex items-center justify-center text-theme hover:bg-[var(--primary)] hover:border-transparent transition-colors duration-200 active:scale-90">
                                 <X size={16} />
                               </button>
@@ -539,14 +539,14 @@ export default function OnboardingPage() {
                             {isUploading ? (
                               <div className="animate-spin w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
                             ) : (
-                              <button type="button"
+                              <button type="button" aria-label="Ajouter une photo"
                                 onClick={() => {
                                   if (fileInputRef.current) {
                                     fileInputRef.current.setAttribute('data-slot', String(i))
                                     fileInputRef.current.click()
                                   }
                                 }}
-                                className="w-9 h-9 rounded-full bg-surface-secondary border border-theme flex items-center justify-center text-secondary hover:text-theme hover:bg-card hover:scale-105 active:scale-95 transition-all duration-200">
+                                className="w-11 h-11 rounded-full bg-surface-secondary border border-theme flex items-center justify-center text-secondary hover:text-theme hover:bg-card hover:scale-105 active:scale-95 transition-all duration-200">
                                 <Plus size={16} />
                               </button>
                             )}

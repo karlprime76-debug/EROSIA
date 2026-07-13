@@ -191,7 +191,7 @@ function StoryViewer({
           <button type="button" onClick={() => { (async () => {
             if (actionLoading) return
             setActionLoading('delete')
-            onDelete(story.id)
+            try { await onDelete(story.id) } catch (e) { logger.warn('Delete failed', e) }
             setActionLoading(null)
           })() }}
             aria-label="Supprimer" disabled={!!actionLoading}
@@ -286,7 +286,7 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
   const hasNext = storyIdx < (currentGroup.stories.length - 1) || groupIdx < groups.length - 1
 
   return (
-    <FocusTrap><div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col">
+    <FocusTrap><div className="fixed inset-0 z-50 bg-[var(--bg)] flex flex-col" role="dialog" aria-modal="true">
       <div className="relative flex-1">
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-3 pt-3 pb-2 bg-gradient-to-b from-[var(--bg)]/50 to-transparent">
           <div className="flex items-center gap-2 flex-1">

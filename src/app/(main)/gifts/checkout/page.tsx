@@ -118,7 +118,7 @@ export default function CheckoutPage() {
       <div className="flex-1 px-4 pb-8 overflow-y-auto space-y-4">
         <div className="space-y-2">
           {cart.map(g => (
-            <div key={g.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3">
+            <div key={g.id} className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
               <span className="text-2xl">{g.emoji || '🎁'}</span>
               <span className="flex-1 text-sm font-medium">{g.name}</span>
               <span className="text-sm font-bold text-primary">{fmt(Math.round(g.price_cents * 655.957 / 100))} F</span>
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="glass-card rounded-xl p-4 space-y-3">
+        <div className="glass-card rounded-2xl p-4 space-y-3">
           <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Destinataire</p>
           <select value={selectedMatch} onChange={e => setSelectedMatch(e.target.value)}
             className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-sm outline-none">
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
           </select>
         </div>
 
-        <div className="glass-card rounded-xl p-4 space-y-3">
+        <div className="glass-card rounded-2xl p-4 space-y-3">
           <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Message (optionnel)</p>
           <textarea value={message} onChange={e => setMessage(e.target.value.slice(0, 200))} placeholder="Un petit mot..."
             rows={2} maxLength={200} className="w-full px-4 py-3 rounded-xl bg-[var(--surfaceElevated)] border border-[var(--border)] text-sm outline-none focus:border-[var(--primary)] resize-none" />
@@ -149,7 +149,7 @@ export default function CheckoutPage() {
         </div>
 
         <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
-          className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
+          className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-3 text-left">
           {savedPayMethod === 'card' ? <CreditCard size={20} className="text-secondary" /> : <Smartphone size={20} className="text-secondary" />}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Moyen de paiement</p>
@@ -158,7 +158,7 @@ export default function CheckoutPage() {
         </button>
 
         {showPaymentConfig && (
-          <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
+          <div className="glass-card rounded-2xl p-4 space-y-3 animate-scale-in">
             <div className="flex gap-2">
               <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>

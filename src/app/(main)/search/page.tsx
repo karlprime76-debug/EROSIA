@@ -115,7 +115,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
+    <div className="flex-1 bg-gradient-to-b from-primary/5 to-background">
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-primary/10 px-4 py-3">
         <div className="flex items-center gap-3 max-w-5xl mx-auto">
           <div className="relative flex-1">

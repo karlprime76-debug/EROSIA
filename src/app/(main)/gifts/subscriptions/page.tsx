@@ -270,7 +270,7 @@ export default function SubscriptionsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.05 }}
-              className="glass-card rounded-xl p-3 space-y-1.5 hover:scale-[1.02] transition-transform"
+              className="glass-card rounded-2xl p-3 space-y-1.5 hover:scale-[1.02] transition-transform"
             >
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--primary) 10%, transparent)' }}>
                 <f.icon size={14} style={{ color: 'var(--primary)' }} />

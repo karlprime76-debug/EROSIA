@@ -157,7 +157,7 @@ function RegisterPageContent() {
                     type="text"
                     placeholder="Ton prénom"
                     autoComplete="given-name"
-                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
+                    className="w-full bg-surface/50 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
@@ -174,7 +174,7 @@ function RegisterPageContent() {
                     type="email"
                     placeholder="ton@email.com"
                     autoComplete="email"
-                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
+                    className="w-full bg-surface/50 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
@@ -192,7 +192,7 @@ function RegisterPageContent() {
                     placeholder="8 caractères minimum"
                     autoComplete="new-password"
                     minLength={8}
-                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
+                    className="w-full bg-surface/50 text-theme border border-theme rounded-xl pl-10 pr-12 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                   <button
                     type="button"
@@ -230,7 +230,7 @@ function RegisterPageContent() {
                     min={18}
                     max={100}
                     inputMode="numeric"
-                    className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
+                    className="w-full bg-surface/50 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted"
                   />
                 </div>
               </div>
@@ -298,9 +298,9 @@ function RegisterPageContent() {
                 <input id="reg-terms" type="checkbox" className="sr-only" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} />
                 <span className="text-xs text-muted leading-relaxed">
                   J&rsquo;ai 18 ans ou plus et j&rsquo;accepte les{' '}
-                  <a href="/cgu" target="_blank" className="text-primary hover:text-primary underline transition-colors duration-200">CGU</a>
+                   <Link href="/cgu" className="text-primary hover:text-primary underline transition-colors duration-200">CGU</Link>
                   {' '}et la{' '}
-                  <a href="/privacy" target="_blank" className="text-primary hover:text-primary underline transition-colors duration-200">politique de confidentialité</a>.
+                  <Link href="/privacy" className="text-primary hover:text-primary underline transition-colors duration-200">politique de confidentialité</Link>.
                 </span>
               </label>
 
@@ -331,7 +331,7 @@ function RegisterPageContent() {
                       placeholder="EX: ABCD1234"
                       autoComplete="off"
                       maxLength={8}
-                      className="w-full bg-white/3 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted tracking-widest font-mono"
+                      className="w-full bg-surface/50 text-theme border border-theme rounded-xl pl-10 pr-4 py-3.5 text-sm outline-none transition-all duration-200 focus:border-[var(--primary)] focus:bg-surface focus:shadow-[0_0_0_3px_var(--primaryGlow)] placeholder:text-muted tracking-widest font-mono"
                     />
                   </div>
                 </div>

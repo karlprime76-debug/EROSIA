@@ -46,7 +46,7 @@ export default function CartPage() {
           <>
             <div className="space-y-2">
               {cart.map(g => (
-                <div key={g.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3">
+                <div key={g.id} className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
                   <span className="text-2xl">{g.emoji || '🎁'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{g.name}</p>
@@ -58,7 +58,7 @@ export default function CartPage() {
                 </div>
               ))}
             </div>
-            <div className="glass-card rounded-xl p-4 flex items-center justify-between">
+            <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
               <span className="text-sm font-semibold">Total</span>
               <span className="text-xl font-black text-primary">{fmt(total)} F</span>
             </div>

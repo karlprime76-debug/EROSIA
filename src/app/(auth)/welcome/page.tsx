@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'motion/react'
 import { Heart, MessageCircle, Gift, MapPin, Shield, Sparkles, Infinity, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -186,9 +187,9 @@ export default function WelcomePage() {
        <footer className="relative z-10 w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between pt-8 text-[11px] text-muted tracking-wider">
         <p>© {new Date().getFullYear()} Erosia. Tous droits réservés.</p>
         <div className="flex gap-4 mt-2 sm:mt-0">
-          <a href="/privacy" className="hover:text-theme transition-colors duration-200">Politique de confidentialité</a>
+          <Link href="/privacy" className="hover:text-theme transition-colors duration-200">Politique de confidentialité</Link>
           <span>·</span>
-          <a href="/cgu" className="hover:text-theme transition-colors duration-200">CGU</a>
+          <Link href="/cgu" className="hover:text-theme transition-colors duration-200">CGU</Link>
         </div>
       </footer>
     </div>

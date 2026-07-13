@@ -339,7 +339,7 @@ function ProfilePageInner() {
                         if (r.photos) setProfile({ ...profile, photos: r.photos })
                         setPhotoActionLoading(null)
                       })().catch(logger.error) }}
-                        className="p-2.5 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Photo principale" title="Photo principale" disabled={photoActionLoading === `set-${photo}`}>
+                        className="p-2.5 bg-[var(--card)]/90 rounded-full hover:bg-[var(--cardHover)] disabled:opacity-40" aria-label="Photo principale" title="Photo principale" disabled={photoActionLoading === `set-${photo}`}>
                         {photoActionLoading === `set-${photo}` ? <Loader size={16} className="animate-spin text-warning" /> : <Star size={16} className="text-warning" />}
                       </button>
                     )}
@@ -350,7 +350,7 @@ function ProfilePageInner() {
                       if (r.photos) setProfile({ ...profile, photos: r.photos })
                       setPhotoActionLoading(null)
                     })().catch(logger.error) }}
-                      className="p-2.5 bg-white/90 rounded-full hover:bg-white disabled:opacity-40" aria-label="Supprimer" title="Supprimer" disabled={photoActionLoading === `del-${photo}`}>
+                      className="p-2.5 bg-[var(--card)]/90 rounded-full hover:bg-[var(--cardHover)] disabled:opacity-40" aria-label="Supprimer" title="Supprimer" disabled={photoActionLoading === `del-${photo}`}>
                       {photoActionLoading === `del-${photo}` ? <Loader size={16} className="animate-spin text-error" /> : <Trash2 size={16} className="text-error" />}
                     </button>
                   </div>

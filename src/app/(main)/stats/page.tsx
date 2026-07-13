@@ -71,7 +71,7 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
+      <div className="flex-1 bg-gradient-to-b from-primary/5 to-background">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-20 rounded-xl bg-primary/5 animate-pulse" />
@@ -82,8 +82,8 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div className="flex-1 bg-gradient-to-b from-primary/5 to-background">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-8">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-primary" />
           Mes statistiques

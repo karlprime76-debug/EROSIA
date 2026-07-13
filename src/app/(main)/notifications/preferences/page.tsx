@@ -231,7 +231,7 @@ export default function NotificationPreferencesPage() {
           <h3 className="text-sm font-semibold tracking-wider mb-2 px-1 flex items-center gap-2" style={{ color: 'var(--textSecondary)' }}>
             <Moon size={14} /> Mode silencieux
           </h3>
-          <div className="glass-card rounded-xl p-4 space-y-3">
+          <div className="glass-card rounded-2xl p-4 space-y-3">
             <div>
               <label className="text-xs text-[var(--textSecondary)] mb-1 block">Début</label>
               <select

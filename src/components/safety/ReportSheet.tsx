@@ -75,8 +75,8 @@ export default function ReportSheet({ open, onClose, onSubmit, reportedName }: R
                   </div>
                   <h2 className="text-lg font-semibold text-theme">Signaler {reportedName}</h2>
                 </div>
-                <button type="button" onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface transition-colors">
+                <button type="button" onClick={onClose} aria-label="Fermer"
+                  className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-surface transition-colors">
                   <X className="w-4 h-4 text-secondary" />
                 </button>
               </div>

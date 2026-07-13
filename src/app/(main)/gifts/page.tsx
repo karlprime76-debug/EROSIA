@@ -166,7 +166,7 @@ export default function GiftsPage() {
         {tab === 'cadeaux' && (
           <>
             <button type="button" onClick={() => setShowPaymentConfig(!showPaymentConfig)}
-              className="w-full glass-card rounded-xl px-4 py-3 flex items-center gap-3 text-left">
+              className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-3 text-left">
               {savedPayMethod === 'card' ? <CreditCard size={20} className="text-secondary" /> : <Smartphone size={20} className="text-secondary" />}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">Moyen de paiement</p>
@@ -176,7 +176,7 @@ export default function GiftsPage() {
             </button>
 
             {showPaymentConfig && (
-              <div className="glass-card rounded-xl p-4 space-y-3 animate-scale-in">
+              <div className="glass-card rounded-2xl p-4 space-y-3 animate-scale-in">
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setPayMethod('mobile_money'); setPaySaved(false) }}
                     className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition ${payMethod === 'mobile_money' ? 'bg-primary text-on-primary' : 'bg-[var(--surfaceElevated)] text-secondary'}`}>
@@ -275,7 +275,7 @@ export default function GiftsPage() {
           ) : (
             <div className="space-y-2">
               {received.slice(0, 20).map(r => (
-                <div key={r.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
+                <div key={r.id} className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
                   <span className="text-2xl">{r.gift?.emoji || '🎁'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{r.gift?.name || 'Cadeau'}</p>
@@ -301,7 +301,7 @@ export default function GiftsPage() {
                 const isCredit = t.type === 'gift_received'
                 const isPendingPayout = t.type === 'payout' && t.status === 'pending'
                 return (
-                  <div key={t.id} className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
+                  <div key={t.id} className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3 transition-all hover:scale-[1.01]">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCredit ? 'bg-[var(--successVibrant)]/15' : isPendingPayout ? 'bg-[var(--warningVibrant)]/15' : 'bg-[var(--primary)]/15'}`}>
                       {isCredit ? <ArrowUpRight size={16} className="text-[var(--successVibrant)]" /> : isPendingPayout ? <Clock size={16} className="text-[var(--warningVibrant)]" /> : <CheckCircle size={16} className="text-[var(--primary)]" />}
                     </div>

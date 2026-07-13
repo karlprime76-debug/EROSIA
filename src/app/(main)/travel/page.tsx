@@ -35,8 +35,8 @@ export default function TravelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <div className="flex-1 bg-gradient-to-b from-primary/5 to-background">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6 pb-8">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="p-2.5 rounded-xl hover:bg-primary/5 transition-colors" aria-label="Retour">
             <ArrowLeft className="w-5 h-5" />

@@ -35,7 +35,7 @@ export default function DeleteDataPage() {
         <div className="glass-card rounded-3xl p-8 max-w-md w-full text-center">
           <h1 className="text-xl font-bold mb-3">Demande envoyée</h1>
           <p className="text-secondary text-sm">Un email de confirmation vous a été envoyé. Cliquez sur le lien pour confirmer la suppression de vos données.</p>
-          <Link href="/login" className="inline-block mt-6 text-primary hover:underline text-sm">Retour à l&rsquo;accueil</Link>
+          <Link href="/" className="inline-block mt-6 text-primary hover:underline text-sm">Retour à l&rsquo;accueil</Link>
         </div>
       </div>
     )
@@ -43,7 +43,7 @@ export default function DeleteDataPage() {
 
   return (
     <div className="min-h-screen bg-theme text-theme p-6">
-      <Link href="/login" className="inline-flex items-center gap-2 text-secondary hover:text-theme transition mb-6">
+      <Link href="/" className="inline-flex items-center gap-2 text-secondary hover:text-theme transition mb-6">
         <ArrowLeft size={20} /> Retour
       </Link>
       <h1 className="text-2xl font-bold mb-2">Suppression des données</h1>

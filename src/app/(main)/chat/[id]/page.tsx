@@ -391,7 +391,7 @@ export default function ChatPage() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <button onClick={() => router.push('/stories')} className="relative shrink-0">
+          <button onClick={() => router.push('/stories')} aria-label="Voir les stories" className="relative shrink-0">
             <div className={`w-10 h-10 rounded-full overflow-hidden bg-hover ring-2 ${hasStories ? 'ring-[var(--primary)]' : 'ring-theme'}`}>
               {profile?.photos?.[0] ? (
                 <Image src={profile.photos[0]} alt={profile.name} width={40} height={40} className="object-cover w-full h-full" />
@@ -635,7 +635,7 @@ export default function ChatPage() {
             {editingMsg && (
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-[10px] text-primary font-medium">Modification</span>
-                <button onClick={cancelEdit} aria-label="Annuler modification" className="p-1"><X size={12} className="text-muted" /></button>
+                <button onClick={cancelEdit} aria-label="Annuler modification" className="p-2.5"><X size={12} className="text-muted" /></button>
               </div>
             )}
             <input

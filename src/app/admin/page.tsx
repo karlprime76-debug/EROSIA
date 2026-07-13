@@ -511,7 +511,7 @@ export default function AdminPage() {
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-surface border-r border-border transform transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:z-auto`}>
         <div className="p-4 flex items-center justify-between border-b border-border">
           <h2 className="text-lg font-bold">Erosia Admin</h2>
-          <button type="button" onClick={() => setSidebarOpen(false)} className="p-2.5 text-secondary hover:text-theme transition lg:hidden">
+          <button type="button" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" className="p-2.5 text-secondary hover:text-theme transition lg:hidden">
             <X size={18} />
           </button>
         </div>
@@ -546,7 +546,7 @@ export default function AdminPage() {
         <header className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-border">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setSidebarOpen(true)} className="p-2.5 text-secondary hover:text-theme transition lg:hidden">
+              <button type="button" onClick={() => setSidebarOpen(true)} aria-label="Ouvrir le menu" className="p-2.5 text-secondary hover:text-theme transition lg:hidden">
                 <Menu size={20} />
               </button>
               <h1 className="text-lg font-bold">{TABS.find(t => t.key === tab)?.label}</h1>
@@ -666,11 +666,11 @@ export default function AdminPage() {
                             <td className="p-3">
                               <div className="flex items-center gap-1">
                                 <button type="button" onClick={e => { e.stopPropagation(); handleUserAction(u.id, 'warn', 'Avertissement administratif') }} disabled={adminActionLoading}
-                                  className="p-2 text-warning hover:bg-warningBg rounded-lg transition disabled:opacity-40" title="Avertir"><AlertTriangle size={14} /></button>
+                                  className="p-2.5 text-warning hover:bg-warningBg rounded-lg transition disabled:opacity-40" aria-label="Avertir"><AlertTriangle size={14} /></button>
                                 <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Suspendre', message: `Suspendre ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'suspend', 'Suspension administrative') }) }} disabled={adminActionLoading}
-                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" title="Suspendre"><UserX size={14} /></button>
+                                  className="p-2.5 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" aria-label="Suspendre"><UserX size={14} /></button>
                                 <button type="button" onClick={e => { e.stopPropagation(); setConfirmDialog({ title: 'Bannir', message: `Bannir ${u.name} ?`, onConfirm: () => handleUserAction(u.id, 'ban', 'Bannissement administratif') }) }} disabled={adminActionLoading}
-                                  className="p-2 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" title="Bannir"><Ban size={14} /></button>
+                                  className="p-2.5 text-error hover:bg-errorBg rounded-lg transition disabled:opacity-40" aria-label="Bannir"><Ban size={14} /></button>
                               </div>
                             </td>
                           </tr>
@@ -698,10 +698,10 @@ export default function AdminPage() {
 
               {usersTotalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
-                  <button type="button" disabled={usersPage <= 1} onClick={() => setUsersPage(p => p - 1)}
+                  <button type="button" disabled={usersPage <= 1} onClick={() => setUsersPage(p => p - 1)} aria-label="Page précédente"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronLeft size={16} /></button>
                   <span className="text-sm text-secondary">{usersPage} / {usersTotalPages}</span>
-                  <button type="button" disabled={usersPage >= usersTotalPages} onClick={() => setUsersPage(p => p + 1)}
+                  <button type="button" disabled={usersPage >= usersTotalPages} onClick={() => setUsersPage(p => p + 1)} aria-label="Page suivante"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronRight size={16} /></button>
                 </div>
               )}
@@ -782,10 +782,10 @@ export default function AdminPage() {
 
               {reportsTotalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
-                  <button type="button" disabled={reportsPage <= 1} onClick={() => setReportsPage(p => p - 1)}
+                  <button type="button" disabled={reportsPage <= 1} onClick={() => setReportsPage(p => p - 1)} aria-label="Page précédente"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronLeft size={16} /></button>
                   <span className="text-sm text-secondary">{reportsPage} / {reportsTotalPages}</span>
-                  <button type="button" disabled={reportsPage >= reportsTotalPages} onClick={() => setReportsPage(p => p + 1)}
+                  <button type="button" disabled={reportsPage >= reportsTotalPages} onClick={() => setReportsPage(p => p + 1)} aria-label="Page suivante"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronRight size={16} /></button>
                 </div>
               )}
@@ -1021,10 +1021,10 @@ export default function AdminPage() {
 
               {logsTotalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
-                  <button type="button" disabled={logsPage <= 1} onClick={() => setLogsPage(p => p - 1)}
+                  <button type="button" disabled={logsPage <= 1} onClick={() => setLogsPage(p => p - 1)} aria-label="Page précédente"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronLeft size={16} /></button>
                   <span className="text-sm text-secondary">{logsPage} / {logsTotalPages}</span>
-                  <button type="button" disabled={logsPage >= logsTotalPages} onClick={() => setLogsPage(p => p + 1)}
+                  <button type="button" disabled={logsPage >= logsTotalPages} onClick={() => setLogsPage(p => p + 1)} aria-label="Page suivante"
                     className="p-2.5 rounded-full bg-surface-elevated text-secondary disabled:opacity-30"><ChevronRight size={16} /></button>
                 </div>
               )}

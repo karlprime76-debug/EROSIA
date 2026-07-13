@@ -132,8 +132,8 @@ export const MessageBubble = React.memo(function MessageBubble({ msg, isOwn, onR
               <input value={editText} onChange={e => setEditText(e.target.value)}
                 className="flex-1 bg-transparent border-b border-theme/30 outline-none text-sm py-0.5" autoFocus
                 onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditing(false) }} />
-              <button onClick={handleSaveEdit} className="text-theme/70 hover:text-theme"><Check size={14} /></button>
-              <button onClick={() => setEditing(false)} className="text-theme/70 hover:text-theme"><X size={14} /></button>
+              <button onClick={handleSaveEdit} aria-label="Enregistrer la modification" className="p-2.5 text-theme/70 hover:text-theme"><Check size={14} /></button>
+              <button onClick={() => setEditing(false)} aria-label="Annuler la modification" className="p-2.5 text-theme/70 hover:text-theme"><X size={14} /></button>
             </div>
           ) : msg.text && (
             <p className="whitespace-pre-wrap break-words">{msg.text}</p>

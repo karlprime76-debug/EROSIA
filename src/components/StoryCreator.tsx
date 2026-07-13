@@ -37,6 +37,7 @@ export function StoryCreator({ onUpload, disabled, premiumRequired }: StoryCreat
       <div className="relative">
         <button
           type="button"
+          aria-label="Ajouter une story"
           onClick={() => {
             if (premiumRequired) return
             if (showPrivacy) {

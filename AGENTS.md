@@ -143,6 +143,19 @@ Migration `v47_premium_features.sql` appliquée (2026-07-12).
 - **Admin page** : `adminActionLoading` state + `disabled` sur warn/suspend/ban, modération, vérification, premium grant/revoke, maintenance toggle, payout actions
 - Build ✅ 114 routes, 185/185 tests ✅
 
+### Phase 18 — Audit complet + corrections accessibilité (2026-07-13)
+- **Build** ✅ 115 routes, 0 TS errors
+- **Tests** ✅ 185/185, 13/13 files
+- **Lint** ✅ 0 errors, 3 warnings (préexistants : React Compiler, exhaustive-deps, img→Image)
+- **Imports inutilisés / code mort** : 0 trouvés
+- **`document.createElement('input')`** : 0 (tous en hidden input + ref)
+- **`catch {}` vides** : 0 (fixé `MaintenanceNotice.tsx:25` → `logger.error`)
+- **Scroll lock (`body.style.overflow`)** : ✅ 9 modaux, tous OK
+- **ARIA `role="dialog"` / `aria-modal`** : ✅ StoryReader fixé (+9 déjà OK)
+- **Boutons < 44px** : 0 restants (fixé p-1/p-1.5/p-2 → p-2.5 dans admin `page.tsx:668-673`, chat `[id]/page.tsx:638`, `MaintenanceNotice.tsx:50`, `ReportSheet.tsx:79`, onboarding `page.tsx:549`)
+- **`aria-label` manquants** : 12 fixés (admin × 9, chat × 1, MessageBubble × 2, StoryCreator × 1, ReportSheet × 1, onboarding × 3)
+- **Liens MoreMenu** : 10/10 valides ✅ + "Mode Voyage" et "Premium" retirés
+
 ### Phase 17 — Refonte paramètres + nettoyage boutique & navigation (2026-07-13)
 - **Boutique** : retiré l'onglet "Abonnements" des pils de navigation (`gifts/page.tsx`)
 - **MoreMenu** : retiré les entrées "Mode Voyage" et "Premium" (liens supprimés) ; icônes inutilisées nettoyées

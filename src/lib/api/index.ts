@@ -44,20 +44,6 @@ async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): 
   })
 }
 
-export async function getProfiles(excludeIds: string[], filters?: { minAge?: number; maxAge?: number; lookingFor?: string; showIncognito?: boolean }) {
-  let q = supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS)
-  q = q.eq('onboarding_complete', true)
-  q = q.eq('profile_visible', true)
-  if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`)
-  if (filters?.minAge) q = q.gte('age', filters.minAge)
-  if (filters?.maxAge) q = q.lte('age', filters.maxAge)
-  if (filters?.lookingFor) q = q.eq('looking_for', filters.lookingFor)
-  if (!filters?.showIncognito) q = q.eq('incognito', false)
-  const { data, error } = await q
-  const attached = await attachScoresAndMood(data)
-  return { data: attached, error: error?.message }
-}
-
 export async function getProfile(id: string): Promise<{ data: Profile | null; error: string | null }> {
   const { data } = await supabase().from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('id', id).maybeSingle()
   if (!data) return { data: null, error: 'Profil introuvable' }
