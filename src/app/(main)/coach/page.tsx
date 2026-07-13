@@ -41,7 +41,8 @@ export default function CoachPage() {
       const json = await res.json()
       if (!res.ok) { setError(json.error ?? 'Erreur'); setLoading(false); return }
       setResult(json)
-    } catch {
+    } catch (err) {
+      console.error('Coach analyze error:', err)
       setError('Erreur réseau')
     }
     setLoading(false)

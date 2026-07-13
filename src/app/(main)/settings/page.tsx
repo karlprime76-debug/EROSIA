@@ -56,6 +56,12 @@ export default function SettingsPage() {
 
   useEffect(() => { if (showDeleteModal) setTimeout(() => deletePasswordRef.current?.focus(), 100) }, [showDeleteModal])
 
+  useEffect(() => {
+    if (!showDeleteModal) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [showDeleteModal])
+
   const handleDelete = async () => {
     if (!deletePassword) return
     if (!(await confirm('Supprimer définitivement ton compte ? Cette action est irréversible.'))) return

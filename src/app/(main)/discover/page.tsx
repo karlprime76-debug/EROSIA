@@ -651,8 +651,8 @@ export default function DiscoverPage() {
                       }
                       setBlocking(false)
                     })().catch(logger.error) }} aria-label="Bloquer" disabled={blocking}
-                      className="w-8 h-8 bg-theme/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-theme/60 transition-all duration-200 disabled:opacity-40">
-                      {blocking ? <Loader size={13} className="animate-spin text-theme/40" /> : <Shield size={13} className="text-theme/40" />}
+                      className="w-11 h-11 bg-theme/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-theme/60 transition-all duration-200 disabled:opacity-40">
+                      {blocking ? <Loader size={16} className="animate-spin text-theme/40" /> : <Shield size={16} className="text-theme/40" />}
                     </button>
 
                     {current.trust_score !== undefined && current.trust_score !== null && (

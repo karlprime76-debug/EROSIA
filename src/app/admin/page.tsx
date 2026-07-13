@@ -904,7 +904,8 @@ export default function AdminPage() {
               <div className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold">Mode maintenance</h3>
-                  <button type="button" onClick={handleMaintenanceToggle} disabled={adminActionLoading}
+                  <button type="button" role="switch" aria-checked={maintenanceActive} onClick={handleMaintenanceToggle} disabled={adminActionLoading}
+                    aria-label={maintenanceActive ? 'Désactiver le mode maintenance' : 'Activer le mode maintenance'}
                     className={`relative w-12 h-6 rounded-full transition ${maintenanceActive ? 'bg-error' : 'bg-surface-elevated'} disabled:opacity-40`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition ${maintenanceActive ? 'left-6' : 'left-0.5'}`} />
                   </button>

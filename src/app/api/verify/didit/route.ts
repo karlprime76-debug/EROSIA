@@ -9,22 +9,41 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL; if (!siteUrl) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    if (!siteUrl) return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
     const callbackUrl = `${siteUrl}/api/verify/webhook`
 
     const { sessionId, url } = await createVerificationSession(user.id, callbackUrl)
 
-    const { error: insertError } = await supabase
+    const { data: existing } = await supabase
       .from('verification_requests')
-      .insert({
-        user_id: user.id,
-        didit_session_id: sessionId,
-        status: 'pending',
-      })
+      .select('id')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'manual_review'])
+      .maybeSingle()
 
-    if (insertError) {
-      logger.error('Failed to save verification request', { error: insertError.message, userId: user.id, sessionId })
-      return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('verification_requests')
+        .update({ didit_session_id: sessionId, status: 'pending', rejection_reason: null, verified_at: null })
+        .eq('id', existing.id)
+
+      if (updateError) {
+        logger.error('Failed to update existing verification request', { error: updateError.message, userId: user.id })
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from('verification_requests')
+        .insert({ user_id: user.id, didit_session_id: sessionId, status: 'pending' })
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          logger.info('Duplicate session_id — race condition, session already exists', { userId: user.id, sessionId })
+        } else {
+          logger.error('Failed to save verification request', { error: insertError.message, userId: user.id, sessionId })
+          return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
+        }
+      }
     }
 
     const { error: profileError } = await supabase
@@ -34,7 +53,6 @@ export async function POST() {
 
     if (profileError) {
       logger.error('Failed to update profile verification_status', { error: profileError.message, userId: user.id })
-      return NextResponse.json({ error: 'Erreur lors de la mise à jour du profil' }, { status: 500 })
     }
 
     return NextResponse.json({ url, sessionId })

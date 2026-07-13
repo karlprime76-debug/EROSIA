@@ -42,6 +42,12 @@ export default function GiftsPage() {
   const [showPaymentConfig, setShowPaymentConfig] = useState(false)
   const [showPayoutModal, setShowPayoutModal] = useState(false)
   const [payoutAmount, setPayoutAmount] = useState('')
+
+  useEffect(() => {
+    if (!showPayoutModal) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [showPayoutModal])
   const [payoutProcessing, setPayoutProcessing] = useState(false)
   const [savingPayment, setSavingPayment] = useState(false)
 

@@ -171,8 +171,8 @@ function StoryViewer({
         {onReply && (
           <button type="button" onClick={() => { if (!actionLoading) { setActionLoading('reply'); onReply(story.id) } }}
             aria-label="Répondre en privé" disabled={!!actionLoading}
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
-            {actionLoading === 'reply' ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={14} />}
+            className="w-11 h-11 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'reply' ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={16} />}
           </button>
         )}
         {onArchive && (
@@ -183,8 +183,8 @@ function StoryViewer({
             setActionLoading(null)
           })() }}
             aria-label="Archiver" disabled={!!actionLoading}
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
-            {actionLoading === 'archive' ? <Loader2 size={12} className="animate-spin" /> : <Archive size={14} />}
+            className="w-11 h-11 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'archive' ? <Loader2 size={14} className="animate-spin" /> : <Archive size={16} />}
           </button>
         )}
         {onDelete && (
@@ -195,8 +195,8 @@ function StoryViewer({
             setActionLoading(null)
           })() }}
             aria-label="Supprimer" disabled={!!actionLoading}
-            className="w-8 h-8 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
-            {actionLoading === 'delete' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={14} />}
+            className="w-11 h-11 rounded-full bg-[var(--card)]/40 flex items-center justify-center hover:bg-[var(--cardHover)]/60 transition disabled:opacity-40">
+            {actionLoading === 'delete' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={16} />}
           </button>
         )}
       </div>
@@ -307,7 +307,7 @@ export function StoryReader({ groups, initialGroupIndex = 0, onClose, onDelete }
               {storyIdx + 1}/{currentGroup.stories.length}
             </span>
             <button type="button" onClick={onClose} aria-label="Fermer"
-              className="w-8 h-8 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center hover:bg-[var(--cardHover)] transition">
+              className="w-11 h-11 rounded-full bg-[var(--surfaceElevated)] flex items-center justify-center hover:bg-[var(--cardHover)] transition">
               <X size={16} />
             </button>
           </div>

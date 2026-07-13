@@ -197,7 +197,7 @@ function RegisterPageContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-theme transition-colors duration-200 p-1"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-theme transition-colors duration-200 p-2.5"
                     aria-label={showPassword ? 'Masquer' : 'Afficher'}
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -315,7 +315,7 @@ function RegisterPageContent() {
                   <div className="flex items-center justify-between">
                     <label htmlFor="reg-ref" className="text-xs font-semibold text-secondary tracking-wider uppercase">Code de parrainage (optionnel)</label>
                     <button type="button" onClick={() => setShowReferralInput(false)}
-                      className="text-muted hover:text-theme transition-colors p-1" aria-label="Fermer">
+                      className="text-muted hover:text-theme transition-colors p-2.5" aria-label="Fermer">
                       <X size={14} />
                     </button>
                   </div>

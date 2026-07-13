@@ -366,12 +366,12 @@ function ProfilePageInner() {
                 <div className="relative aspect-video rounded-xl overflow-hidden bg-surface">
                   <video src={profile.video_url} controls className="w-full h-full object-cover" />
                   <button type="button" onClick={handleDeleteVideo} aria-label="Supprimer la vidéo"
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
-                    <Trash2 size={14} />
+                    className="absolute top-2 right-2 w-11 h-11 rounded-full bg-black/50 flex items-center justify-center">
+                    <Trash2 size={16} />
                   </button>
                 </div>
               ) : (
-                <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo}
+                <button type="button" onClick={() => videoRef.current?.click()} disabled={uploadingVideo} aria-label="Ajouter une vidéo"
                   className="w-full aspect-video rounded-xl border-2 border-dashed border-theme flex items-center justify-center text-secondary disabled:opacity-40">
                   {uploadingVideo ? <div className="animate-spin w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full" /> : <Camera size={24} />}
                 </button>

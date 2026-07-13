@@ -126,9 +126,9 @@ export default function StoriesPage() {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           aria-label="Ajouter une story"
-          className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center active:scale-90"
+          className="w-11 h-11 rounded-full bg-[var(--primary)] flex items-center justify-center active:scale-90"
         >
-          <Plus size={18} className="text-[var(--textOnPrimary)]" />
+          <Plus size={20} className="text-[var(--textOnPrimary)]" />
         </button>
         <input
           ref={fileInputRef}

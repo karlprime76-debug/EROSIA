@@ -34,7 +34,7 @@ export default function EventsPage() {
     const initialize = async () => {
       supabase.auth.getUser().then(({ data }) => {
         if (data.user && !cancelled) setMyId(data.user.id)
-      }).catch(() => {})
+      })
       await fetchEvents()
       if (!cancelled) setLoading(false)
     }
@@ -73,8 +73,8 @@ export default function EventsPage() {
         <h2 className="text-2xl font-bold">Antennes</h2>
         <div className="flex-1" />
         <button type="button" onClick={() => setShowForm(true)} aria-label="Créer"
-          className="w-9 h-9 rounded-full flex items-center justify-center bg-primary">
-          <Plus size={18} />
+          className="w-11 h-11 rounded-full flex items-center justify-center bg-primary">
+          <Plus size={20} />
         </button>
       </header>
 

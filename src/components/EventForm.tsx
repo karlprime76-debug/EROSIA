@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { ArrowLeft, Camera, Loader, X, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import type { CreateEventInput, EventCategory } from '@/lib/events'
@@ -28,10 +28,18 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [handleEscape])
 
   useEffect(() => {
     return () => { if (preview) URL.revokeObjectURL(preview) }
@@ -96,135 +104,136 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
           <h2 className="font-semibold">Nouvel événement</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Image */}
-          <div>
-            {preview ? (
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[var(--surfaceElevated)]">
-                <Image src={preview} alt="Aperçu de l'événement" fill className="object-cover" sizes="200px" />
-                <button type="button" onClick={removeImage} aria-label="Supprimer l'image" className="absolute top-2 right-2 w-11 h-11 rounded-full bg-black/50 flex items-center justify-center">
-                  <X size={16} />
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* Image */}
+            <div>
+              {preview ? (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[var(--surfaceElevated)]">
+                  <Image src={preview} alt="Aperçu de l'événement" fill className="object-cover" sizes="200px" />
+                  <button type="button" onClick={removeImage} aria-label="Supprimer l'image" className="absolute top-2 right-2 w-11 h-11 rounded-full bg-black/50 flex items-center justify-center">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center gap-2 text-[var(--textSecondary)] hover:border-[var(--primary)]/40 transition">
+                  <Camera size={24} />
+                  <span className="text-xs">Ajouter une image</span>
                 </button>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Titre *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={e => { setTitle(e.target.value); if (errors.title) setErrors(prev => { const { title: _, ...rest } = prev; return rest }) }}
+                maxLength={100}
+                className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
+                  errors.title ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
+                }`}
+                placeholder="Soirée bowling, Brunch..."
+              />
+              {errors.title && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.title}</p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Description</label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                maxLength={500}
+                rows={3}
+                className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)] resize-none"
+                placeholder="Décris ton événement..."
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Catégorie</label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {EVENT_CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                      category === cat
+                        ? 'bg-primary/20 text-primary border border-[var(--primary)]/30'
+                        : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)] border border-transparent hover:border-[var(--border)]'
+                    }`}
+                  >
+                    {cat === 'sport' && '⚽ '}{cat === 'culture' && '🎨 '}{cat === 'food' && '🍽️ '}
+                    {cat === 'music' && '🎵 '}{cat === 'travel' && '✈️ '}{cat === 'games' && '🎮 '}
+                    {cat === 'workshop' && '🔧 '}{cat === 'other' && '📌 '}
+                    {cat === 'other' ? 'Autre' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <button type="button" onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center gap-2 text-[var(--textSecondary)] hover:border-[var(--primary)]/40 transition">
-                <Camera size={24} />
-                <span className="text-xs">Ajouter une image</span>
-              </button>
-            )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-          </div>
+            </div>
 
-          {/* Title */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Titre *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={e => { setTitle(e.target.value); if (errors.title) setErrors(prev => { const { title: _, ...rest } = prev; return rest }) }}
-              maxLength={100}
-              className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
-                errors.title ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
-              }`}
-              placeholder="Soirée bowling, Brunch..."
-            />
-            {errors.title && (
-              <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.title}</p>
-            )}
-          </div>
+            {/* Location */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Lieu</label>
+              <input
+                type="text"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                placeholder="Paris 11e, Chez Michel..."
+              />
+            </div>
 
-          {/* Description */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Description</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              maxLength={500}
-              rows={3}
-              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)] resize-none"
-              placeholder="Décris ton événement..."
-            />
-          </div>
+            {/* Date */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Date</label>
+              <input
+                type="datetime-local"
+                value={eventDate}
+                onChange={e => { setEventDate(e.target.value); if (errors.eventDate) setErrors(prev => { const { eventDate: _, ...rest } = prev; return rest }) }}
+                min={today}
+                className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
+                  errors.eventDate ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
+                } text-[var(--textPrimary)]`}
+              />
+              {errors.eventDate && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.eventDate}</p>
+              )}
+            </div>
 
-          {/* Category */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Catégorie</label>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {EVENT_CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                    category === cat
-                      ? 'bg-primary/20 text-primary border border-[var(--primary)]/30'
-                      : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)] border border-transparent hover:border-[var(--border)]'
-                  }`}
-                >
-                  {cat === 'sport' && '⚽ '}{cat === 'culture' && '🎨 '}{cat === 'food' && '🍽️ '}
-                  {cat === 'music' && '🎵 '}{cat === 'travel' && '✈️ '}{cat === 'games' && '🎮 '}
-                  {cat === 'workshop' && '🔧 '}{cat === 'other' && '📌 '}
-                  {cat === 'other' ? 'Autre' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              ))}
+            {/* Max participants */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Participants max</label>
+              <input
+                type="number"
+                value={maxParticipants}
+                onChange={e => setMaxParticipants(e.target.value)}
+                min={2}
+                max={1000}
+                className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                placeholder="Illimité"
+              />
             </div>
           </div>
 
-          {/* Location */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Lieu</label>
-            <input
-              type="text"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
-              placeholder="Paris 11e, Chez Michel..."
-            />
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Date</label>
-            <input
-              type="datetime-local"
-              value={eventDate}
-              onChange={e => { setEventDate(e.target.value); if (errors.eventDate) setErrors(prev => { const { eventDate: _, ...rest } = prev; return rest }) }}
-              min={today}
-              className={`w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 transition ${
-                errors.eventDate ? 'ring-1 ring-red-500' : 'focus:ring-[var(--primary)]'
-              } text-[var(--textPrimary)]`}
-            />
-            {errors.eventDate && (
-              <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.eventDate}</p>
-            )}
-          </div>
-
-          {/* Max participants */}
-          <div>
-            <label className="text-[11px] font-medium text-[var(--textSecondary)] uppercase tracking-wider">Participants max</label>
-            <input
-              type="number"
-              value={maxParticipants}
-              onChange={e => setMaxParticipants(e.target.value)}
-              min={2}
-              max={1000}
-              className="w-full bg-[var(--surfaceElevated)] rounded-xl px-4 py-2.5 text-sm mt-1 outline-none focus:ring-1 focus:ring-[var(--primary)]"
-              placeholder="Illimité"
-            />
+          <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,80px))] shrink-0">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[var(--primary)] text-[var(--textOnPrimary)] rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--primaryLight)] transition disabled:opacity-40"
+            >
+              {loading && <Loader size={14} className="animate-spin" />}
+              {loading ? 'Création...' : 'Créer l\'événement'}
+            </button>
           </div>
         </form>
-
-        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,80px))] shrink-0">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[var(--primary)] text-[var(--textOnPrimary)] rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--primaryLight)] transition disabled:opacity-40"
-            onClick={(e) => { const form = (e.target as HTMLElement).closest('form'); if (form) form.requestSubmit() }}
-          >
-            {loading && <Loader size={14} className="animate-spin" />}
-            {loading ? 'Création...' : 'Créer l\'événement'}
-          </button>
-        </div>
       </div></FocusTrap>
     </div>
   )

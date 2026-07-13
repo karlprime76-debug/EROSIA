@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Plus, Loader, MapPin, MessageSquareText, Utensils, Coffee, Film, GlassWater, TreePine, Hotel, MoreHorizontal } from 'lucide-react'
 import { FocusTrap } from '@/components/FocusTrap'
 import { useToast } from '@/components/Toast'
@@ -47,10 +47,18 @@ export function ProposeDateSheet({ onClose, onCreated }: ProposeDateSheetProps) 
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [handleEscape])
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -189,8 +197,8 @@ export function ProposeDateSheet({ onClose, onCreated }: ProposeDateSheetProps) 
                           className="w-full bg-transparent text-sm outline-none" />
                       </div>
                       {slots.length > 1 && (
-                        <button type="button" onClick={() => removeSlot(idx)} aria-label="Supprimer"
-                          className="p-1.5 rounded-lg hover:bg-error/10 text-secondary hover:text-error transition">
+                        <button type="button" onClick={() => removeSlot(idx)} aria-label="Supprimer le créneau"
+                          className="p-2.5 rounded-lg hover:bg-error/10 text-secondary hover:text-error transition">
                           <X size={14} />
                         </button>
                       )}
@@ -225,7 +233,7 @@ export function ProposeDateSheet({ onClose, onCreated }: ProposeDateSheetProps) 
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 shrink-0">
+        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,80px))]">
           <button type="button" disabled={loading || initialLoading}
             onClick={handleSubmit}
             className="w-full bg-[var(--primary)] text-[var(--textOnPrimary)] rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--primaryLight)] transition disabled:opacity-40">

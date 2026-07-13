@@ -64,7 +64,13 @@ export async function POST(request: Request) {
 
     const isValid = await verifyWebhookSignature(rawBody, signature, timestamp)
     if (!isValid) {
-      logger.warn('Didit webhook signature verification failed')
+      logger.warn('Didit webhook signature verification failed', {
+        hasSignature: !!signature,
+        signatureLength: signature.length,
+        hasTimestamp: !!timestamp,
+        hasSecret: !!process.env.DIDIT_WEBHOOK_SECRET,
+        secretLength: process.env.DIDIT_WEBHOOK_SECRET?.length ?? 0,
+      })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
     }
 

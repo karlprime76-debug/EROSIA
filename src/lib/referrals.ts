@@ -18,22 +18,10 @@ export async function getReferralCode(): Promise<string | null> {
   const { data } = await supabase.from('profiles').select('referral_code').eq('id', user.id).maybeSingle()
   if (data?.referral_code) return data.referral_code
 
-  const code = await generateCode(supabase)
-  if (!code) return null
-
-  await supabase.from('profiles').update({ referral_code: code }).eq('id', user.id)
-  return code
-}
-
-async function generateCode(supabase: ReturnType<typeof createBrowserClient>): Promise<string | null> {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  for (let attempt = 0; attempt < 10; attempt++) {
-    let code = ''
-    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)]
-    const { data } = await supabase.from('profiles').select('id').eq('referral_code', code).maybeSingle()
-    if (!data) return code
-  }
-  return null
+  const res = await fetch('/api/referrals/code', { method: 'POST' })
+  if (!res.ok) return null
+  const json = await res.json()
+  return json.code ?? null
 }
 
 export async function getReferralStats(): Promise<{ total: number; joined: number; canRedeem: boolean; rewarded: boolean }> {
