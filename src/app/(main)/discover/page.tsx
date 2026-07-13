@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'motion/react'
-import { MessageCircle, X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag, Crown, Loader } from 'lucide-react'
+import { X, Heart, Star, Globe, SlidersHorizontal, Eye, Shield, BadgeCheck, RotateCcw, Flag, Crown, Loader } from 'lucide-react'
 import { getProfilesPaginated, getSwipedIds, createSwipe, checkForMatch, sendFlirt, getSentFlirtIds, blockProfile, getBlockedIds, deleteLastSwipe, getLastSwipe, getProfilesNearby, updateLocation, getSuperLikesRemaining, useSuperLike as consumeSuperLike, reportProfile, getCompatibilityBatch, getDailySwipeCount, checkPremium, searchProfilesByCity, logBehavior, type Profile, type Gender } from '@/lib/api'
 import { getPrivacySettings } from '@/lib/privacy'
 import { getActiveStories } from '@/lib/stories'
@@ -456,10 +456,6 @@ export default function DiscoverPage() {
             <SlidersHorizontal size={14} />
           </button>
 
-          <button type="button" onClick={() => router.push('/matches')} aria-label="Matchs"
-            className="w-9 h-9 rounded-full border border-light/6 bg-card/3 flex items-center justify-center transition-all duration-200 hover:border-light/15 hover:bg-card/6 active:scale-90">
-            <MessageCircle size={15} className="text-[var(--text-muted)]" />
-          </button>
         </div>
       </header>
 

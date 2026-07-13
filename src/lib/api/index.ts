@@ -90,7 +90,7 @@ export async function createSwipe(swipedId: string, direction: Swipe['direction'
 export async function getSwipedIds(): Promise<string[]> {
   const userId = await getCurrentUserId()
   if (!userId) return []
-  const { data, error } = await supabase().from('swipes').select('swiped_id').eq('swiper_id', userId).limit(100)
+  const { data, error } = await supabase().from('swipes').select('swiped_id').eq('swiper_id', userId).limit(1000)
   if (error) return []
   return (data ?? []).map(s => s.swiped_id)
 }

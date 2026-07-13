@@ -29,7 +29,9 @@ export default function CoachPage() {
     setLoading(true)
     setError('')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      let user = session?.user ?? null
+      if (!user) { const r = await supabase.auth.getUser(); user = r.data?.user ?? null }
       if (!user) { setError('Non connecté'); setLoading(false); return }
       const res = await fetch('/api/ai/coach', {
         method: 'POST',

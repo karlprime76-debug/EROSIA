@@ -87,7 +87,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
   const today = new Date().toISOString().slice(0, 16)
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[60] bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
       <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col border border-[var(--border)]">
         <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center gap-3 px-5 pt-4 pb-3 border-b border-[var(--border)] shrink-0">
           <button type="button" onClick={onClose} aria-label="Fermer" className="p-2.5 rounded-xl">
