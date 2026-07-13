@@ -30,20 +30,6 @@ export async function subscribeToPush() {
   return {}
 }
 
-export async function unsubscribeFromPush() {
-  if (!('serviceWorker' in navigator)) return
-  const reg = await navigator.serviceWorker.ready
-  const sub = await reg.pushManager.getSubscription()
-  if (!sub) return
-
-  await fetch('/api/push/subscribe', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint: sub.endpoint }),
-  })
-  await sub.unsubscribe()
-}
-
 async function saveSubscription(sub: PushSubscription): Promise<boolean> {
   const json = sub.toJSON()
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false

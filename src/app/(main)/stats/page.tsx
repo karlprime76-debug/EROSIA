@@ -60,13 +60,16 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     Promise.all([
-      fetch('/api/stats').then(r => r.json()),
-      fetch('/api/levels').then(r => r.json()),
+      fetch('/api/stats').then(r => r.json()).catch(() => ({})),
+      fetch('/api/levels').then(r => r.json()).catch(() => ({})),
     ]).then(([s, l]) => {
+      if (cancelled) return
       if (s && !s.error) setStats(s)
       if (l && !l.error) setLevel(l)
-    }).finally(() => setLoading(false))
+    }).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   if (loading) {

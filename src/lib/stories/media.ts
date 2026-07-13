@@ -41,20 +41,8 @@ export async function compressImage(file: File, options: CompressOptions = {}): 
   })
 }
 
-export function compressVideo(file: File): Promise<Blob> {
-  return Promise.resolve(file)
-}
-
-export function estimateFileSize(originalSize: number): number {
-  return Math.round(originalSize * 0.4)
-}
-
 export function isVideo(mime: string): boolean {
   return mime.startsWith('video/')
 }
 
-export function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = Math.floor(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
+

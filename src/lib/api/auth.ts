@@ -4,11 +4,6 @@ function supabase() {
   return sbClient
 }
 
-export async function getCurrentUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase().auth.getUser()
-  return user?.id ?? null
-}
-
 export async function signOut() {
   const { error } = await supabase().auth.signOut()
   return { error: error?.message ?? null }

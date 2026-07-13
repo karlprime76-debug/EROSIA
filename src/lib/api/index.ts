@@ -26,7 +26,7 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
   return { userId }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood, subscription_tier'
 
 async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): Promise<Profile[] | null> {
   if (!profiles || profiles.length === 0) return profiles as Profile[] | null
@@ -611,14 +611,6 @@ export async function reviewContent(id: string, approved: boolean) {
   return { error: error?.message ?? null }
 }
 
-export async function getEvents() {
-  const { data, error } = await supabase()
-    .from('events')
-    .select('*, creator:profiles!events_creator_id_fkey(name, photos), participants:event_participants(*)')
-    .order('event_date', { ascending: true })
-  return { data: data ?? [], error: error?.message }
-}
-
 // ---- FEATURE 14: Date ideas ----
 export async function getDateIdeas(category?: string) {
   let q = supabase().from('date_ideas').select('*')
@@ -892,24 +884,6 @@ export async function getPaymentAccount() {
 }
 
 // ---- GIFT PAYMENT ----
-export async function createGiftCheckout(giftId: string, receiverId: string, matchId: string, message?: string, phone?: string, operator?: string) {
-  try {
-    const res = await fetch('/api/paydunya/create-gift-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ giftId, receiverId, matchId, message, phone, operator }),
-    })
-    const data = await res.json()
-    if (!res.ok) return { error: data.error || 'Erreur de paiement' }
-    if (data.sent) return { data: { sent: true as const }, error: null }
-    if (!data.url) return { error: 'URL de paiement manquante' }
-    return { data: { url: data.url as string }, error: null }
-  } catch (err) {
-    logger.error('createGiftCheckout error', { error: String(err) })
-    return { error: 'Erreur réseau. Vérifie ta connexion.' }
-  }
-}
-
 export async function createCartCheckout(giftIds: string[], receiverId: string, matchId: string, message?: string, phone?: string, operator?: string) {
   try {
     const res = await fetch('/api/paydunya/create-cart-checkout', {
@@ -975,13 +949,6 @@ export async function getGiftTransactions() {
     .limit(50)
     .order('created_at', { ascending: false })
   return { data: data ?? [], error: error?.message }
-}
-
-export async function completeOnboarding() {
-  const userId = await getCurrentUserId()
-  if (!userId) return { error: 'Non authentifié' }
-  const { error } = await supabase().from('profiles').update({ onboarding_complete: true }).eq('id', userId)
-  return { error: error?.message }
 }
 
 export { signOut, resetPassword } from './auth'

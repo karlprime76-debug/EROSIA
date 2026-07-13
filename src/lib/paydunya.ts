@@ -17,10 +17,6 @@ function headers() {
   }
 }
 
-export function getPayDunyaHeaders() {
-  return headers()
-}
-
 async function safeJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => '')

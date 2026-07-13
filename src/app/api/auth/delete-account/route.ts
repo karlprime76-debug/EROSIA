@@ -47,6 +47,23 @@ export async function POST(request: NextRequest) {
     }
 
     const tables = [
+      ['events',          async () => {
+        const { data: userEvents } = await admin.from('events').select('id, image_url').eq('creator_id', uid)
+        if (userEvents) {
+          for (const ev of userEvents) {
+            if (ev.image_url) {
+              const p = extractStoragePath(ev.image_url, 'event_images')
+              if (p) admin.storage.from('event_images').remove([p]).catch(() => {})
+            }
+          }
+          const ids = userEvents.map(e => e.id)
+          if (ids.length > 0) {
+            await admin.from('event_participants').delete().in('event_id', ids)
+          }
+        }
+        await admin.from('events').delete().eq('creator_id', uid)
+      }],
+      ['event_participants', () => admin.from('event_participants').delete().eq('user_id', uid)],
       ['messages',        async () => {
         const { data: matchRows } = await admin.from('matches').select('id').or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
         if (matchRows && matchRows.length > 0) {
@@ -63,15 +80,29 @@ export async function POST(request: NextRequest) {
       ['blocks',          () => admin.from('blocks').delete().or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`)],
       ['reports',         () => admin.from('reports').delete().or(`reporter_id.eq.${uid},reported_id.eq.${uid}`)],
       ['notifications',   () => admin.from('notifications').delete().eq('user_id', uid)],
+      ['notification_preferences', () => admin.from('notification_preferences').delete().eq('user_id', uid)],
+      ['saved_searches',  () => admin.from('saved_searches').delete().eq('user_id', uid)],
       ['gift_transactions', () => admin.from('gift_transactions').delete().eq('user_id', uid)],
       ['payment_accounts', () => admin.from('payment_accounts').delete().eq('user_id', uid)],
       ['verification_requests', () => admin.from('verification_requests').delete().eq('user_id', uid)],
       ['push_subscriptions', () => admin.from('push_subscriptions').delete().eq('user_id', uid)],
       ['sent_gifts',      () => admin.from('sent_gifts').delete().or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)],
-
-      ['event_participants', () => admin.from('event_participants').delete().eq('user_id', uid)],
       ['user_date_ideas', () => admin.from('user_date_ideas').delete().eq('user_id', uid)],
       ['stories',         () => admin.from('stories').delete().eq('user_id', uid)],
+      ['quiz_answers',    () => admin.from('quiz_answers').delete().eq('user_id', uid)],
+      ['user_scores',     () => admin.from('user_scores').delete().eq('user_id', uid)],
+      ['user_achievements', () => admin.from('user_achievements').delete().eq('user_id', uid)],
+      ['user_stats',      () => admin.from('user_stats').delete().eq('user_id', uid)],
+      ['user_levels',     () => admin.from('user_levels').delete().eq('user_id', uid)],
+      ['behavior_log',    () => admin.from('behavior_log').delete().eq('user_id', uid)],
+      ['consent_log',     () => admin.from('consent_log').delete().eq('user_id', uid)],
+      ['compatibility_history', () => admin.from('compatibility_history').delete().or(`user_id.eq.${uid},target_id.eq.${uid}`)],
+      ['planned_dates',   async () => {
+        await admin.from('date_reminders').delete().eq('user_id', uid)
+        await admin.from('date_slots').delete().eq('user_id', uid)
+        await admin.from('planned_dates').delete().or(`proposer_id.eq.${uid},proposee_id.eq.${uid}`)
+      }],
+      ['room_presence',   () => admin.from('room_presence').delete().eq('user_id', uid)],
       ['profiles',        () => admin.from('profiles').delete().eq('id', uid)],
     ] as const
 
@@ -92,4 +123,11 @@ export async function POST(request: NextRequest) {
     logger.error('Delete account error', { error: String(err) })
     return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
   }
+}
+
+function extractStoragePath(url: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  return url.slice(idx + marker.length)
 }

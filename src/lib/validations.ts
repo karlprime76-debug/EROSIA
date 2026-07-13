@@ -65,10 +65,6 @@ export const createEventSchema = z.object({
   category: z.string().max(100).optional(),
 })
 
-export const joinEventSchema = z.object({
-  event_id: z.string().uuid(),
-})
-
 export const createCheckoutSchema = z.object({
   plan: z.enum(['monthly', 'yearly']).optional(),
 })
@@ -108,26 +104,6 @@ export const updatePrivacySchema = z.object({
   auto_block_reported: z.boolean().optional(),
 })
 
-export const socialPositionSchema = z.object({
-  space_id: z.string().uuid(),
-  x: z.number(),
-  y: z.number(),
-})
-
-export const createRoomSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  space_id: z.string().uuid().optional(),
-  max_capacity: z.number().int().min(2).max(500).optional(),
-  is_private: z.boolean().optional(),
-})
-
-export const createSpaceSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  background_url: z.string().url().optional(),
-})
-
 export const pushSubscribeSchema = z.object({
   endpoint: z.string().url(),
   keys: z.object({
@@ -143,13 +119,6 @@ export const pushSendSchema = z.object({
   userId: z.string().uuid(),
 })
 
-export const createNPCchema = z.object({
-  zone_id: z.string().uuid(),
-  name: z.string().min(1).max(100),
-  dialogue: z.string().max(2000).optional(),
-  position_x: z.number().optional(),
-  position_y: z.number().optional(),
-})
 
 export const deleteMatchSchema = z.object({
   matchId: z.string().uuid(),
@@ -178,35 +147,6 @@ export const adminPatchSchema = z.object({
   status: z.enum(['completed', 'failed']),
 })
 
-export const referralUseSchema = z.object({
-  code: z.string().min(1, 'Code requis').max(20),
-})
-
-export const animationSchema = z.enum(['idle', 'walking', 'standing', 'sitting', 'dancing', 'waving', 'floating'])
-
-export const joinRoomSchema = z.object({
-  x: z.number().optional().default(0),
-  y: z.number().optional().default(0),
-  z: z.number().optional().default(0),
-  rotation_y: z.number().optional(),
-  animation: animationSchema.optional(),
-})
-
-export const updatePositionSchema = z.object({
-  x: z.number(),
-  y: z.number(),
-  z: z.number(),
-  rotation_y: z.number().optional(),
-  animation: animationSchema.optional(),
-})
-
-export const joinSpaceSchema = z.object({
-  spaceId: z.string().uuid(),
-  x: z.number().optional(),
-  y: z.number().optional(),
-  z: z.number().optional(),
-})
-
 export const proposeDateSchema = z.object({
   matchId: z.string().uuid('matchId invalide'),
   category: z.enum(['restaurant','cafe','cinema','bar','walk','hotel','other'], {
@@ -218,21 +158,6 @@ export const proposeDateSchema = z.object({
   })).min(1, 'Au moins un créneau requis').max(10, 'Maximum 10 créneaux'),
   location: z.string().max(300).optional(),
   note: z.string().max(500).optional(),
-})
-
-export const respondDateSchema = z.object({
-  dateId: z.string().uuid(),
-  accept: z.boolean(),
-  slotId: z.string().uuid().optional(),
-})
-
-export const cancelDateSchema = z.object({
-  dateId: z.string().uuid(),
-  reason: z.string().max(300).optional(),
-})
-
-export const confirmDateSchema = z.object({
-  dateId: z.string().uuid(),
 })
 
 

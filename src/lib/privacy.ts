@@ -41,44 +41,6 @@ export async function getPrivacySettings(): Promise<{ data: PrivacySettings | nu
   return { data: (inserted as PrivacySettings) ?? DEFAULT_PRIVACY }
 }
 
-export async function getTargetPrivacy(userId: string): Promise<{ data: PrivacySettings | null; error?: string }> {
-  try {
-    const res = await fetch('/api/privacy/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetUserIds: [userId] }),
-    })
-    if (!res.ok) return { data: null, error: 'Erreur de chargement' }
-    const json = await res.json()
-    const row = json.data?.[0]
-    if (!row) return { data: DEFAULT_PRIVACY }
-    return {
-      data: {
-        profile_visible: row.profile_visible ?? true,
-        visible_to_compatible_only: row.visible_to_compatible_only ?? false,
-        hide_exact_age: row.hide_exact_age ?? false,
-        hide_exact_distance: row.hide_exact_distance ?? false,
-        blur_photos: row.blur_photos ?? false,
-        first_message_permission: row.first_message_permission ?? 'everyone',
-        story_visibility: row.story_visibility ?? 'everyone',
-        online_status_visibility: row.online_status_visibility ?? 'everyone',
-        read_receipts: row.read_receipts ?? true,
-        auto_block_reported: row.auto_block_reported ?? false,
-      },
-    }
-  } catch {
-    return { data: null, error: 'Erreur réseau' }
-  }
-}
-
-export async function updatePrivacySettings(updates: Partial<PrivacySettings>): Promise<{ error?: string }> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
-  const { error } = await supabase.from('privacy_settings').update(updates).eq('user_id', user.id)
-  if (error) return { error: error.message }
-  return {}
-}
-
 export function getVisibleAge(age: number | null, settings: PrivacySettings): string {
   if (!age) return '—'
   if (settings.hide_exact_age) {

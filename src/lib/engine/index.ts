@@ -1,4 +1,4 @@
-export { getEngine, registerEngine, getAllEngines } from './registry'
+export { getEngine } from './registry'
 export type { ScoringEngine } from './types'
 export type {
   CompatInput, CompatOutput,
@@ -12,14 +12,6 @@ export type {
   BehaviorAction,
 } from './types'
 
-export { compatibilityEngine } from './compatibility'
-export { behaviorEngine } from './behavior'
-export { conversationEngine } from './conversation'
-export { trustEngine } from './trust'
-export { activityEngine } from './activity'
-export { interestGraphEngine } from './interest-graph'
-export { recommendationEngine } from './recommendation'
-export { sparkScoreEngine } from './spark-score'
 export { energyScoreEngine } from './energy-score'
 export type { EnergyInput, EnergyOutput } from './energy-score'
 

@@ -4,7 +4,7 @@ import { compressImage, isVideo } from './media'
 import type { Story, StoryView, StoryReaction, StoryGroup, StoryPrivacy } from './types'
 
 export type { Story, StoryView, StoryReaction, StoryGroup, StoryPrivacy } from './types'
-export { compressImage, compressVideo, isVideo, formatDuration } from './media'
+export { compressImage, isVideo } from './media'
 
 function supabase() {
   return sbClient
@@ -297,10 +297,4 @@ export async function getStoryById(storyId: string): Promise<{ data: Story | nul
   return { data: data as Story | null, error: error?.message }
 }
 
-export async function getArchivedStories(): Promise<{ data: Story[]; error?: string }> {
-  const { data: { user } } = await supabase().auth.getUser()
-  if (!user) return { data: [], error: 'Not authenticated' }
-  const { data, error } = await supabase()
-    .rpc('get_archived_stories', { p_user_id: user.id })
-  return { data: (data ?? []) as Story[], error: error?.message }
-}
+

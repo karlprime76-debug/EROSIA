@@ -1,5 +1,5 @@
 export { computeCompatibility } from './engine'
-export { registerCriterion, getCriterion, getAllCriteria, resetCriteriaForTesting } from './registry'
+export { registerCriterion, getAllCriteria, resetCriteriaForTesting } from './registry'
 export { communicationCriterion } from './criteria/communication'
 export { valuesCriterion } from './criteria/values'
 export { interestsCriterion } from './criteria/interests'

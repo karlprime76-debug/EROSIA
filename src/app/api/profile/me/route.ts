@@ -69,7 +69,7 @@ export async function GET() {
 
     const { data: profile, error: selErr } = await supabase
       .from('profiles')
-      .select('id, name, age, bio, occupation, location, photos, interests, is_verified, verification_status, verified_at, looking_for, created_at, is_admin, energy_score, trust_score, gender, interested_in')
+      .select('id, name, age, bio, occupation, location, photos, interests, is_verified, verification_status, verified_at, looking_for, created_at, is_admin, energy_score, trust_score, gender, interested_in, mood, subscription_tier')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -78,8 +78,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Erreur lors du chargement du profil', userId: user.id }, { status: 500 })
     }
 
-    return NextResponse.json({ profile: { ...profile, mood: 'discuter' }, userId: user.id }, {
-      headers: { 'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60' },
+    return NextResponse.json({ profile, userId: user.id }, {
+      headers: { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' },
     })
   } catch (err) {
     logger.error('[/api/profile/me] exception', err)

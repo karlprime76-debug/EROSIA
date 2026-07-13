@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react'
 import { ThemeProvider as NextThemeProvider, useTheme } from 'next-themes'
+import { logger } from '@/lib/logger'
 
 // Function to calculate relative luminance
 function getRelativeLuminance(r: number, g: number, b: number): number {
@@ -71,7 +72,8 @@ function ContrastValidator() {
         { text: '--errorVibrant', bg: '--bg', label: 'Error Text on Background', min: 3.0 },
       ]
 
-      console.log(`%c[Theme Contrast Audit] Checking contrast for: ${resolvedTheme}`, 'color: #D92D4A; font-weight: bold;')
+      if (process.env.NODE_ENV !== 'development') return
+      logger.debug(`[Theme Contrast Audit] Checking contrast for: ${resolvedTheme}`)
       let failures = 0
 
       pairsToCheck.forEach(({ text, bg, label, min }) => {
@@ -79,36 +81,37 @@ function ContrastValidator() {
         const bgVal = styles.getPropertyValue(bg).trim()
 
         if (!textVal || !bgVal) {
-          console.warn(`[Theme Contrast Audit] Missing values: ${text} (${textVal}) or ${bg} (${bgVal})`)
+          if (process.env.NODE_ENV !== 'development') return
+          logger.warn(`[Theme Contrast Audit] Missing values: ${text} (${textVal}) or ${bg} (${bgVal})`)
           return
         }
 
         const ratio = getContrastRatio(textVal, bgVal)
         if (ratio === -1) {
-          console.warn(`[Theme Contrast Audit] Could not parse colors: ${text} (${textVal}) or ${bg} (${bgVal})`)
+          if (process.env.NODE_ENV !== 'development') return
+          logger.warn(`[Theme Contrast Audit] Could not parse colors: ${text} (${textVal}) or ${bg} (${bgVal})`)
           return
         }
 
         if (ratio < min) {
           failures++
-          console.warn(
-            `%c[Theme Contrast Audit] ❌ FAILED ${label}: Ratio is ${ratio.toFixed(2)}:1 (Min required: ${min}:1)\n` +
+          if (process.env.NODE_ENV !== 'development') return
+          logger.warn(
+            `[Theme Contrast Audit] ❌ FAILED ${label}: Ratio is ${ratio.toFixed(2)}:1 (Min required: ${min}:1)\n` +
             `  Text (${text}): ${textVal}\n` +
-            `  Background (${bg}): ${bgVal}`,
-            'color: #EF4444; font-weight: 500;'
+            `  Background (${bg}): ${bgVal}`
           )
         } else {
-          console.log(
-            `%c[Theme Contrast Audit] ✅ PASSED ${label}: Ratio is ${ratio.toFixed(2)}:1`,
-            'color: #22C55E;'
-          )
+          if (process.env.NODE_ENV !== 'development') return
+          logger.debug(`[Theme Contrast Audit] ✅ PASSED ${label}: Ratio is ${ratio.toFixed(2)}:1`)
         }
       })
 
+      if (process.env.NODE_ENV !== 'development') return
       if (failures > 0) {
-        console.warn(`%c[Theme Contrast Audit] ${failures} contrast violations found in theme "${resolvedTheme}". Please refine theme colors in globals.css.`, 'color: #EAB308; font-weight: bold;')
+        logger.warn(`[Theme Contrast Audit] ${failures} contrast violations found in theme "${resolvedTheme}". Please refine theme colors in globals.css.`)
       } else {
-        console.log(`%c[Theme Contrast Audit] All contrast pairs meet WCAG AA requirements!`, 'color: #22C55E; font-weight: bold;')
+        logger.debug(`[Theme Contrast Audit] All contrast pairs meet WCAG AA requirements!`)
       }
     }
 

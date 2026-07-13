@@ -3,15 +3,7 @@ import type { CoachResult, CoachProvider, ProfileInput, Suggestion, SuggestionTy
 
 export type { CoachResult, CoachProvider, ProfileInput, Suggestion, SuggestionType, SuggestionSeverity }
 
-let provider: CoachProvider = { analyze: rulesAnalyze }
-
-export function setCoachProvider(p: CoachProvider) {
-  provider = p
-}
-
-export function getCoachProvider(): CoachProvider {
-  return provider
-}
+const provider: CoachProvider = { analyze: rulesAnalyze }
 
 export async function analyzeProfile(input: ProfileInput): Promise<CoachResult> {
   return provider.analyze(input)

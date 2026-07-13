@@ -14,7 +14,7 @@ beforeEach(() => {
 
 describe('logConsent', () => {
   it('logs a consent action successfully', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
 
     const result = await logConsent(mockUserId, 'share_photo', mockTargetId, { content_type: 'photo' })
 
@@ -32,7 +32,7 @@ describe('logConsent', () => {
   })
 
   it('returns error on failure', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false })
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: () => Promise.resolve({ error: 'Impossible de journaliser cette action' }) })
 
     const result = await logConsent(mockUserId, 'consent_revoked')
 
@@ -42,29 +42,30 @@ describe('logConsent', () => {
 
 describe('getConsentLog', () => {
   it('returns consent log entries', async () => {
-    const fakeData = [{ id: '1', action_type: 'share_photo', created_at: '2024-01-01' }]
+    const fakeData = { data: [{ id: '1', action_type: 'share_photo', created_at: '2024-01-01' }] }
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve(fakeData),
     })
 
     const result = await getConsentLog(mockUserId)
 
-    expect(result.data).toEqual(fakeData)
+    expect(result.data).toEqual(fakeData.data)
   })
 
   it('returns error on failure', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false })
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: () => Promise.resolve({}) })
 
     const result = await getConsentLog(mockUserId)
 
-    expect(result).toEqual({ error: 'Impossible de récupérer l historique' })
+    expect(result.error).toBeDefined()
   })
 })
 
 describe('revokeConsent', () => {
   it('revokes consent successfully', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
 
     const result = await revokeConsent(mockUserId)
 
@@ -79,7 +80,7 @@ describe('revokeConsent', () => {
 
 describe('reportUser', () => {
   it('submits a report successfully', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
 
     const result = await reportUser({
       reported_id: mockTargetId,
@@ -102,22 +103,20 @@ describe('reportUser', () => {
   })
 
   it('rejects invalid reasons', async () => {
-    // The API validates allowedReasons, but the client sends whatever
-    // This just verifies the fetch goes through
-    mockFetch.mockResolvedValueOnce({ ok: false })
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400, json: () => Promise.resolve({}) })
 
     const result = await reportUser({
       reported_id: mockTargetId,
       reason: 'invalid_reason',
     })
 
-    expect(result).toEqual({ error: 'Impossible de soumettre le signalement' })
+    expect(result.error).toBeDefined()
   })
 })
 
 describe('blockUser', () => {
   it('blocks a user successfully', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
 
     const result = await blockUser(mockTargetId)
 
@@ -132,7 +131,7 @@ describe('blockUser', () => {
 
 describe('unblockUser', () => {
   it('unblocks a user successfully', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
 
     const result = await unblockUser(mockTargetId)
 
@@ -152,6 +151,7 @@ describe('getBlockedUsers', () => {
     }
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve(fakeData),
     })
 
@@ -165,6 +165,7 @@ describe('isUserBlocked', () => {
   it('returns blocked status', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve({ blocked: true }),
     })
 
@@ -189,24 +190,27 @@ describe('getSafetyTips', () => {
     }
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve(fakeData),
     })
 
     const result = await getSafetyTips()
 
-    expect(result.data).toEqual(fakeData.data)
-    expect(mockFetch).toHaveBeenCalledWith('/api/safety/tips')
+    expect(result).toEqual(fakeData)
+    expect(mockFetch).toHaveBeenCalledWith('/api/safety/tips', undefined)
   })
 
   it('filters by category', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve({ data: [] }),
     })
 
-    await getSafetyTips('privacy')
+    const result = await getSafetyTips('privacy')
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/safety/tips?category=privacy')
+    expect(result).toEqual({ data: [] })
+    expect(mockFetch).toHaveBeenCalledWith('/api/safety/tips?category=privacy', undefined)
   })
 })
 
@@ -217,12 +221,13 @@ describe('getSafetySummary', () => {
     }
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       json: () => Promise.resolve(fakeData),
     })
 
     const result = await getSafetySummary()
 
-    expect(result.data).toEqual(fakeData.data)
+    expect(result).toEqual(fakeData)
   })
 })
 

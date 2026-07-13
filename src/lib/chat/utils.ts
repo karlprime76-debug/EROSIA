@@ -14,19 +14,6 @@ export function formatMessageTime(date: string | Date) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
-export function formatLastSeen(date: string | null) {
-  if (!date) return 'Récemment'
-  const d = new Date(date)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'À l\'instant'
-  if (mins < 60) return `Il y a ${mins} min`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `Il y a ${hours}h`
-  return `Il y a ${Math.floor(hours / 24)}j`
-}
-
 export function truncateMessage(text: string | null | undefined, max = 80) {
   if (!text) return ''
   return text.length > max ? text.slice(0, max) + '…' : text
@@ -46,14 +33,6 @@ export function groupMessagesByDate(messages: { created_at: string }[]) {
     groups[groups.length - 1].messages.push(msg)
   }
   return groups
-}
-
-export function shouldVibrate() {
-  return 'vibrate' in navigator && !/Mobi/.test(navigator.userAgent) === false
-}
-
-export function lightVibrate() {
-  if (shouldVibrate()) navigator.vibrate(10)
 }
 
 export function getDayLabel(dateStr: string) {

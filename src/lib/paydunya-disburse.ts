@@ -92,9 +92,4 @@ export async function submitDisburseInvoice(disburseInvoice: string, disburseId?
   return safeJson<{ response_code?: string; response_text?: string; status?: string }>(res)
 }
 
-export async function checkDisburseStatus(token: string) {
-  const res = await fetchWithTimeout(`${BASE}/disburse/check-status/${token}`, {
-    headers: headers(),
-  })
-  return safeJson<{ response_code?: string; status?: string; response_text?: string }>(res)
-}
+

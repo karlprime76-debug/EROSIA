@@ -15,6 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - p-2.5 min pour boutons icône (44px Apple HIG)
 - BottomSheets : Escape + backdrop + swipe + focus trap
 - Toutes les fonctions api retournent { data, error } ou { error: string }
+- API routes : utiliser `apiResponse(data)`, `apiError(msg, status)` de `src/lib/api-response.ts`
 - `src/proxy.ts` (anciennement middleware.ts) : auth, rate limiting, CSRF
 - LoadingSpinner : export { LoadingSpinner as default } from '@/components/LoadingSpinner'
 - RouteError : pattern dans `src/app/onboarding/error.tsx` (copier-coller pour nouvelles routes)
@@ -33,6 +34,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `src/lib/paydunya-disburse.ts` — paiements sortants
 - `src/lib/didit.ts` — vérification identité Didit
 - `src/lib/engine/` — moteur de recommandation (compatibilité, spark score)
+- `src/lib/api-response.ts` — helper `apiResponse`/`apiError`/`apiServerError` pour les API routes
 - `src/lib/privacy.ts` — types, helpers, API wrapper pour privacy settings
 - `src/app/api/privacy/` — API REST GET/PUT privacy settings
 - `src/app/api/auth/register/route.ts` — inscription via GoTrue + création profil
@@ -165,8 +167,17 @@ Migration `v47_premium_features.sql` appliquée (2026-07-12).
 - **Rendez-vous** : ajout bouton retour (`ArrowLeft` + `useRouter`) dans l'en-tête
 - **Confidentialité/CGU** : pages converties en Server Components (restauration `export const metadata`), liens Retour changés de `/login`/`/register` vers `/settings`
 
+### Phase 20 — Nettoyage monde 3D + API consistance (2026-07-13)
+- **Monde 3D supprimé** : `src/components/3d/` 10 fichiers inutilisés (World, ErosiaIsland, ZoneMesh, CameraManager, LightingManager, NPC, TeleporterGlow, InteractionHighlight, Avatar, HUD, barrel), `src/lib/world/` (39 fichiers), `src/lib/social-space.ts`, `src/app/api/world/*` (4 routes), `src/app/api/social/{join,leave,position,spaces/*}` (5 routes). Conservé : SensualBackground, FloatingHearts, MatchBurst, TiltCard.
+- **Helper API** : `src/lib/api-response.ts` (apiResponse/apiError/apiServerError)
+- **Code mort** : `createNPCchema` retiré de validations.ts
+- **sw.js** : fix `c.url === url` → `includes(url)` (trop strict)
+- **Build** ✅ 111/111, **Tests** ✅ 108/108 (12 fichiers), **Lint** ✅ 0 errors
+
 ### Prochaine session conseillée
 - Déploiement Vercel : vérifier les nouvelles variables d'env
+- API consistance : migrer les routes les plus critiques vers `apiResponse`/`apiError`
+- Web Push : configurer un worker externe pour appeler `/api/push/send` sur les événements (match, message)
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app

@@ -8,21 +8,11 @@ import en from './en'
 
 const locales: Record<Locale, Translations> = { fr, en }
 
-function getInitialLocale(): Locale {
-  if (typeof window === 'undefined') return 'fr'
-  return (localStorage.getItem('erosia-locale') as Locale) || 'fr'
-}
-
 function getTranslations(locale: Locale): Translations {
   return locales[locale] || locales.fr
 }
 
-export function t(key: TranslationKey, locale?: Locale): string {
-  const l = locale || getInitialLocale()
-  return getTranslations(l)[key] || key
-}
-
-export async function saveLocale(locale: Locale): Promise<void> {
+async function saveLocale(locale: Locale): Promise<void> {
   localStorage.setItem('erosia-locale', locale)
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
@@ -30,7 +20,7 @@ export async function saveLocale(locale: Locale): Promise<void> {
   }
 }
 
-export async function getSavedLocale(): Promise<Locale> {
+async function getSavedLocale(): Promise<Locale> {
   const saved = localStorage.getItem('erosia-locale') as Locale | null
   if (saved) return saved
   const { data: { user } } = await supabase.auth.getUser()
@@ -47,7 +37,7 @@ interface LocaleContextValue {
   t: (key: TranslationKey) => string
 }
 
-export const LocaleContext = createContext<LocaleContextValue>({
+const LocaleContext = createContext<LocaleContextValue>({
   locale: 'fr',
   setLocale: () => {},
   t: (key: TranslationKey) => key,
