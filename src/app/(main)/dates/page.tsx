@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Calendar, Clock, MapPin, Check, X, AlertCircle, Loader,
-  Plus, Utensils, Coffee, Film, GlassWater,
+  Plus, Utensils, Coffee, Film, GlassWater, ArrowLeft,
   TreePine, Hotel, MoreHorizontal, History
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
@@ -54,6 +55,7 @@ function getCategoryMeta(value: string) {
 }
 
 export default function DatesPage() {
+  const router = useRouter()
   const [dates, setDates] = useState<PlannedDateItem[]>([])
   const [history, setHistory] = useState<PlannedDateItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -129,8 +131,11 @@ export default function DatesPage() {
   return (
     <div className="flex-1 flex flex-col bg-transparent">
       <header className="px-5 pt-6 pb-3">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-3xl font-bold">Rendez-vous</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <button onClick={() => router.back()} className="p-2.5 rounded-xl hover:bg-primary/5 transition-colors shrink-0" aria-label="Retour">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-3xl font-bold flex-1">Rendez-vous</h1>
           <button type="button" onClick={() => setShowPropose(true)}
             className="p-2.5 rounded-full bg-primary text-on-primary active:scale-90 transition"
             aria-label="Proposer un rendez-vous">

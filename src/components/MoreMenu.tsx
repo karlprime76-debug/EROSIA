@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Film, Calendar, Gift, Crown, Bot, Settings, HelpCircle, FileText, Shield, LogOut, Sparkles, MapPin, PartyPopper, X } from 'lucide-react'
+import { Film, Calendar, Gift, Bot, Settings, HelpCircle, FileText, Shield, LogOut, Sparkles, PartyPopper, X } from 'lucide-react'
 import { FocusTrap } from '@/components/FocusTrap'
 
 interface MoreMenuProps {
@@ -14,8 +14,6 @@ const items = [
   { href: '/stories', icon: Film, label: 'Stories' },
   { href: '/dates', icon: Calendar, label: 'Rendez-vous' },
   { href: '/events', icon: PartyPopper, label: 'Événements' },
-  { href: '/travel', icon: MapPin, label: 'Mode Voyage' },
-  { href: '/gifts/subscriptions', icon: Crown, label: 'Premium' },
   { href: '/gifts', icon: Gift, label: 'Boutique' },
   { href: '/coach', icon: Bot, label: 'Assistant IA' },
   { href: '/settings', icon: Settings, label: 'Paramètres' },

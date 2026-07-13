@@ -1,48 +1,30 @@
 'use client'
 
-import { useState, useEffect, useRef, startTransition } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Bell, Eye, EyeOff, Trash2, Crown, MapPin, Lock, User, Check, X, Shield, Globe } from 'lucide-react'
+import { ArrowLeft, Bell, Eye, EyeOff, Trash2, User, Check, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode, getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
+import { getGhostMode, setGhostMode as setGhostModeApi } from '@/lib/api'
 import ToggleSwitch from '@/components/ToggleSwitch'
 import { useConfirm } from '@/components/ConfirmDialog'
 import { logger } from '@/lib/logger'
 import { useToast } from '@/components/Toast'
-import { useLocale } from '@/lib/i18n'
-import type { Locale } from '@/lib/i18n/types'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { confirm } = useConfirm()
   const { toast } = useToast()
-  const { locale: currentLocale, setLocale } = useLocale()
   const [deleting, setDeleting] = useState(false)
   const [visibility, setVisibility] = useState('all')
   const [notifPush, setNotifPush] = useState(true)
   const [notifEmail, setNotifEmail] = useState(true)
-  const [subscriptionTier, setSubscriptionTier] = useState('free')
-  const [isPremium, setIsPremium] = useState(false)
-  const [travelActive, setTravelActive] = useState(false)
-  const [travelCity, setTravelCity] = useState('')
   const [ghostMode, setGhostMode] = useState(false)
-  const [upgradeError, setUpgradeError] = useState('')
-  const [upgradeSuccess, setUpgradeSuccess] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const [profileName, setProfileName] = useState('')
   const [savingName, setSavingName] = useState(false)
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('premium') === 'success') {
-      startTransition(() => setUpgradeSuccess(true))
-      window.history.replaceState(null, '', '/settings')
-    }
-    getSubscriptionStatus().then(r => { setSubscriptionTier(r.tier); setIsPremium(r.tier === 'premium') }).catch(logger.error)
-    getTravelMode().then(mode => {
-      setTravelActive(mode.active)
-      setTravelCity(mode.city ?? '')
-    }).catch(logger.error)
     getGhostMode().then(setGhostMode).catch(logger.error)
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
@@ -55,24 +37,7 @@ export default function SettingsPage() {
         }
       }, (err) => logger.error('Settings error', { error: String(err) }))
     }).catch(logger.error).finally(() => setSettingsLoaded(true))
-  }, [router])
-
-  useEffect(() => {
-    if (!upgradeSuccess) return
-    let attempts = 0
-    const id = setInterval(async () => {
-      attempts++
-      const { tier } = await getSubscriptionStatus().catch(() => ({ tier: 'free' as const }))
-      if (tier === 'premium') {
-        setSubscriptionTier('premium')
-        setIsPremium(true)
-        clearInterval(id)
-      } else if (attempts >= 10) {
-        clearInterval(id)
-      }
-    }, 2000)
-    return () => clearInterval(id)
-  }, [upgradeSuccess])
+  }, [])
 
   async function updateProfileField(patch: Record<string, unknown>) {
   try {
@@ -112,31 +77,9 @@ export default function SettingsPage() {
     }
   }
 
-  const handleUpgrade = async () => {
-    setUpgradeError('')
-    try {
-      const result = await createCheckoutSession()
-      if (result.url) { window.location.href = result.url; return }
-      setUpgradeError(result.error ?? 'Erreur de paiement.')
-    } catch {
-      setUpgradeError('Erreur réseau. Vérifie ta connexion.')
-    }
-  }
-
-  const handleTravelToggle2 = async (v: boolean) => {
-    if (v && !isPremium) { setUpgradeError('Mode voyage réservé aux membres Premium.'); return }
-    setTravelActive(v)
-    await setTravelMode(travelCity, v)
-  }
-
   const handleGhostToggle = async (v: boolean) => {
-    if (v && !isPremium) { setUpgradeError('Mode fantôme réservé aux membres Premium.'); return }
     setGhostMode(v)
     await setGhostModeApi(v)
-  }
-
-  const saveTravelCity = async () => {
-    await setTravelMode(travelCity, travelActive)
   }
 
   const visibilityOptions = [
@@ -190,38 +133,7 @@ export default function SettingsPage() {
         {
           icon: EyeOff, label: 'Mode fantôme',
           desc: ghostMode ? 'Invisible pour les autres' : 'Visible',
-          render: () => (
-            isPremium ? <ToggleSwitch enabled={ghostMode} onChange={handleGhostToggle} />
-              : <Lock size={16} className="text-[var(--textSecondary)]" />
-          ),
-        },
-      ],
-    },
-    {
-      title: 'Sécurité & Confidentialité',
-      items: [
-        {
-          icon: Shield, label: 'Centre de sécurité',
-          desc: 'Conseils, consentement, blocages et signalements',
-          onClick: () => router.push('/safety'),
-        },
-      ],
-    },
-    {
-      title: 'Langue',
-      items: [
-        {
-          icon: Globe, label: 'Langue',
-          render: () => (
-            <div className="flex gap-2 mt-1">
-              {(['fr', 'en'] as Locale[]).map(l => (
-                <button type="button" key={l} onClick={() => setLocale(l)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${currentLocale === l ? 'bg-[var(--primary)] text-[var(--textOnPrimary)]' : 'bg-[var(--surfaceElevated)] text-[var(--textSecondary)]'}`}>
-                  {l === 'fr' ? 'Français' : 'English'}
-                </button>
-              ))}
-            </div>
-          ),
+          render: () => <ToggleSwitch enabled={ghostMode} onChange={handleGhostToggle} />,
         },
       ],
     },
@@ -279,58 +191,6 @@ export default function SettingsPage() {
         {
           icon: Trash2, label: 'Supprimer mon compte', desc: 'Irréversible', danger: true,
           onClick: () => { setShowDeleteModal(true); setDeletePassword('') },
-        },
-      ],
-    },
-    {
-      title: 'Abonnement',
-      items: [
-        {
-          icon: Crown, label: subscriptionTier === 'premium' ? '✅ Premium actif' : '👑 Erosia Premium',
-          desc: subscriptionTier === 'premium' ? 'Compte Premium — tous les avantages débloqués' : 'Compte Gratuit — fonctionnalités limitées',
-          render: () => (
-            <div className="mt-2 space-y-2">
-              {upgradeSuccess && (
-                <p className="text-xs text-[var(--successVibrant)] font-medium">Paiement réussi ! Bienvenue sur Premium.</p>
-              )}
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${subscriptionTier === 'premium' ? 'bg-[var(--successVibrant)]' : 'bg-[var(--textMuted)]'}`} />
-                <span className="text-xs text-[var(--textSecondary)]">{subscriptionTier === 'premium' ? 'Premium actif' : 'Compte gratuit'}</span>
-              </div>
-              {subscriptionTier !== 'premium' && (
-                <button type="button" onClick={handleUpgrade}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--textOnPrimary)]"
-                  style={{ background: 'linear-gradient(135deg, var(--primary), var(--accentOrange))' }}>
-                  Passer à Premium — 5 000 CFA/mois
-                </button>
-              )}
-              {upgradeError && <p className="text-xs text-[var(--primary)]">{upgradeError}</p>}
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      title: 'Voyage',
-      items: [
-        {
-          icon: MapPin, label: 'Mode voyage',
-          desc: travelActive ? `Actif : ${travelCity || 'Non défini'}` : 'Inactif',
-          render: () => (
-            <div className="mt-2 space-y-2">
-              <label className="flex items-center justify-between">
-                <span className="text-xs text-[var(--textSecondary)]">Activer</span>
-                {isPremium ? <ToggleSwitch enabled={travelActive} onChange={handleTravelToggle2} />
-                  : <Lock size={16} className="text-[var(--textSecondary)]" />}
-              </label>
-              {travelActive && (
-                <input value={travelCity} onChange={e => setTravelCity(e.target.value)} onBlur={saveTravelCity}
-                  placeholder="Nom de la ville..." aria-label="Ville de voyage"
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--surfaceElevated)] text-sm text-[var(--textPrimary)] border border-[var(--border)] outline-none focus:border-[var(--primary)]"
-                />
-              )}
-            </div>
-          ),
         },
       ],
     },

@@ -8,7 +8,9 @@ export const metadata = {
 export default function CguPage() {
   return (
     <div className="min-h-screen bg-theme text-theme p-6">
-      <Link href="/register" className="inline-flex items-center gap-2 text-secondary hover:text-theme transition mb-6 text-sm">&larr; Retour</Link>
+      <Link href="/settings" className="inline-flex items-center gap-2 text-secondary hover:text-theme transition mb-6 text-sm">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Retour
+      </Link>
       <h1 className="text-2xl font-bold mb-4">Conditions générales d&rsquo;utilisation</h1>
       <div className="space-y-4 text-sm text-secondary leading-relaxed">
         <h2 className="text-theme font-semibold text-base">1. Acceptation</h2>

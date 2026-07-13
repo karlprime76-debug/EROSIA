@@ -143,6 +143,15 @@ Migration `v47_premium_features.sql` appliquée (2026-07-12).
 - **Admin page** : `adminActionLoading` state + `disabled` sur warn/suspend/ban, modération, vérification, premium grant/revoke, maintenance toggle, payout actions
 - Build ✅ 114 routes, 185/185 tests ✅
 
+### Phase 17 — Refonte paramètres + nettoyage boutique & navigation (2026-07-13)
+- **Boutique** : retiré l'onglet "Abonnements" des pils de navigation (`gifts/page.tsx`)
+- **MoreMenu** : retiré les entrées "Mode Voyage" et "Premium" (liens supprimés) ; icônes inutilisées nettoyées
+- **Paramètres** : page réécrite — supprimé les sections Abonnement (Premium, createCheckoutSession, polling), Mode voyage (travelCity, handleTravelToggle2), Centre de sécurité, Langue (useLocale, sélecteur fr/en). Gardé : Confidentialité (visibilité, notifications, mode fantôme), Compte (pseudo, suppression). Imports nettoyés (Crown, Shield, Globe, MapPin, Lock, MapPin, startTransition, getSubscriptionStatus, createCheckoutSession, getTravelMode, setTravelMode)
+- **Coach IA** : `min-h-screen` → `flex-1`, `pb-24` supprimé (compatible layout main)
+- **EventForm** : bouton "Créer" sticky footer — ajout `pb-[calc(0.75rem+env(safe-area-inset-bottom,80px))]` pour éviter débordement derrière nav mobile
+- **Rendez-vous** : ajout bouton retour (`ArrowLeft` + `useRouter`) dans l'en-tête
+- **Confidentialité/CGU** : pages converties en Server Components (restauration `export const metadata`), liens Retour changés de `/login`/`/register` vers `/settings`
+
 ### Prochaine session conseillée
 - Déploiement Vercel : vérifier les nouvelles variables d'env
 

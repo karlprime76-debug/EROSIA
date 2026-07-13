@@ -214,7 +214,7 @@ export function EventForm({ onSubmit, onClose }: EventFormProps) {
           </div>
         </form>
 
-        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 shrink-0">
+        <div className="sticky bottom-0 bg-[var(--card)] z-10 border-t border-[var(--border)] px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,80px))] shrink-0">
           <button
             type="submit"
             disabled={loading}

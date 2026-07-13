@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Wallet, ArrowUpRight, ShoppingCart, CreditCard, Smartphone, ChevronRight, CheckCircle, Clock, Gift, Star, Crown } from 'lucide-react'
+import { Wallet, ArrowUpRight, ShoppingCart, CreditCard, Smartphone, ChevronRight, CheckCircle, Clock, Gift, Star } from 'lucide-react'
 import { getGifts, getReceivedGifts, getPaymentAccount, savePaymentAccount, getCountries, getGiftBalance, getGiftTransactions, requestPayout } from '@/lib/api'
 import type { GiftTransaction } from '@/lib/api'
 import { supabase } from '@/lib/supabase/client'
@@ -120,7 +120,6 @@ export default function GiftsPage() {
       <div className="flex gap-1.5 px-4 mt-3 overflow-x-auto">
         {[
           { label: 'Cadeaux', icon: Gift, href: '/gifts' },
-          { label: 'Abonnements', icon: Crown, href: '/gifts/subscriptions' },
           { label: 'Parrainage', icon: Star, href: '/gifts/referrals' },
           { label: 'Panier', icon: ShoppingCart, href: '/gifts/cart', badge: cart.length > 0 ? cart.length : undefined },
         ].map(item => (
