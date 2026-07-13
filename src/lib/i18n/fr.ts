@@ -4,11 +4,14 @@ const fr: Translations = {
   // Navigation
   nav_discover: 'Explorer',
   nav_matches: 'Matchs',
+  nav_messages: 'Messages',
   nav_stories: 'Stories',
   nav_notifications: 'Actus',
   nav_dates: 'Rendez-vous',
   nav_boutique: 'Boutique',
   nav_profile: 'Profil',
+  nav_activity: 'Activité',
+  nav_more: 'Plus',
 
   // Discover
   discover_title: 'Découvrir',

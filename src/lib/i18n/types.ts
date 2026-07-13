@@ -4,11 +4,14 @@ export interface Translations {
   // Navigation
   nav_discover: string
   nav_matches: string
-  nav_stories: string
+  nav_messages: string
   nav_notifications: string
+  nav_stories: string
   nav_dates: string
   nav_boutique: string
   nav_profile: string
+  nav_activity: string
+  nav_more: string
 
   // Discover / Cards
   discover_title: string

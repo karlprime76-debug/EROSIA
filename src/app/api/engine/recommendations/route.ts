@@ -22,6 +22,13 @@ export async function GET(request: Request) {
 
     const admin = createAdminClient()
 
+    // Récupérer les préférences de genre de l'utilisateur
+    const { data: userProfile } = await admin
+      .from('profiles')
+      .select('gender, interested_in')
+      .eq('id', user.id)
+      .maybeSingle()
+
     // Exclure les profils invisible-only (compatible-only check simplifié)
     const { data: invisibleUsers } = await admin
       .from('privacy_settings')
@@ -42,6 +49,8 @@ export async function GET(request: Request) {
         ...(lng ? { lng: parseFloat(lng) } : {}),
         ...(city ? { city } : {}),
         ...(invisibleUsers?.length ? { excludeInvisible: invisibleUsers.map(u => u.user_id) } : {}),
+        ...(userProfile?.gender ? { gender: userProfile.gender } : {}),
+        ...(userProfile?.interested_in?.length ? { interestedIn: userProfile.interested_in } : {}),
       },
     }, admin)
 

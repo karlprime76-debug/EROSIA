@@ -159,6 +159,7 @@ export default function DiscoverPage() {
   const [isPremium, setIsPremium] = useState(false)
   const [myPhoto, setMyPhoto] = useState('')
   const [myId, setMyId] = useState('')
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const [myLookingForInternal, setMyLookingForInternal] = useState('')
   const [myMoodInternal, setMyMoodInternal] = useState('')
   const [myGender, setMyGender] = useState<Gender | undefined>()
@@ -187,6 +188,7 @@ export default function DiscoverPage() {
         setMyGender(json.profile.gender ?? undefined)
         setMyInterestedIn(json.profile.interested_in ?? [])
         if (json.profile.photos?.[0]) setMyPhoto(json.profile.photos[0])
+        setProfileLoaded(true)
       }
     }).catch(() => {
       supabase.auth.getUser().then(({ data: { user } }) => {
@@ -199,6 +201,7 @@ export default function DiscoverPage() {
               setMyMoodInternal(data.mood ?? 'discuter')
               setMyGender((data as { gender?: string }).gender as Gender | undefined)
               setMyInterestedIn((data as { interested_in?: string[] }).interested_in ?? [])
+              setProfileLoaded(true)
             }
           }, (err) => logger.error('Discover error', { error: String(err) }))
         }
@@ -220,6 +223,7 @@ export default function DiscoverPage() {
   }, [])
 
   useEffect(() => {
+    if (!myId || !profileLoaded) return
     Promise.all([getSwipedIds(), getBlockedIds(), getLastSwipe()])
       .then(async ([swiped, blocked, last]) => {
         setHasSwiped(!!last)
@@ -236,7 +240,7 @@ export default function DiscoverPage() {
         setLoading(false)
       }).catch(e => { logger.error(e); toast('Erreur de chargement', 'error') })
     getSentFlirtIds().then(ids => setFlirtedIds(ids)).catch(() => { toast('Erreur chargement flirts', 'error') })
-  }, [myId, myGender, myInterestedIn, toast])
+  }, [myId, myGender, myInterestedIn, profileLoaded, toast])
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragStart(e.clientX)

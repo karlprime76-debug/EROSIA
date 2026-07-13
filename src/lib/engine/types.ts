@@ -45,6 +45,8 @@ export interface RecommendFilters {
   lng?: number
   city?: string
   excludeInvisible?: string[]
+  gender?: string
+  interestedIn?: string[]
 }
 
 export interface RecommendOutput {

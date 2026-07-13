@@ -188,9 +188,9 @@ export default function SearchPage() {
                   className="w-full rounded-lg bg-primary/5 border border-primary/10 p-2 text-sm"
                 >
                   <option value="">Tous</option>
-                  <option value="homme">Homme</option>
-                  <option value="femme">Femme</option>
-                  <option value="autre">Autre</option>
+                  <option value="male">Homme</option>
+                  <option value="female">Femme</option>
+                  <option value="non_binary">Autre</option>
                 </select>
               </div>
               <div>

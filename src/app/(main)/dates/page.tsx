@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import type { DateSlot } from '@/lib/dates'
+import { ProposeDateSheet } from '@/components/ProposeDateSheet'
 
 const CATEGORIES = [
   { value: 'restaurant', label: 'Restaurant', icon: Utensils, color: '#ef4444' },
@@ -59,6 +60,7 @@ export default function DatesPage() {
   const [tab, setTab] = useState<'upcoming' | 'history'>('upcoming')
   const [userId, setUserId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showPropose, setShowPropose] = useState(false)
   const { toast } = useToast()
   const loadedRef = useRef(false)
 
@@ -129,8 +131,8 @@ export default function DatesPage() {
       <header className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-3xl font-bold">Rendez-vous</h1>
-          <button type="button" disabled
-            className="p-2.5 rounded-full bg-primary/30 text-on-primary cursor-not-allowed"
+          <button type="button" onClick={() => setShowPropose(true)}
+            className="p-2.5 rounded-full bg-primary text-on-primary active:scale-90 transition"
             aria-label="Proposer un rendez-vous">
             <Plus size={20} />
           </button>
@@ -267,6 +269,13 @@ export default function DatesPage() {
           </AnimatePresence>
         )}
       </div>
+
+      {showPropose && (
+        <ProposeDateSheet
+          onClose={() => setShowPropose(false)}
+          onCreated={() => { setShowPropose(false); loadDates() }}
+        />
+      )}
     </div>
   )
 }

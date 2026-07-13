@@ -52,6 +52,8 @@ async function getRecommendations(input: RecommendInput, db: SupabaseClientLike)
   if (filters.minAge) query = query.gte('age', filters.minAge)
   if (filters.maxAge) query = query.lte('age', filters.maxAge)
   if (filters.lookingFor) query = query.eq('looking_for', filters.lookingFor)
+  if (filters.interestedIn?.length) query = query.in('gender', filters.interestedIn)
+  if (filters.gender) query = query.contains('interested_in', [filters.gender])
 
   if (filters.lat && filters.lng && filters.maxDistance) {
     const latDelta = filters.maxDistance / 111
