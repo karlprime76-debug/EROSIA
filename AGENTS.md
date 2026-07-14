@@ -174,10 +174,42 @@ Migration `v47_premium_features.sql` appliquée (2026-07-12).
 - **sw.js** : fix `c.url === url` → `includes(url)` (trop strict)
 - **Build** ✅ 111/111, **Tests** ✅ 108/108 (12 fichiers), **Lint** ✅ 0 errors
 
+## Web Push — Architecture
+
+### Double voie
+1. **Trigger DB** (`send_push_on_notification` sur `notifications` BEFORE INSERT) :
+   - Vérifie `profiles.notif_push`, `notification_preferences` (push_enabled + per-type + quiet hours)
+   - Génère titre/body selon le type (match, message, super_like, like, gift, etc.)
+   - Définit `action_url` depuis les métadonnées si absent
+   - Appelle `net.http_post` vers `app.settings.push_api_url` (best-effort, fire-and-forget)
+   - **Ne set PAS `push_sent_at`** → laisse le worker gérer l'envoi effectif + marquage
+
+2. **Worker Vercel Cron** (`/api/push/worker`, toutes les 1 min via `vercel.json`) :
+   - Requiert header `x-api-key` (PUSH_API_KEY)
+   - Récupère les notifications WHERE `push_sent_at IS NULL` des dernières 24h
+   - Vérifie préférences (redondant avec le trigger, sécurité)
+   - Envoie via `web-push` avec VAPID
+   - Supprime les souscriptions invalides
+   - Marque `push_sent_at = now()` après succès
+
+### Fichiers clés
+- `src/app/api/push/send/route.ts` — API protégée par x-api-key, envoie à un userId
+- `src/app/api/push/subscribe/route.ts` — inscription STB (auth requise)
+- `src/app/api/push/worker/route.ts` — Cron worker, idempotent
+- `src/app/push.ts` — subscribeToPush() côté client (SwRegister.tsx)
+- `supabase/migration_v51_push_worker.sql` — Trigger fixé + colonne push_sent_at
+- `vercel.json` — Configuration du cron */1 * * * *
+- `supabase/schema_v6_push.sql`, `migration_v23_fix_push_notification.sql`, `migration_v26_notifications_fixes.sql`, `v48_security_audit_fixes.sql` — Historique
+
+### Configuration Supabase nécessaire
+Dans Supabase Studio > SQL Editor, exécuter :
+```sql
+SELECT set_config('app.settings.push_api_url', 'https://erosia-alpha.vercel.app/api/push/send', false);
+SELECT set_config('app.settings.push_api_key', '<PUSH_API_KEY>', false);
+```
+
 ### Prochaine session conseillée
-- Déploiement Vercel : vérifier les nouvelles variables d'env
 - API consistance : migrer les routes les plus critiques vers `apiResponse`/`apiError`
-- Web Push : configurer un worker externe pour appeler `/api/push/send` sur les événements (match, message)
 
 ## URLs
 - **Production** : https://erosia-app.vercel.app
