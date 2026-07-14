@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getEvents, createEvent, type CreateEventInput, type EventFilters } from '@/lib/events'
 import { validateFile } from '@/lib/media'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { createEventSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') ?? '1', 10)
@@ -29,14 +30,14 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await getEvents(filters, page)
 
-    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })
+    if (error) return apiError(String(error ?? 'Erreur'), 500)
 
-    return NextResponse.json({ data, page }, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
-    })
+    const res = apiResponse({ data, page })
+    res.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
+    return res
   } catch (err) {
     logger.error('Events GET error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const formData = await req.formData()
 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     const parsed = createEventSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
 
     const input: CreateEventInput = {
@@ -78,16 +79,16 @@ export async function POST(req: NextRequest) {
 
     if (file) {
       const err = validateFile(file, 'photo')
-      if (err) return NextResponse.json({ error: err }, { status: 400 })
+      if (err) return apiError(err)
     }
 
     const { data, error } = await createEvent(input, file ?? undefined)
 
-    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 500 })
+    if (error) return apiError(String(error ?? 'Erreur'), 500)
 
-    return NextResponse.json({ data }, { status: 201 })
+    return apiResponse(data, 201)
   } catch (err) {
     logger.error('Events POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

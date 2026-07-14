@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { addStoryView } from '@/lib/stories'
 import { z } from 'zod'
-import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 const uuidParam = z.string().uuid()
 
@@ -13,16 +12,15 @@ export async function POST(
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { id } = await params
     const idParsed = uuidParam.safeParse(id)
-    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
+    if (!idParsed.success) return apiError('ID invalide', 400)
     const { error } = await addStoryView(idParsed.data)
-    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
-    return NextResponse.json({ success: true })
+    if (error) return apiError(String(error ?? 'Erreur'), 400)
+    return apiResponse({ success: true })
   } catch (err) {
-    logger.error('Story view error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

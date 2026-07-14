@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(8, '8 caractères minimum'),
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const parsed = loginSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
 
     const { email, password } = parsed.data
@@ -27,12 +27,11 @@ export async function POST(request: Request) {
         : authError.message === 'Email not confirmed'
           ? 'Email non confirmé — vérifie ta boîte mail'
           : 'Email ou mot de passe incorrect'
-      return NextResponse.json({ error: message }, { status: 401 })
+      return apiError(message, 401)
     }
 
-    return NextResponse.json({ ok: true })
+    return apiResponse({ ok: true })
   } catch (err) {
-    logger.error('Login route error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

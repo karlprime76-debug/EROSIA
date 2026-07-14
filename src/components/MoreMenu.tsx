@@ -30,8 +30,13 @@ export function MoreMenu({ onClose }: MoreMenuProps) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+    const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [onClose])
 
   const handleNavigation = () => {
     onClose()

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { apiResponse } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -9,12 +9,12 @@ export async function GET() {
       .select('active, message, estimated_duration')
       .limit(1)
       .maybeSingle()
-    return NextResponse.json({
+    return apiResponse({
       maintenance: data?.active ?? false,
       message: data?.message ?? null,
       estimated_duration: data?.estimated_duration ?? null,
     })
   } catch {
-    return NextResponse.json({ maintenance: false, message: null, estimated_duration: null })
+    return apiResponse({ maintenance: false, message: null, estimated_duration: null })
   }
 }

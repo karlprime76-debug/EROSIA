@@ -16,6 +16,7 @@ function normalizeStatus(s: string | undefined | null): string {
     pending: 'pending', Pending: 'pending',
     expired: 'expired', Expired: 'expired',
     'in review': 'manual_review', 'In Review': 'manual_review', manual_review: 'manual_review',
+    verified: 'approved', Verified: 'approved',
     unknown: 'unknown',
   }
   return map[s] ?? 'unknown'
@@ -51,19 +52,8 @@ export default function VerifyPage() {
   }, [])
 
   useEffect(() => {
-    getVerificationStatus().then(result => {
-      if (result && result.status) {
-        setStatus(normalizeStatus(result.status))
-        setVerifiedAt(result.verified_at)
-        setRejectionReason(result.rejection_reason)
-      } else {
-        setStatus(null)
-        setVerifiedAt(null)
-      }
-    }).catch(() => {
-      setError('Impossible de charger le statut de vérification')
-    }).finally(() => setLoading(false))
-  }, [])
+    fetchStatus().finally(() => setLoading(false))
+  }, [fetchStatus])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {

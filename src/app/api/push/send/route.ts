@@ -1,9 +1,9 @@
 import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { logger } from '@/lib/logger'
 import { pushSendSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 const vapidSubject = process.env.VAPID_SUBJECT?.trim()
 const subject = vapidSubject && !vapidSubject.startsWith('mailto:')
@@ -22,15 +22,15 @@ export async function POST(request: Request) {
     const expectedKey = process.env.PUSH_API_KEY
     if (!apiKey || !expectedKey || apiKey.length !== expectedKey.length ||
         !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      return apiError('Non autorisé', 401)
     }
 
     let reqBody: Record<string, unknown>
-    try { reqBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { reqBody = await request.json() } catch { return apiError('Corps de requête invalide') }
     const parsed = pushSendSchema.safeParse(reqBody)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
     const { userId, title, body, url } = parsed.data
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
 
     if (!subs || subs.length === 0) {
-      return NextResponse.json({ sent: 0 })
+      return apiResponse({ sent: 0 })
     }
 
     const payload = JSON.stringify({ title, body, url: url ?? '/discover' })
@@ -60,9 +60,9 @@ export async function POST(request: Request) {
       }
     }))
 
-    return NextResponse.json({ sent })
+    return apiResponse({ sent })
   } catch (err) {
     logger.error('Push send error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

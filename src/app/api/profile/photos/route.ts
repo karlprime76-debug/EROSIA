@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { validateFile } from '@/lib/media'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 const MAX_PHOTOS = 6
 
@@ -11,18 +11,18 @@ export async function POST(request: Request) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return apiError('Non authentifié', 401)
     }
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     if (!file) {
-      return NextResponse.json({ error: 'Fichier manquant' }, { status: 400 })
+      return apiError('Fichier manquant')
     }
 
     const validationErr = validateFile(file, 'photo')
     if (validationErr) {
-      return NextResponse.json({ error: validationErr }, { status: 400 })
+      return apiError(validationErr)
     }
 
     const { data: profile } = await supabase
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     const currentPhotos: string[] = profile?.photos ?? []
     if (currentPhotos.length >= MAX_PHOTOS) {
-      return NextResponse.json({ error: `Maximum ${MAX_PHOTOS} photos autorisées` }, { status: 400 })
+      return apiError(`Maximum ${MAX_PHOTOS} photos autorisées`)
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? 'jpg'
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     })
     if (uploadError) {
       logger.error('Photo upload error', { userId: user.id, error: uploadError.message })
-      return NextResponse.json({ error: "Erreur lors de l'upload" }, { status: 500 })
+      return apiError("Erreur lors de l'upload", 500)
     }
 
     const { data: urlData } = admin.storage.from('photos').getPublicUrl(fileName)
@@ -62,13 +62,13 @@ export async function POST(request: Request) {
     if (updateError) {
       await admin.storage.from('photos').remove([fileName])
       logger.error('Profile photos update error', { userId: user.id, error: updateError.message })
-      return NextResponse.json({ error: "Erreur lors de l'enregistrement" }, { status: 500 })
+      return apiError("Erreur lors de l'enregistrement", 500)
     }
 
-    return NextResponse.json({ url, photos: updatedPhotos })
+    return apiResponse({ url, photos: updatedPhotos })
   } catch (err) {
     logger.error('[/api/profile/photos] POST exception', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -77,12 +77,16 @@ export async function DELETE(request: Request) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return apiError('Non authentifié', 401)
     }
 
-    const { photoUrl } = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
+    const { photoUrl } = body
     if (!photoUrl || typeof photoUrl !== 'string') {
-      return NextResponse.json({ error: 'URL de photo manquante' }, { status: 400 })
+      return apiError('URL de photo manquante')
     }
 
     const admin = createAdminClient()
@@ -94,7 +98,7 @@ export async function DELETE(request: Request) {
 
     const currentPhotos: string[] = profile?.photos ?? []
     if (!currentPhotos.includes(photoUrl)) {
-      return NextResponse.json({ error: 'Photo introuvable' }, { status: 404 })
+      return apiError('Photo introuvable', 404)
     }
 
     const objectPath = photoUrl.split('/storage/v1/object/public/photos/')[1]
@@ -110,13 +114,13 @@ export async function DELETE(request: Request) {
 
     if (updateError) {
       logger.error('Profile photos delete update error', { userId: user.id, error: updateError.message })
-      return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 })
+      return apiError("Erreur lors de la suppression", 500)
     }
 
-    return NextResponse.json({ photos: updatedPhotos })
+    return apiResponse({ photos: updatedPhotos })
   } catch (err) {
     logger.error('[/api/profile/photos] DELETE exception', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -125,13 +129,16 @@ export async function PUT(request: Request) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return apiError('Non authentifié', 401)
     }
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
     const { photoUrl, action, photos: reordered } = body
     if (!photoUrl || typeof photoUrl !== 'string') {
-      return NextResponse.json({ error: 'URL de photo manquante' }, { status: 400 })
+      return apiError('URL de photo manquante')
     }
 
     const admin = createAdminClient()
@@ -143,7 +150,7 @@ export async function PUT(request: Request) {
 
     const currentPhotos: string[] = profile?.photos ?? []
     if (!currentPhotos.includes(photoUrl)) {
-      return NextResponse.json({ error: 'Photo introuvable' }, { status: 404 })
+      return apiError('Photo introuvable', 404)
     }
 
     let updatedPhotos: string[]
@@ -151,11 +158,11 @@ export async function PUT(request: Request) {
       updatedPhotos = [photoUrl, ...currentPhotos.filter(p => p !== photoUrl)]
     } else if (action === 'reorder') {
       if (!Array.isArray(reordered) || reordered.length !== currentPhotos.length) {
-        return NextResponse.json({ error: 'Ordre invalide' }, { status: 400 })
+        return apiError('Ordre invalide')
       }
       updatedPhotos = reordered
     } else {
-      return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
+      return apiError('Action invalide')
     }
 
     const { error: updateError } = await admin
@@ -165,12 +172,12 @@ export async function PUT(request: Request) {
 
     if (updateError) {
       logger.error('Profile photos reorder error', { userId: user.id, error: updateError.message })
-      return NextResponse.json({ error: "Erreur lors de la mise à jour" }, { status: 500 })
+      return apiError("Erreur lors de la mise à jour", 500)
     }
 
-    return NextResponse.json({ photos: updatedPhotos })
+    return apiResponse({ photos: updatedPhotos })
   } catch (err) {
     logger.error('[/api/profile/photos] PUT exception', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

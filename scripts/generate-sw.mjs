@@ -106,7 +106,7 @@ self.addEventListener('notificationclick', (e) => {
   const url = e.notification.data?.url ?? '/discover'
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const matching = clients.find((c) => c.url === url && 'focus' in c)
+      const matching = clients.find((c) => c.url.includes(url) && 'focus' in c)
       if (matching) return matching.focus()
       return self.clients.openWindow(url)
     })

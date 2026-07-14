@@ -1,20 +1,20 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getWithdrawMode, extractPhoneAlias, createDisburseInvoice, submitDisburseInvoice } from '@/lib/paydunya-disburse'
 import { processPayoutSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let body: Record<string, unknown>
-    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { body = await request.json() } catch { return apiError('Corps de requête invalide', 400) }
     const parsed = processPayoutSchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
+    if (!parsed.success) return apiError('Montant invalide', 400)
     const { amountCents } = parsed.data
 
     const admin = createAdminClient()
@@ -26,12 +26,12 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (!account || !account.phone) {
-      return NextResponse.json({ error: 'Aucun moyen de paiement enregistré' }, { status: 404 })
+      return apiError('Aucun moyen de paiement enregistré', 404)
     }
 
     const withdrawMode = getWithdrawMode(account.country ?? '', account.operator ?? '')
     if (!withdrawMode) {
-      return NextResponse.json({ error: 'Opérateur non supporté pour les paiements sortants' }, { status: 400 })
+      return apiError('Opérateur non supporté pour les paiements sortants', 400)
     }
 
     const accountAlias = extractPhoneAlias(account.phone)
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
 
     if (payoutError || payoutResult?.error) {
       if (payoutResult?.error === 'Solde insuffisant') {
-        return NextResponse.json({ error: 'Solde insuffisant' }, { status: 400 })
+        return apiError('Solde insuffisant', 400)
       }
-      return NextResponse.json({ error: 'Erreur lors du traitement du retrait' }, { status: 500 })
+      return apiError('Erreur lors du traitement du retrait', 500)
     }
 
     const txId = payoutResult.tx_id
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     } catch (err) {
       logger.error('createDisburseInvoice error', { error: String(err) })
       await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', txId)
-      return NextResponse.json({ error: 'Erreur de communication avec PayDunya' }, { status: 502 })
+      return apiError('Erreur de communication avec PayDunya', 502)
     }
 
     if (!invoice.token) {
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         status: 'failed',
         payment_details: JSON.stringify({ type: account.type, identifier, error: invoice.response_text }),
       }).eq('id', txId)
-      return NextResponse.json({ error: 'Erreur de création du paiement. Contacte le support.' }, { status: 500 })
+      return apiError('Erreur de création du paiement. Contacte le support.', 500)
     }
 
     await admin.from('gift_transactions').update({
@@ -86,18 +86,17 @@ export async function POST(request: Request) {
     } catch (err) {
       logger.error('submitDisburseInvoice error', { error: String(err) })
       await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', txId)
-      return NextResponse.json({ error: 'Erreur de soumission du retrait' }, { status: 502 })
+      return apiError('Erreur de soumission du retrait', 502)
     }
 
     if (submit.status === 'success' || submit.response_code === '00') {
       await admin.from('gift_transactions').update({ status: 'completed' }).eq('id', txId)
-      return NextResponse.json({ success: true, message: `Paiement de ${amountCents} F envoyé vers ${identifier}` })
+      return apiResponse({ success: true, message: `Paiement de ${amountCents} F envoyé vers ${identifier}` })
     }
 
     await admin.from('gift_transactions').update({ status: 'failed' }).eq('id', txId)
-    return NextResponse.json({ error: 'Échec du paiement. Contacte le support.' }, { status: 500 })
+    return apiError('Échec du paiement. Contacte le support.', 500)
   } catch (err) {
-    logger.error('Payout error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 import { logger } from '@/lib/logger'
 
 const updateReportSchema = z.object({
@@ -35,7 +35,7 @@ async function logAdminAction(adminId: string, action: string, targetType: strin
 export async function GET(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
     const { searchParams } = new URL(request.url)
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
@@ -56,10 +56,10 @@ export async function GET(request: Request) {
 
     if (error) {
       logger.error('Admin reports GET error', { error: error.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiError('Erreur serveur', 500)
     }
 
-    return NextResponse.json({
+    return apiResponse({
       reports: data ?? [],
       total: count ?? 0,
       page,
@@ -68,18 +68,21 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     logger.error('Admin reports GET exception', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide', 400)
+    }
     const parsed = updateReportSchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    if (!parsed.success) return apiError('Paramètres invalides', 400)
 
     const { reportId, status, actionNote, actionUserId, actionType } = parsed.data
     const admin = createAdminClient()
@@ -92,7 +95,7 @@ export async function PATCH(request: Request) {
 
     if (updateError) {
       logger.error('Admin reports PATCH DB error', { error: updateError.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiError('Erreur serveur', 500)
     }
 
     if (status === 'action_taken' && actionUserId && actionType) {
@@ -134,9 +137,9 @@ export async function PATCH(request: Request) {
     }
 
     await logAdminAction(check.adminId!, `report_${status}`, 'report', reportId, { actionNote, actionUserId, actionType })
-    return NextResponse.json({ success: true })
+    return apiResponse({ success: true })
   } catch (err) {
     logger.error('Admin reports PATCH exception', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiServerError(err)
   }
 }

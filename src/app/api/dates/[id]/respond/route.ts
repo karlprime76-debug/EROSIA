@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function PATCH(
   request: Request,
@@ -11,31 +11,34 @@ export async function PATCH(
     const { id: dateId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
     const { accept, slotId } = body
-    if (typeof accept !== 'boolean') return NextResponse.json({ error: 'accept requis' }, { status: 400 })
+    if (typeof accept !== 'boolean') return apiError('accept requis')
 
     const { data: date, error: dateErr } = await supabase
       .from('planned_dates').select('*').eq('id', dateId).maybeSingle()
-    if (dateErr || !date) return NextResponse.json({ error: 'Rendez-vous introuvable' }, { status: 404 })
-    if (date.proposee_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
-    if (date.status !== 'pending') return NextResponse.json({ error: 'Déjà répondu' }, { status: 400 })
+    if (dateErr || !date) return apiError('Rendez-vous introuvable', 404)
+    if (date.proposee_id !== user.id) return apiError('Non autorisé', 403)
+    if (date.status !== 'pending') return apiError('Déjà répondu')
 
     const admin = createAdminClient()
     if (!accept) {
       await admin.from('planned_dates').update({ status: 'declined' }).eq('id', dateId)
-      return NextResponse.json({ data: { status: 'declined' } })
+      return apiResponse({ status: 'declined' })
     }
-    if (!slotId) return NextResponse.json({ error: 'slotId requis pour accepter' }, { status: 400 })
+    if (!slotId) return apiError('slotId requis pour accepter')
 
     await admin.from('date_slots').update({ accepted: false }).eq('date_id', dateId)
     await admin.from('date_slots').update({ accepted: true }).eq('id', slotId)
     await admin.from('planned_dates').update({ status: 'accepted' }).eq('id', dateId)
-    return NextResponse.json({ data: { status: 'accepted' } })
+    return apiResponse({ status: 'accepted' })
   } catch (err) {
     logger.error('Date respond PATCH error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

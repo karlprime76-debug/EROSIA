@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(
   request: Request,
@@ -11,28 +10,27 @@ export async function POST(
     const { id: dateId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const body = await request.json().catch(() => ({}))
     const reason = body?.reason ?? null
 
     const { data: date, error: dateErr } = await supabase
       .from('planned_dates').select('*').eq('id', dateId).maybeSingle()
-    if (dateErr || !date) return NextResponse.json({ error: 'Rendez-vous introuvable' }, { status: 404 })
+    if (dateErr || !date) return apiError('Rendez-vous introuvable', 404)
     if (user.id !== date.proposer_id && user.id !== date.proposee_id) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+      return apiError('Non autorisé', 403)
     }
     if (date.status === 'completed' || date.status === 'declined') {
-      return NextResponse.json({ error: 'Impossible d\'annuler' }, { status: 400 })
+      return apiError('Impossible d\'annuler')
     }
 
     const admin = createAdminClient()
     await admin.from('planned_dates')
       .update({ status: 'cancelled', cancelled_by: user.id, cancel_reason: reason })
       .eq('id', dateId)
-    return NextResponse.json({ data: { status: 'cancelled' } })
+    return apiResponse({ status: 'cancelled' })
   } catch (err) {
-    logger.error('Date cancel POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

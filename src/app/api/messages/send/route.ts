@@ -1,23 +1,23 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { sendMessageSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let requestBody: Record<string, unknown>
     try { requestBody = await request.json() } catch {
-      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+      return apiError('Corps de requête invalide', 400)
     }
     const parsed = sendMessageSchema.safeParse(requestBody)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError, 400)
     }
     const { matchId, text } = parsed.data
 
@@ -29,10 +29,10 @@ export async function POST(request: Request) {
       .eq('id', matchId)
       .maybeSingle()
 
-    if (!match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
+    if (!match) return apiError('Match introuvable', 404)
 
     const isParticipant = match.user1_id === user.id || match.user2_id === user.id
-    if (!isParticipant) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!isParticipant) return apiError('Non autorisé', 403)
 
     const targetId = match.user1_id === user.id ? match.user2_id : match.user1_id
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       .eq('blocked_id', user.id)
       .maybeSingle()
 
-    if (blockByTarget) return NextResponse.json({ error: 'Action non autorisée' }, { status: 403 })
+    if (blockByTarget) return apiError('Action non autorisée', 403)
 
     const { count: msgCount } = await admin
       .from('messages')
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       if (targetPrivacy) {
         const perm = targetPrivacy.first_message_permission as string
         if (perm === 'nobody') {
-          return NextResponse.json({ error: "Cette personne n'accepte pas de nouveaux messages" }, { status: 403 })
+          return apiError("Cette personne n'accepte pas de nouveaux messages", 403)
         }
         if (perm === 'verified_only') {
           const { data: sender } = await admin
@@ -69,14 +69,14 @@ export async function POST(request: Request) {
             .eq('id', user.id)
             .maybeSingle()
           if (!sender?.is_verified) {
-            return NextResponse.json({ error: 'Seuls les comptes vérifiés peuvent envoyer un message' }, { status: 403 })
+            return apiError('Seuls les comptes vérifiés peuvent envoyer un message', 403)
           }
         }
       }
     }
 
     const clean = text.replace(/<[^>]*>/g, '').slice(0, 5000)
-    if (!clean.trim()) return NextResponse.json({ error: 'Message vide' }, { status: 400 })
+    if (!clean.trim()) return apiError('Message vide', 400)
 
     const { data: message, error } = await admin
       .from('messages')
@@ -86,12 +86,11 @@ export async function POST(request: Request) {
 
     if (error) {
       logger.error('Failed to send message', { error: error.message, matchId, userId: user.id })
-      return NextResponse.json({ error: "Erreur lors de l'envoi" }, { status: 500 })
+      return apiError("Erreur lors de l'envoi", 500)
     }
 
-    return NextResponse.json({ data: message })
+    return apiResponse(message)
   } catch (err) {
-    logger.error('Send message error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

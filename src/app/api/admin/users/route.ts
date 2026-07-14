@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 import { logger } from '@/lib/logger'
 
 const suspendSchema = z.object({
@@ -43,7 +43,7 @@ async function logAdminAction(adminId: string, action: string, targetType: strin
 export async function GET(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
     const { searchParams } = new URL(request.url)
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
@@ -82,10 +82,10 @@ export async function GET(request: Request) {
 
     if (error) {
       logger.error('Admin users GET error', { error: error.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiError('Erreur serveur', 500)
     }
 
-    return NextResponse.json({
+    return apiResponse({
       users: data ?? [],
       total: count ?? 0,
       page,
@@ -94,22 +94,25 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     logger.error('Admin users GET exception', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide', 400)
+    }
     const action = body._action as string
     const admin = createAdminClient()
 
     if (action === 'suspend') {
       const parsed = suspendSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+      if (!parsed.success) return apiError('Paramètres invalides', 400)
       const { userId, reason, durationHours } = parsed.data
       const updates: Record<string, unknown> = {
         is_suspended: true,
@@ -129,12 +132,12 @@ export async function PATCH(request: Request) {
         expires_at: durationHours ? new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString() : null,
       })
       await logAdminAction(check.adminId!, 'suspend_user', 'user', userId, { reason })
-      return NextResponse.json({ success: true })
+      return apiResponse({ success: true })
     }
 
     if (action === 'ban') {
       const parsed = banSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+      if (!parsed.success) return apiError('Paramètres invalides', 400)
       const { userId, reason } = parsed.data
       await admin.from('profiles').update({
         is_banned: true,
@@ -149,12 +152,12 @@ export async function PATCH(request: Request) {
         severity: 'ban',
       })
       await logAdminAction(check.adminId!, 'ban_user', 'user', userId, { reason })
-      return NextResponse.json({ success: true })
+      return apiResponse({ success: true })
     }
 
     if (action === 'warn') {
       const parsed = warnSchema.safeParse(body)
-      if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+      if (!parsed.success) return apiError('Paramètres invalides', 400)
       const { userId, reason } = parsed.data
       await admin.from('profiles').update({
         warning_count: admin.rpc('increment_warning', { p_user_id: userId }) as unknown as undefined,
@@ -172,12 +175,12 @@ export async function PATCH(request: Request) {
         message: `Tu as reçu un avertissement : ${reason}`,
       })
       await logAdminAction(check.adminId!, 'warn_user', 'user', userId, { reason })
-      return NextResponse.json({ success: true })
+      return apiResponse({ success: true })
     }
 
-    return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
+    return apiError('Action invalide', 400)
   } catch (err) {
     logger.error('Admin users PATCH error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyWebhookSignature, getSessionDecision } from '@/lib/didit'
-import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 import type { DiditWebhookPayload } from '@/lib/didit'
 
 function getRejectionReason(payload: DiditWebhookPayload): string | null {
@@ -64,6 +63,7 @@ export async function POST(request: Request) {
 
     const isValid = await verifyWebhookSignature(rawBody, signature, timestamp)
     if (!isValid) {
+      const { logger } = await import('@/lib/logger')
       logger.warn('Didit webhook signature verification failed', {
         hasSignature: !!signature,
         signatureLength: signature.length,
@@ -71,13 +71,13 @@ export async function POST(request: Request) {
         hasSecret: !!process.env.DIDIT_WEBHOOK_SECRET,
         secretLength: process.env.DIDIT_WEBHOOK_SECRET?.length ?? 0,
       })
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 })
+      return apiError('Invalid signature', 403)
     }
 
     const payload: DiditWebhookPayload = JSON.parse(rawBody)
 
     if (payload.webhook_type !== 'status.updated') {
-      return NextResponse.json({ received: true })
+      return apiResponse({ received: true })
     }
 
     const admin = createAdminClient()
@@ -89,8 +89,9 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (!existing) {
+      const { logger } = await import('@/lib/logger')
       logger.warn('Didit webhook for unknown session', { sessionId: payload.session_id })
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return apiError('Session not found', 404)
     }
 
     const mappedStatus = mapDiditStatus(payload.status)
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
         diditVerificationId = decision.decision.id_verifications[0].node_id
       }
     } catch {
+      const { logger } = await import('@/lib/logger')
       logger.warn('Could not fetch decision details, using session_id as verification_id')
     }
 
@@ -117,6 +119,7 @@ export async function POST(request: Request) {
     })
 
     if (rpcError) {
+      const { logger } = await import('@/lib/logger')
       logger.error('Failed to process verification update via RPC', { error: rpcError.message, id: existing.id })
 
       const { error: updateError } = await admin
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
 
       if (updateError) {
         logger.error('Fallback update also failed', { error: updateError.message })
-        return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+        return apiError('Update failed', 500)
       }
 
       const profileUpdate: Record<string, unknown> = {
@@ -150,9 +153,8 @@ export async function POST(request: Request) {
       message: getNotificationMessage(mappedStatus, rejectionReason),
     })
 
-    return NextResponse.json({ received: true })
+    return apiResponse({ received: true })
   } catch (err) {
-    logger.error('Didit webhook error', { error: String(err) })
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return apiServerError(err)
   }
 }

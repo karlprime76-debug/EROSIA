@@ -186,12 +186,12 @@ export default function ChatPage() {
     }
   }, [matchId, router, toast, scrollToBottom, loadMessageSuggestions])
 
-  const handleEditSave = async () => {
+  const handleEditSave = useCallback(async () => {
     if (!editingMsg || !input.trim()) return
     const { error } = await supabase.from('messages').update({ text: input.trim(), edited_at: new Date().toISOString() }).eq('id', editingMsg.id)
     if (error) { toast('Erreur de modification', 'error') }
     setEditingMsg(null)
-  }
+  }, [editingMsg, input, toast])
 
   const cancelEdit = () => {
     setEditingMsg(null)

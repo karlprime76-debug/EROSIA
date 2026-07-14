@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    if (!profile?.is_admin) return apiError('Accès refusé', 403)
 
     const { searchParams } = new URL(request.url)
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
@@ -29,12 +29,12 @@ export async function GET(request: Request) {
 
     if (error) {
       logger.error('Admin activity GET error', { error: error.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiServerError(error)
     }
 
     const { data: actions } = await admin.from('admin_activity_log').select('action', { count: 'exact', head: false })
 
-    return NextResponse.json({
+    return apiResponse({
       logs: data ?? [],
       total: count ?? 0,
       page,
@@ -44,6 +44,6 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     logger.error('Admin activity GET exception', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

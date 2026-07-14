@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiResponse } from '@/lib/api-response'
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'down'
@@ -68,9 +68,10 @@ export async function GET() {
       })
     }
   } catch {
+    // Non critique — échec silencieux du logging de santé
   }
 
-  return NextResponse.json({
+  return apiResponse({
     status: overallStatus,
     timestamp: new Date().toISOString(),
     services: checks,

@@ -1,19 +1,20 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
 import { deleteMatchSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let body: Record<string, unknown>
-    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { body = await request.json() } catch { return apiError('Corps de requête invalide') }
     const parsed = deleteMatchSchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'matchId requis' }, { status: 400 })
+    if (!parsed.success) return apiError('matchId requis')
     const { matchId } = parsed.data
 
     const admin = createAdminClient()
@@ -48,13 +49,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (rpcError || rpcResult?.error) {
-      return NextResponse.json({ error: rpcResult?.error ?? 'Erreur lors de la suppression' }, { status: 500 })
+      return apiError(rpcResult?.error ?? 'Erreur lors de la suppression', 500)
     }
 
-    return NextResponse.json({ ok: true })
+    return apiResponse({ ok: true })
   } catch (err) {
     logger.error('Delete match error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 

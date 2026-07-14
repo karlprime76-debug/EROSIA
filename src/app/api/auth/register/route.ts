@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { registerSchema } from '@/lib/validations'
 import { sanitize } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
+import { apiServerError } from '@/lib/api-response'
 
 const admin = createAdminClient()
 
@@ -103,7 +104,6 @@ export async function POST(request: Request) {
       headers: { 'X-RateLimit-Remaining': String(remaining) },
     })
   } catch (err) {
-    logger.error('Register route error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

@@ -1,20 +1,19 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { computeAura } from '@/lib/aura/engine'
 import type { AuraConfig, AuraState } from '@/lib/aura/types'
-import { logger } from '@/lib/logger'
 import { auraBatchSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let body: Record<string, unknown>
-    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { body = await request.json() } catch { return apiError('Corps de requête invalide') }
     const parsed = auraBatchSchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'userIds requis' }, { status: 400 })
+    if (!parsed.success) return apiError('userIds requis')
     const { userIds } = parsed.data
 
     const { data: profiles } = await supabase
@@ -59,9 +58,8 @@ export async function POST(request: Request) {
       auras[profile.id] = computeAura(config)
     }
 
-    return NextResponse.json({ auras })
+    return apiResponse({ auras })
   } catch (err) {
-    logger.error('Aura batch error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

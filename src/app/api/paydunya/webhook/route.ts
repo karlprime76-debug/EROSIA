@@ -1,9 +1,10 @@
 // UNGUARDED ENV: process.env.PAYDUNYA_MASTER_KEY! (l.43) — si vide, le hash échoue silencieusement
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { confirmInvoice } from '@/lib/paydunya'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 async function claimWebhookEvent(eventId: string): Promise<boolean> {
   try {
@@ -19,25 +20,25 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const dataRaw = formData.get('data') as string | null
-    if (!dataRaw) return NextResponse.json({ error: 'Missing data' }, { status: 400 })
+    if (!dataRaw) return apiError('Missing data', 400)
 
     let data: { invoice?: { invoice_token?: string }; hash?: string }
-    try { data = JSON.parse(dataRaw) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
+    try { data = JSON.parse(dataRaw) } catch { return apiError('Invalid JSON', 400) }
 
     const invoiceToken = data.invoice?.invoice_token
-    if (!invoiceToken) return NextResponse.json({ error: 'Missing invoice_token' }, { status: 400 })
+    if (!invoiceToken) return apiError('Missing invoice_token', 400)
 
     const masterKey = process.env.PAYDUNYA_MASTER_KEY
     if (!masterKey) {
       logger.error('PAYDUNYA_MASTER_KEY is not configured')
-      return NextResponse.json({ error: 'Erreur de configuration serveur' }, { status: 500 })
+      return apiError('Erreur de configuration serveur', 500)
     }
     const expectedHash = crypto.createHash('sha512').update(masterKey + invoiceToken).digest('hex')
-    if (data.hash !== expectedHash) return NextResponse.json({ error: 'Invalid hash' }, { status: 403 })
+    if (data.hash !== expectedHash) return apiError('Invalid hash', 403)
 
     if (!(await claimWebhookEvent(invoiceToken))) {
       logger.info('Duplicate PayDunya webhook event (already processed)', { invoiceToken })
-      return NextResponse.json({ received: true })
+      return apiResponse({ received: true })
     }
 
     let confirmed: { status: string; invoice?: { status: string; custom_data?: Record<string, string> }; customer?: Record<string, string> }
@@ -45,14 +46,14 @@ export async function POST(request: NextRequest) {
       confirmed = await confirmInvoice(invoiceToken)
     } catch (err) {
       logger.error('confirmInvoice error', { error: String(err) })
-      return NextResponse.json({ error: 'Erreur de confirmation PayDunya' }, { status: 502 })
+      return apiError('Erreur de confirmation PayDunya', 502)
     }
     if (confirmed.status !== 'completed' && confirmed.status !== 'success') {
-      return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
+      return apiError('Payment not completed', 400)
     }
     const invoiceStatus = confirmed.invoice?.status
     if (invoiceStatus !== 'completed' && invoiceStatus !== 'success') {
-      return NextResponse.json({ error: 'Invoice not completed' }, { status: 400 })
+      return apiError('Invoice not completed', 400)
     }
 
     const admin = createAdminClient()
@@ -124,9 +125,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ received: true })
+    return apiResponse({ received: true })
   } catch (err) {
-    logger.error('PayDunya webhook error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

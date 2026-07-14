@@ -1,18 +1,17 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getSessionDecision } from '@/lib/didit'
-import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { userId, sessionId } = await request.json()
     if (!userId || !sessionId || userId !== user.id) {
-      return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+      return apiError('Paramètres invalides', 400)
     }
 
     const decision = await getSessionDecision(sessionId)
@@ -56,6 +55,7 @@ export async function POST(request: Request) {
       })
 
       if (insertError) {
+        const { logger } = await import('@/lib/logger')
         logger.error('Callback: insert verification_request error', { error: insertError.message })
       }
 
@@ -83,9 +83,8 @@ export async function POST(request: Request) {
       })
     }
 
-    return NextResponse.json({ received: true, status: mappedStatus })
+    return apiResponse({ received: true, status: mappedStatus })
   } catch (err) {
-    logger.error('Verification callback error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

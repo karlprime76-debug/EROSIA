@@ -129,8 +129,8 @@ export function ProposeDateSheet({ onClose, onCreated }: ProposeDateSheetProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
-      <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col border border-[var(--border)]">
+    <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" onClick={onClose}>
+      <FocusTrap><div className="bg-[var(--card)] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col border border-[var(--border)]" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-[var(--card)] z-10 flex items-center justify-between px-5 pt-4 pb-3 border-b border-[var(--border)] shrink-0">
           <h2 className="font-semibold">Proposer un rendez-vous</h2>
           <button type="button" onClick={onClose} aria-label="Fermer" className="p-2.5 rounded-xl">

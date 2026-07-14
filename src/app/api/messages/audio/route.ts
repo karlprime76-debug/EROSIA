@@ -1,29 +1,29 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { validateFile } from '@/lib/media'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let formData: FormData
     try { formData = await request.formData() } catch {
-      return NextResponse.json({ error: 'FormData invalide' }, { status: 400 })
+      return apiError('FormData invalide', 400)
     }
 
     const matchId = formData.get('matchId') as string | null
     const audioFile = formData.get('audio') as File | null
 
     if (!matchId || !audioFile) {
-      return NextResponse.json({ error: 'matchId et audio requis' }, { status: 400 })
+      return apiError('matchId et audio requis', 400)
     }
 
     const fileErr = validateFile(audioFile, 'audio')
-    if (fileErr) return NextResponse.json({ error: fileErr }, { status: 400 })
+    if (fileErr) return apiError(fileErr, 400)
 
     const admin = createAdminClient()
 
@@ -33,10 +33,10 @@ export async function POST(request: Request) {
       .eq('id', matchId)
       .maybeSingle()
 
-    if (!match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
+    if (!match) return apiError('Match introuvable', 404)
 
     const isParticipant = match.user1_id === user.id || match.user2_id === user.id
-    if (!isParticipant) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!isParticipant) return apiError('Non autorisé', 403)
 
     const targetId = match.user1_id === user.id ? match.user2_id : match.user1_id
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       .eq('blocked_id', user.id)
       .maybeSingle()
 
-    if (block) return NextResponse.json({ error: 'Action non autorisée' }, { status: 403 })
+    if (block) return apiError('Action non autorisée', 403)
 
     const fileName = `chat_audio/${matchId}/${Date.now()}-${user.id}.webm`
     const buffer = Buffer.from(await audioFile.arrayBuffer())
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     if (uploadErr) {
       logger.error('Audio upload failed', { error: uploadErr.message, matchId, userId: user.id })
-      return NextResponse.json({ error: "Erreur lors de l'upload" }, { status: 500 })
+      return apiError("Erreur lors de l'upload", 500)
     }
 
     const { data: { publicUrl } } = admin.storage.from('chat_audio').getPublicUrl(fileName)
@@ -73,12 +73,11 @@ export async function POST(request: Request) {
     if (insertErr) {
       logger.error('Audio message insert failed', { error: insertErr.message, matchId, userId: user.id })
       await admin.storage.from('chat_audio').remove([fileName])
-      return NextResponse.json({ error: "Erreur lors de l'envoi" }, { status: 500 })
+      return apiError("Erreur lors de l'envoi", 500)
     }
 
-    return NextResponse.json({ data: message })
+    return apiResponse(message)
   } catch (err) {
-    logger.error('Audio message error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

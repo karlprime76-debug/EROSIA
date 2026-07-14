@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,12 +9,15 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
-    const body = await request.json()
-    const targetUserIds: string[] = body.targetUserIds
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide', 400)
+    }
+    const targetUserIds = body.targetUserIds as string[]
     if (!Array.isArray(targetUserIds) || targetUserIds.length === 0) {
-      return NextResponse.json({ error: 'targetUserIds requis' }, { status: 400 })
+      return apiError('targetUserIds requis', 400)
     }
 
     const admin = createAdminClient()
@@ -22,13 +25,12 @@ export async function POST(request: Request) {
 
     if (error) {
       logger.error('Privacy check RPC error', { error: error.message })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return apiError(error.message, 500)
     }
 
-    return NextResponse.json({ data })
+    return apiResponse(data)
   } catch (err) {
-    logger.error('Privacy check POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -36,7 +38,7 @@ export async function GET() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const admin = createAdminClient()
     const { data, error } = await admin
@@ -46,12 +48,11 @@ export async function GET() {
 
     if (error) {
       logger.error('Privacy visible_to_compatible_only error', { error: error.message })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return apiError(error.message, 500)
     }
 
-    return NextResponse.json({ data: data?.map(r => r.user_id) ?? [] })
+    return apiResponse(data?.map(r => r.user_id) ?? [])
   } catch (err) {
-    logger.error('Privacy check GET error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

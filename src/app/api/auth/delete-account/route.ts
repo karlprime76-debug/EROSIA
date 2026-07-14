@@ -1,23 +1,24 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
 import { deleteAccountSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let body: Record<string, unknown>
-    try { body = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { body = await request.json() } catch { return apiError('Corps de requête invalide') }
     const parsed = deleteAccountSchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'Mot de passe requis' }, { status: 400 })
+    if (!parsed.success) return apiError('Mot de passe requis')
     const { password } = parsed.data
-    if (!user.email) return NextResponse.json({ error: 'Impossible de vérifier l\'identité' }, { status: 400 })
+    if (!user.email) return apiError('Impossible de vérifier l\'identité')
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password })
-    if (signInError) return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 403 })
+    if (signInError) return apiError('Mot de passe incorrect', 403)
 
     const admin = createAdminClient()
 
@@ -102,7 +103,6 @@ export async function POST(request: NextRequest) {
         await admin.from('date_slots').delete().eq('user_id', uid)
         await admin.from('planned_dates').delete().or(`proposer_id.eq.${uid},proposee_id.eq.${uid}`)
       }],
-      ['room_presence',   () => admin.from('room_presence').delete().eq('user_id', uid)],
       ['profiles',        () => admin.from('profiles').delete().eq('id', uid)],
     ] as const
 
@@ -118,10 +118,9 @@ export async function POST(request: NextRequest) {
       logger.error('Delete account partial errors', { userId: uid, errors })
     }
 
-    return NextResponse.json({ ok: true, errors: errors.length > 0 ? errors : undefined })
+    return apiResponse({ ok: true, errors: errors.length > 0 ? errors : undefined })
   } catch (err) {
-    logger.error('Delete account error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur lors de la suppression du compte' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 

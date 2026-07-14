@@ -1,24 +1,24 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { pushSubscribeSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let body: Record<string, unknown>
     try { body = await request.json() } catch {
-      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+      return apiError('Corps de requête invalide')
     }
     const parsed = pushSubscribeSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
     const { endpoint, keys } = parsed.data
 
@@ -30,11 +30,11 @@ export async function POST(request: Request) {
       auth: keys.auth,
     })
 
-    if (error) return NextResponse.json({ error: 'Erreur lors de l\'inscription aux notifications' }, { status: 500 })
-    return NextResponse.json({ ok: true })
+    if (error) return apiError('Erreur lors de l\'inscription aux notifications', 500)
+    return apiResponse({ ok: true })
   } catch (err) {
     logger.error('Push subscribe error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -43,27 +43,27 @@ export async function DELETE(request: Request) {
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     let raw: Record<string, unknown>
     try { raw = await request.json() } catch {
-      return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+      return apiError('Corps de requête invalide')
     }
     const parsed = z.object({ endpoint: z.string().url() }).safeParse(raw)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'endpoint requis'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
 
     const admin = createAdminClient()
     const { data: sub } = await admin.from('push_subscriptions').select('user_id').eq('endpoint', parsed.data.endpoint).maybeSingle()
-    if (!sub) return NextResponse.json({ error: 'Abonnement introuvable' }, { status: 404 })
-    if (sub.user_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!sub) return apiError('Abonnement introuvable', 404)
+    if (sub.user_id !== user.id) return apiError('Non autorisé', 403)
     const { error } = await admin.from('push_subscriptions').delete().eq('endpoint', parsed.data.endpoint)
-    if (error) return NextResponse.json({ error: 'Erreur lors du désabonnement' }, { status: 500 })
-    return NextResponse.json({ ok: true })
+    if (error) return apiError('Erreur lors du désabonnement', 500)
+    return apiResponse({ ok: true })
   } catch (err) {
     logger.error('Push subscribe error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

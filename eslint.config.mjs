@@ -14,7 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
-    files: ['src/components/StoryReader.tsx'],
+    files: ['src/components/StoryReader.tsx', 'src/app/(main)/verify/page.tsx'],
     rules: {
       'react-hooks/set-state-in-effect': 'off'
     }

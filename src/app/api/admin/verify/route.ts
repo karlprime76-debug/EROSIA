@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 import { logger } from '@/lib/logger'
 
 const adminVerifySchema = z.object({
@@ -15,14 +15,17 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
-    if (!profile?.is_admin) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    if (!profile?.is_admin) return apiError('Accès refusé', 403)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide', 400)
+    }
     const parsed = adminVerifySchema.safeParse(body)
-    if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    if (!parsed.success) return apiError('Paramètres invalides', 400)
     const { requestId, userId, approved, rejectionReason } = parsed.data
 
     const admin = createAdminClient()
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
 
     if (reqError) {
       logger.error('Admin verify: DB error', { error: reqError.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiServerError(reqError)
     }
 
     const { error: profileError } = await admin
@@ -65,9 +68,9 @@ export async function POST(request: Request) {
         : (rejectionReason ? `Votre vérification a été refusée : ${rejectionReason}` : 'Votre vérification d\'identité a été refusée.'),
     })
 
-    return NextResponse.json({ success: true })
+    return apiResponse({ success: true })
   } catch (err) {
     logger.error('Admin verify POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

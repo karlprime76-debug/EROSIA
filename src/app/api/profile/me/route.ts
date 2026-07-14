@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { sanitize } from '@/lib/sanitize'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 const SANITIZE_FIELDS = ['name', 'bio', 'occupation', 'location'] as const
 
@@ -19,10 +19,13 @@ export async function PATCH(request: Request) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return apiError('Non authentifié', 401)
     }
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
     const updates: Record<string, unknown> = {}
 
     for (const [key, value] of Object.entries(body)) {
@@ -36,7 +39,7 @@ export async function PATCH(request: Request) {
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'Aucun champ valide à mettre à jour' }, { status: 400 })
+      return apiError('Aucun champ valide à mettre à jour')
     }
 
     const { data, error } = await supabase
@@ -48,13 +51,13 @@ export async function PATCH(request: Request) {
 
     if (error) {
       logger.error('Profile update error', { userId: user.id, error: error.message })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return apiError(error.message, 500)
     }
 
-    return NextResponse.json({ profile: data })
+    return apiResponse({ profile: data })
   } catch (err) {
     logger.error('[/api/profile/me] PATCH exception', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -64,7 +67,7 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié', userId: null }, { status: 401 })
+      return apiError('Non authentifié', 401)
     }
 
     const { data: profile, error: selErr } = await supabase
@@ -75,14 +78,14 @@ export async function GET() {
 
     if (selErr) {
       logger.error('Profile select error', { userId: user.id, error: selErr.message })
-      return NextResponse.json({ error: 'Erreur lors du chargement du profil', userId: user.id }, { status: 500 })
+      return apiError('Erreur lors du chargement du profil', 500)
     }
 
-    return NextResponse.json({ profile, userId: user.id }, {
-      headers: { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' },
-    })
+    const res = apiResponse({ profile, userId: user.id })
+    res.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+    return res
   } catch (err) {
     logger.error('[/api/profile/me] exception', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

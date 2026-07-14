@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import Image from 'next/image'
 import { Shield, Check, X } from 'lucide-react'
 import { FocusTrap } from '@/components/FocusTrap'
 
@@ -61,7 +62,7 @@ export default function ConsentDialog({
             <p className="text-sm text-secondary mb-3 leading-relaxed">{description}</p>
             {imageUrl && (
               <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-surface mb-3">
-                <img src={imageUrl} alt="Aperçu de la photo" className="w-full h-full object-cover" />
+                <Image src={imageUrl} alt="Aperçu de la photo" fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
               </div>
             )}
             <p className="text-xs text-muted bg-surface rounded-lg p-3 mb-5 leading-relaxed">

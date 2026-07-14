@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { adminPatchSchema } from '@/lib/validations'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 async function checkAdmin() {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ async function checkAdmin() {
 export async function GET(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
     const { searchParams } = new URL(request.url)
     const format = searchParams.get('format')
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
       })
     }
 
-    return NextResponse.json({
+    return apiResponse({
       totalGifts: totalGifts ?? 0,
       totalUsers: totalUsers ?? 0,
       pendingVerifs: pendingVerifs ?? 0,
@@ -52,26 +53,26 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     logger.error('Admin GET error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const check = await checkAdmin()
-    if (check.error) return NextResponse.json({ error: check.error }, { status: check.status })
+    if (check.error) return apiError(check.error, check.status)
 
     let patchBody: Record<string, unknown>
-    try { patchBody = await request.json() } catch { return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 }) }
+    try { patchBody = await request.json() } catch { return apiError('Corps de requête invalide', 400) }
     const parsed = adminPatchSchema.safeParse(patchBody)
-    if (!parsed.success) return NextResponse.json({ error: 'Paramètres invalides' }, { status: 400 })
+    if (!parsed.success) return apiError('Paramètres invalides', 400)
     const { txId, status } = parsed.data
 
     const admin = createAdminClient()
     const { error } = await admin.from('gift_transactions').update({ status }).eq('id', txId)
     if (error) {
       logger.error('Admin PATCH DB error', { error: error.message })
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      return apiServerError(error)
     }
 
     await admin.from('admin_activity_log').insert({
@@ -81,9 +82,9 @@ export async function PATCH(request: Request) {
       target_id: txId,
     })
 
-    return NextResponse.json({ success: true })
+    return apiResponse({ success: true })
   } catch (err) {
     logger.error('Admin PATCH error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

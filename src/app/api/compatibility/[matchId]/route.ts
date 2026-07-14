@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ensureCriteriaRegistered } from '@/lib/engine/compat-center/setup'
 import { computeCompatibility } from '@/lib/engine/compat-center/engine'
 import type { ProfileSnapshot } from '@/lib/engine/compat-center/types'
-import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function GET(
   _request: Request,
@@ -13,10 +12,10 @@ export async function GET(
   try {
     const { matchId } = await params
     const parsed = z.string().uuid().safeParse(matchId)
-    if (!parsed.success) return NextResponse.json({ error: 'ID de match invalide' }, { status: 400 })
+    if (!parsed.success) return apiError('ID de match invalide')
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { data: match } = await supabase
       .from('matches')
@@ -24,11 +23,11 @@ export async function GET(
       .eq('id', matchId)
       .maybeSingle()
 
-    if (!match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
+    if (!match) return apiError('Match introuvable', 404)
 
     const uid = user.id
     if (match.user1_id !== uid && match.user2_id !== uid) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+      return apiError('Non autorisé', 403)
     }
 
     const targetId = match.user1_id === uid ? match.user2_id : match.user1_id
@@ -46,7 +45,7 @@ export async function GET(
 
     const profiles = profilesResult.data
     if (!profiles || profiles.length < 2) {
-      return NextResponse.json({ error: 'Profils introuvables' }, { status: 404 })
+      return apiError('Profils introuvables', 404)
     }
 
     const myProfile = profiles.find(p => p.id === uid)!
@@ -77,11 +76,8 @@ export async function GET(
       userA, userB,
     )
 
-    return NextResponse.json(report, {
-      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=120' },
-    })
+    return apiResponse(report)
   } catch (err) {
-    logger.error('Compatibility API error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

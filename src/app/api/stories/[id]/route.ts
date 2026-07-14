@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getStoryById, deleteStory } from '@/lib/stories'
 import { z } from 'zod'
-import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 const uuidParam = z.string().uuid()
 
@@ -13,20 +13,19 @@ export async function GET(
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { id } = await params
     const idParsed = uuidParam.safeParse(id)
-    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
+    if (!idParsed.success) return apiError('ID invalide', 400)
     const { data, error } = await getStoryById(idParsed.data)
-    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
-    if (!data) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
-    return NextResponse.json({ story: data }, {
+    if (error) return apiError(String(error ?? 'Erreur'), 400)
+    if (!data) return apiError('Story introuvable', 404)
+    return NextResponse.json({ data: { story: data } }, {
       headers: { 'Cache-Control': 'private, s-maxage=15, stale-while-revalidate=30' },
     })
   } catch (err) {
-    logger.error('Get story error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }
 
@@ -37,20 +36,19 @@ export async function DELETE(
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const { id } = await params
     const idParsed = uuidParam.safeParse(id)
-    if (!idParsed.success) return NextResponse.json({ error: 'ID invalide' }, { status: 400 })
+    if (!idParsed.success) return apiError('ID invalide', 400)
     const { data: story } = await getStoryById(idParsed.data)
-    if (!story) return NextResponse.json({ error: 'Story introuvable' }, { status: 404 })
-    if (story.user_id !== user.id) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!story) return apiError('Story introuvable', 404)
+    if (story.user_id !== user.id) return apiError('Non autorisé', 403)
 
     const { error } = await deleteStory(idParsed.data)
-    if (error) return NextResponse.json({ error: String(error ?? 'Erreur') }, { status: 400 })
-    return NextResponse.json({ success: true })
+    if (error) return apiError(String(error ?? 'Erreur'), 400)
+    return apiResponse({ success: true })
   } catch (err) {
-    logger.error('Delete story error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

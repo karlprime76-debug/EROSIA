@@ -1,18 +1,21 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { behaviorSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
     const parsed = behaviorSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
+      return apiError('Données invalides')
     }
 
     const { action, targetId, metadata } = parsed.data
@@ -26,12 +29,12 @@ export async function POST(request: Request) {
 
     if (error) {
       logger.error('Failed to log behavior', { error: error.message, action, userId: user.id })
-      return NextResponse.json({ error: 'Erreur lors de l\'enregistrement' }, { status: 500 })
+      return apiError('Erreur lors de l\'enregistrement', 500)
     }
 
-    return NextResponse.json({ success: true })
+    return apiResponse({ success: true })
   } catch (err) {
     logger.error('Behavior POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

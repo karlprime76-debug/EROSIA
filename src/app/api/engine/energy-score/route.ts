@@ -1,14 +1,14 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { energyScoreEngine } from '@/lib/engine'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
     const admin = createAdminClient()
     const result = await energyScoreEngine.compute({ userId: user.id }, admin)
@@ -20,12 +20,12 @@ export async function POST() {
 
     if (updateError) {
       logger.error('Energy score update failed', { error: updateError.message, userId: user.id })
-      return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
+      return apiError('Erreur lors de la mise à jour', 500)
     }
 
-    return NextResponse.json({ score, factors: result.factors })
+    return apiResponse({ score, factors: result.factors })
   } catch (err) {
     logger.error('Energy score route error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

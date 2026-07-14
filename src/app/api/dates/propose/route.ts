@@ -1,20 +1,23 @@
-import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { proposeDateSchema } from '@/lib/validations'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!user) return apiError('Non authentifié', 401)
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try { body = await request.json() } catch {
+      return apiError('Corps de requête invalide')
+    }
     const parsed = proposeDateSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
 
     const { matchId, category, slots, location, note } = parsed.data
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
       .select('user1_id, user2_id')
       .eq('id', matchId)
       .maybeSingle()
-    if (matchErr || !match) return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
+    if (matchErr || !match) return apiError('Match introuvable', 404)
     const proposeeId = match.user1_id === user.id ? match.user2_id : match.user1_id
 
     const admin = createAdminClient()
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
       .single()
     if (insertErr) {
       logger.error('Failed to create planned_date', { error: insertErr.message })
-      return NextResponse.json({ error: 'Erreur lors de la création du rendez-vous' }, { status: 500 })
+      return apiError('Erreur lors de la création du rendez-vous', 500)
     }
 
     const slotRecords = slots.map(s => ({
@@ -55,12 +58,12 @@ export async function POST(request: Request) {
     if (slotsErr) {
       logger.error('Failed to insert date slots', { error: slotsErr.message })
       await admin.from('planned_dates').delete().eq('id', dateRecord.id)
-      return NextResponse.json({ error: 'Erreur lors de la création des créneaux' }, { status: 500 })
+      return apiError('Erreur lors de la création des créneaux', 500)
     }
 
-    return NextResponse.json({ data: dateRecord }, { status: 201 })
+    return apiResponse(dateRecord, 201)
   } catch (err) {
     logger.error('Date propose POST error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
+    return apiServerError(err)
   }
 }

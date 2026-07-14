@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { apiResponse, apiError, apiServerError } from '@/lib/api-response'
 const forgotSchema = z.object({
   email: z.string().email('Email invalide'),
 })
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const parsed = forgotSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]?.message ?? 'Données invalides'
-      return NextResponse.json({ error: firstError }, { status: 400 })
+      return apiError(firstError)
     }
 
     const supabase = await createClient()
@@ -23,12 +23,11 @@ export async function POST(request: Request) {
 
     if (error) {
       logger.error('Forgot password error', { error: error.message })
-      return NextResponse.json({ error: 'Erreur lors de l\'envoi du lien' }, { status: 500 })
+      return apiError('Erreur lors de l\'envoi du lien', 500)
     }
 
-    return NextResponse.json({ ok: true })
+    return apiResponse({ ok: true })
   } catch (err) {
-    logger.error('Forgot password route error', { error: String(err) })
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    return apiServerError(err)
   }
 }

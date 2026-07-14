@@ -26,7 +26,7 @@ async function assertMatchParticipant(matchId: string): Promise<{ userId?: strin
   return { userId }
 }
 
-const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood, subscription_tier'
+const PUBLIC_PROFILE_FIELDS = 'id, name, age, bio, occupation, location, photos, interests, is_verified, looking_for, created_at, gender, interested_in, mood, subscription_tier, video_url'
 
 async function attachScoresAndMood(profiles: Record<string, unknown>[] | null): Promise<Profile[] | null> {
   if (!profiles || profiles.length === 0) return profiles as Profile[] | null
@@ -153,7 +153,7 @@ export async function uploadPhoto(uri: File) {
     const res = await fetch('/api/profile/photos', { method: 'POST', body: formData })
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? "Erreur lors de l'upload" }
-    return { url: data.url, photos: data.photos }
+    return { url: data.data.url, photos: data.data.photos }
   } catch {
     return { error: 'Erreur réseau' }
   }
@@ -168,7 +168,7 @@ export async function deletePhoto(photoUrl: string) {
     })
     const data = await res.json()
     if (!res.ok) return { photos: null as unknown as string[], error: data.error ?? 'Erreur lors de la suppression' }
-    return { photos: data.photos, error: undefined }
+    return { photos: data.data.photos, error: undefined }
   } catch {
     return { error: 'Erreur réseau' }
   }
@@ -183,7 +183,7 @@ export async function setPrimaryPhoto(photoUrl: string) {
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? 'Erreur lors du changement de photo principale' }
-    return { photos: data.photos, error: undefined }
+    return { photos: data.data.photos, error: undefined }
   } catch {
     return { error: 'Erreur réseau' }
   }
@@ -442,8 +442,8 @@ export async function getCompatibilityReport(matchId: string) {
     const err = await res.json().catch(() => ({ error: 'Erreur réseau' }))
     return { data: null, error: err.error }
   }
-  const data = await res.json()
-  return { data, error: null }
+  const json = await res.json()
+  return { data: json.data, error: null }
 }
 
 // 9. Typing indicator (no SQL, uses Realtime channels)
@@ -457,8 +457,8 @@ export async function createCheckoutSession(plan: 'monthly' | 'yearly' = 'monthl
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error || 'Erreur de paiement' }
-    if (!data.url) return { error: 'URL de paiement manquante' }
-    return { url: data.url as string }
+    if (!data.data.url) return { error: 'URL de paiement manquante' }
+    return { url: data.data.url as string }
   } catch (err) {
     logger.error('createCheckoutSession error', { error: String(err) })
     return { error: 'Erreur réseau. Vérifie ta connexion.' }
@@ -705,7 +705,7 @@ export async function getAIIcebreaker(targetId: string) {
     })
     const json = await res.json()
     if (!res.ok) return { suggestion: null, error: json.error }
-    return { suggestion: json.suggestion as string, error: null }
+    return { suggestion: json.data.suggestion as string, error: null }
   } catch (err) {
     logger.error('getAIIcebreaker error', { error: String(err) })
     return { suggestion: null, error: 'Erreur réseau' }
@@ -721,7 +721,7 @@ export async function getMessageSuggestions(matchId: string): Promise<{ suggesti
     })
     const json = await res.json()
     if (!res.ok) return { suggestions: [], error: json.error }
-    return { suggestions: json.suggestions as string[] }
+    return { suggestions: json.data.suggestions as string[] }
   } catch (err) {
     logger.error('getMessageSuggestions error', { error: String(err) })
     return { suggestions: [], error: 'Erreur réseau' }
@@ -843,7 +843,7 @@ export async function createDiditSession(): Promise<{ url?: string; error?: stri
     const res = await fetch('/api/verify/didit', { method: 'POST' })
     const data = await res.json()
     if (!res.ok) return { error: data.error ?? 'Erreur lors de la création de la session' }
-    return { url: data.url }
+    return { url: data.data.url }
   } catch (err) {
     logger.error('createDiditSession error', { error: String(err) })
     return { error: 'Erreur réseau' }
@@ -893,9 +893,9 @@ export async function createCartCheckout(giftIds: string[], receiverId: string, 
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error || 'Erreur de paiement' }
-    if (data.sent) return { data: { sent: true as const }, error: null }
-    if (!data.url) return { error: 'URL de paiement manquante' }
-    return { data: { url: data.url as string }, error: null }
+    if (data.data.sent) return { data: { sent: true as const }, error: null }
+    if (!data.data.url) return { error: 'URL de paiement manquante' }
+    return { data: { url: data.data.url as string }, error: null }
   } catch (err) {
     logger.error('createCartCheckout error', { error: String(err) })
     return { error: 'Erreur réseau. Vérifie ta connexion.' }
@@ -936,7 +936,7 @@ export async function requestPayout(amountCents: number) {
   })
   const data = await res.json()
   if (!res.ok) return { error: data.error }
-  return { success: true, message: data.message }
+  return { success: true, message: data.data.message }
 }
 
 export async function getGiftTransactions() {

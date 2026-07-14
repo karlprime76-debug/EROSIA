@@ -61,6 +61,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     window.addEventListener('keydown', handler)
     return () => {
       window.removeEventListener('keydown', handler)
+      document.body.style.overflow = ''
       previousFocus?.focus()
     }
   }, [state])
