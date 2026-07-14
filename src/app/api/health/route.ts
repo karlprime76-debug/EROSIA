@@ -42,21 +42,12 @@ export async function GET() {
     checks.storage = { status: 'down', latency_ms: Date.now() - storageStart }
   }
 
-  const apiStart = Date.now()
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/api/health`, {
-      signal: AbortSignal.timeout(5000),
-    })
-    checks.api = { status: res.ok ? 'healthy' : 'degraded', latency_ms: Date.now() - apiStart }
-  } catch {
-    checks.api = { status: 'degraded', latency_ms: Date.now() - apiStart }
-  }
+  // L'API est saine puisqu'elle répond à cette requête
+  checks.api = { status: 'healthy', latency_ms: 0 }
 
   const overallStatus = Object.values(checks).every(c => c.status === 'healthy')
     ? 'healthy'
-    : Object.values(checks).some(c => c.status === 'down')
-      ? 'degraded'
-      : 'degraded'
+    : 'degraded'
 
   try {
     const admin = createAdminClient()
