@@ -59,7 +59,8 @@ CREATE POLICY "Users can read own achievements" ON user_achievements
 -- 4. Fix missing search_path on SECURITY DEFINER functions
 --    Only the most critical ones are fixed here (those identified in audit)
 -- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.get_compatibility(user_a uuid, user_b uuid)
+DROP FUNCTION IF EXISTS public.get_compatibility(uuid, uuid) CASCADE;
+CREATE FUNCTION public.get_compatibility(user_a uuid, user_b uuid)
 RETURNS real
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -340,7 +341,8 @@ END;
 $$;
 
 -- Fix mark_messages_read RPC
-CREATE OR REPLACE FUNCTION public.mark_messages_read(p_match_id uuid, p_reader_id uuid)
+DROP FUNCTION IF EXISTS public.mark_messages_read(uuid, uuid) CASCADE;
+CREATE FUNCTION public.mark_messages_read(p_match_id uuid, p_reader_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -353,7 +355,8 @@ END;
 $$;
 
 -- Fix get_unread_count RPC
-CREATE OR REPLACE FUNCTION public.get_unread_count(p_match_id uuid, p_user_id uuid)
+DROP FUNCTION IF EXISTS public.get_unread_count(uuid, uuid) CASCADE;
+CREATE FUNCTION public.get_unread_count(p_match_id uuid, p_user_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -368,7 +371,8 @@ END;
 $$;
 
 -- Fix is_blocked RPC
-CREATE OR REPLACE FUNCTION public.is_blocked(blocker_id uuid, blocked_id uuid)
+DROP FUNCTION IF EXISTS public.is_blocked(uuid, uuid) CASCADE;
+CREATE FUNCTION public.is_blocked(blocker_id uuid, blocked_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -383,7 +387,8 @@ END;
 $$;
 
 -- Fix get_blocked_ids RPC
-CREATE OR REPLACE FUNCTION public.get_blocked_ids(p_user_id uuid)
+DROP FUNCTION IF EXISTS public.get_blocked_ids(uuid) CASCADE;
+CREATE FUNCTION public.get_blocked_ids(p_user_id uuid)
 RETURNS SETOF uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
