@@ -69,15 +69,6 @@ export const createCheckoutSchema = z.object({
   plan: z.enum(['monthly', 'yearly']).optional(),
 })
 
-export const createGiftCheckoutSchema = z.object({
-  giftId: z.string().uuid(),
-  receiverId: z.string().uuid(),
-  matchId: z.string().uuid(),
-  message: z.string().max(500).optional(),
-  phone: z.string().optional(),
-  operator: z.string().optional(),
-})
-
 export const createCartCheckoutSchema = z.object({
   giftIds: z.array(z.string().uuid()).min(1, 'Au moins un cadeau requis'),
   receiverId: z.string().uuid(),

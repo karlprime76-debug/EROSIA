@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { FocusTrap } from '@/components/FocusTrap'
 import { logger } from '@/lib/logger'
-import { addToCart, getCart } from '@/lib/cart-storage'
+import { addToCart, getCart, type CartItem } from '@/lib/cart-storage'
 
 interface GiftItem { id: string; name: string; emoji: string; price_cents: number }
 
@@ -42,6 +42,7 @@ export default function GiftsPage() {
   const [showPaymentConfig, setShowPaymentConfig] = useState(false)
   const [showPayoutModal, setShowPayoutModal] = useState(false)
   const [payoutAmount, setPayoutAmount] = useState('')
+  const [cart, setCart] = useState<CartItem[]>(getCart)
 
   useEffect(() => {
     if (!showPayoutModal) return
@@ -52,7 +53,6 @@ export default function GiftsPage() {
   const [savingPayment, setSavingPayment] = useState(false)
 
   const countryOps = countries.find(c => c.code === payCountry)?.operators ?? []
-  const cart = getCart()
 
   useEffect(() => {
     if (searchParams.get('success') === '1') {
@@ -120,7 +120,7 @@ export default function GiftsPage() {
     <div className="bg-transparent flex-1 flex flex-col">
       <header className="px-5 pt-6 pb-2">
         <h2 className="text-3xl font-bold">Boutique</h2>
-        <p className="text-secondary text-sm mt-0.5">Cadeaux, abonnements et parrainage</p>
+        <p className="text-secondary text-sm mt-0.5">Cadeaux et parrainage</p>
       </header>
 
       <div className="flex gap-1.5 px-4 mt-3 overflow-x-auto">
@@ -258,7 +258,7 @@ export default function GiftsPage() {
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 {gifts.map(g => (
-                  <button type="button" key={g.id} onClick={() => { addToCart(g); toast(`${g.name} ajouté au panier`, 'success') }}
+                  <button type="button" key={g.id} onClick={() => { if (cart.some(c => c.id === g.id)) { toast('Déjà dans le panier', 'info'); return }; addToCart(g); setCart(getCart()); toast(`${g.name} ajouté au panier`, 'success') }}
                     className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-3 text-center transition-all duration-200 hover:scale-[1.03] active:scale-95">
                     <span className="text-3xl block mb-1">{g.emoji || '🎁'}</span>
                     <p className="text-[10px] font-medium truncate">{g.name}</p>
